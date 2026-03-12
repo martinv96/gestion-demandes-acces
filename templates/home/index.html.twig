@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tableau de bord{% endblock %}
+
+{% block body %}
+
+<div class="container mt-5">
+
+<h1 class="mb-2">Tableau de bord</h1>
+<p class="text-muted mb-4">Vue d'ensemble des demandes d'accès</p>
+
+<div class="row mb-4">
+
+{% for stat in stats %}
+<div class="col-md-4">
+<div class="card shadow-sm">
+<div class="card-body">
+
+<h6 class="text-muted">{{ stat.title }}</h6>
+<h2>{{ stat.value }}</h2>
+
+</div>
+</div>
+</div>
+{% endfor %}
+
+</div>
+
+<div class="card">
+
+<div class="card-header d-flex justify-content-between">
+
+<h5>Demandes récentes</h5>
+
+<a href="#" class="btn btn-outline-primary btn-sm">
+Voir toutes les demandes
+</a>
+
+</div>
+
+<div class="card-body">
+
+<table class="table">
+
+<thead>
+
+<tr>
+<th>N° Demande</th>
+<th>Agent</th>
+<th>Service</th>
+<th>Type</th>
+<th>Statut</th>
+<th>Date</th>
+<th></th>
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for request in recentRequests %}
+
+<tr>
+
+<td>{{ request.id }}</td>
+<td>{{ request.agent }}</td>
+<td>{{ request.service }}</td>
+<td>{{ request.type }}</td>
+<td>{{ request.statut }}</td>
+<td>{{ request.date }}</td>
+
+<td>
+<a href="#" class="btn btn-sm btn-outline-secondary">
+Voir
+</a>
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+{% endblock %}
