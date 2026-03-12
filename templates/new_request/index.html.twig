@@ -1,0 +1,164 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle demande{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+
+    <!-- Header -->
+    <div class="mb-4  flex-grow-1 d-flex flex-column">
+        <h1 class="h3 d-flex align-items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-file-plus" viewBox="0 0 16 16">
+                <path d="M8 6a.5.5 0 0 1 .5.5V8H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V9H6a.5.5 0 0 1 0-1h1.5V6.5A.5.5 0 0 1 8 6z"/>
+                <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h6.5L14 4.5zM13 4H9V0H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4z"/>
+            </svg>
+            Nouvelle demande d'accès
+        </h1>
+        <p class="text-muted">Créer une demande d'accès pour un agent</p>
+    </div>
+
+    <form method="post" class="flex-grow-1 d-flex flex-column">
+
+        <!-- Informations agent -->
+        <div class="card mb-4">
+            <div class="card-header">Informations agent</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="prenom" class="form-label">Prénom *</label>
+                        <input type="text" class="form-control" id="prenom" name="prenom" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="nom" class="form-label">Nom *</label>
+                        <input type="text" class="form-control" id="nom" name="nom" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">Email *</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="prenom.nom@mairie.fr" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="service" class="form-label">Service *</label>
+                        <select class="form-select" id="service" name="service" required>
+                            <option value="">Sélectionner un service</option>
+                            <option value="urbanisme">Service Urbanisme</option>
+                            <option value="finances">Service Finances</option>
+                            <option value="etat-civil">Service État Civil</option>
+                            <option value="technique">Service Technique</option>
+                            <option value="rh">Ressources Humaines</option>
+                            <option value="dsi">DSI</option>
+                            <option value="dg">Direction Générale</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="fonction" class="form-label">Fonction *</label>
+                        <input type="text" class="form-control" id="fonction" name="fonction" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="date_arrivee" class="form-label">Date d'arrivée *</label>
+                        <input type="date" class="form-control" id="date_arrivee" name="date_arrivee" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Type de demande -->
+        <div class="card mb-4">
+            <div class="card-header">Type de demande</div>
+            <div class="card-body">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="type" id="ouverture" value="ouverture" checked>
+                    <label class="form-check-label" for="ouverture">
+                        Ouverture - Nouveau collaborateur
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="type" id="modification" value="modification">
+                    <label class="form-check-label" for="modification">
+                        Modification - Changement de service ou fonction
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="type" id="fermeture" value="fermeture">
+                    <label class="form-check-label" for="fermeture">
+                        Fermeture - Départ du collaborateur
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logiciels (si pas fermeture) -->
+        <div class="card mb-4" id="logiciels-card">
+            <div class="card-header">Accès logiciels</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    {% set logiciels = ['ciril', 'ciril RH'] %}
+                    {% for logiciel in logiciels %}
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="logiciels[]" id="sw_{{ loop.index }}" value="{{ logiciel }}">
+                            <label class="form-check-label" for="sw_{{ loop.index }}">{{ logiciel }}</label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Matériel (si pas fermeture) -->
+        <div class="card mb-4" id="materiel-card">
+            <div class="card-header">Matériel</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    {% set materiels = ['clés','badge', 'ordinateur', 'véhicule', 'téléphone'] %}
+                    {% for mat in materiels %}
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="materiel[]" id="eq_{{ loop.index }}" value="{{ mat }}">
+                            <label class="form-check-label" for="eq_{{ loop.index }}">{{ mat }}</label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Commentaires -->
+        <div class="card mb-4">
+            <div class="card-header">Commentaires</div>
+            <div class="card-body">
+                <textarea class="form-control" name="commentaire" rows="4" placeholder="Informations complémentaires, besoins spécifiques..."></textarea>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="mb-5 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <img src="{{asset ('images/sauvegarder.png')}}" alt="save" style="width:20px;height:20px;object-fit:contain;">
+                Créer la demande
+            </button>
+            <a href="#" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    // Masquer logiciels/matériel si type fermeture
+    const radios = document.querySelectorAll('input[name="type"]');
+    const logicielsCard = document.getElementById('logiciels-card');
+    const materielCard = document.getElementById('materiel-card');
+
+    radios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if(this.value === 'fermeture') {
+                logicielsCard.style.display = 'none';
+                materielCard.style.display = 'none';
+            } else {
+                logicielsCard.style.display = 'block';
+                materielCard.style.display = 'block';
+            }
+        });
+    });
+</script>
+
+{% endblock %}
