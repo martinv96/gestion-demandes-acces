@@ -21,7 +21,25 @@ final class Version20260313104524 extends AbstractMigration
     {
         // this up() migration is auto-generated, please modify it to your needs
         $this->addSql('CREATE TABLE agent (id INT AUTO_INCREMENT NOT NULL, civility VARCHAR(100) NOT NULL, firstname VARCHAR(100) NOT NULL, lastname VARCHAR(100) NOT NULL, job_title VARCHAR(100) NOT NULL, service_id INT DEFAULT NULL, INDEX IDX_268B9C9DED5CA9E6 (service_id), PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');
-        $this->addSql('CREATE TABLE request (id INT AUTO_INCREMENT NOT NULL, type VARCHAR(150) NOT NULL, status VARCHAR(150) NOT NULL, arrival_date DATE NOT NULL, departure_date DATE DEFAULT NULL, commentary VARCHAR(255) NOT NULL, creation_date DATETIME NOT NULL, update_date DATETIME NOT NULL, agent_id INT DEFAULT NULL, author_id INT DEFAULT NULL, ressources_id INT DEFAULT NULL, INDEX IDX_3B978F9F3414710B (agent_id), INDEX IDX_3B978F9FF675F31B (author_id), INDEX IDX_3B978F9F3C361826 (ressources_id), PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');
+        
+        $this->addSql('CREATE TABLE request (
+        id INT AUTO_INCREMENT NOT NULL, 
+        type VARCHAR(150) NOT NULL, 
+        status VARCHAR(150) NOT NULL, 
+        arrival_date DATE NOT NULL, 
+        departure_date DATE DEFAULT NULL, 
+        commentary VARCHAR(255) NOT NULL, 
+        creation_date DATETIME NOT NULL, 
+        update_date DATETIME NOT NULL, 
+        agent_id INT DEFAULT NULL, 
+        author_id INT DEFAULT NULL, 
+        ressources_id INT DEFAULT NULL, 
+        INDEX IDX_3B978F9F3414710B (agent_id), 
+        INDEX IDX_3B978F9FF675F31B (author_id), 
+        INDEX IDX_3B978F9F3C361826 (ressources_id), 
+        PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4'
+        );
+        
         $this->addSql('CREATE TABLE ressource (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) NOT NULL, category VARCHAR(50) NOT NULL, is_active TINYINT NOT NULL, PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');
         $this->addSql('CREATE TABLE role (id INT AUTO_INCREMENT NOT NULL, label VARCHAR(100) NOT NULL, PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');
         $this->addSql('CREATE TABLE service (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) NOT NULL, email VARCHAR(100) NOT NULL, PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');

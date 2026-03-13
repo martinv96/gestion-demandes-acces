@@ -27,7 +27,7 @@ class Ressource
     /**
      * @var Collection<int, Request>
      */
-    #[ORM\OneToMany(targetEntity: Request::class, mappedBy: 'ressources')]
+    #[ORM\ManyToMany(targetEntity: Request::class, mappedBy: 'ressources')]
     private Collection $ressource_request;
 
     public function __construct()
@@ -88,7 +88,7 @@ class Ressource
     {
         if (!$this->ressource_request->contains($ressourceRequest)) {
             $this->ressource_request->add($ressourceRequest);
-            $ressourceRequest->setRessources($this);
+            $ressourceRequest->addRessource($this);
         }
 
         return $this;
@@ -97,10 +97,7 @@ class Ressource
     public function removeRessourceRequest(Request $ressourceRequest): static
     {
         if ($this->ressource_request->removeElement($ressourceRequest)) {
-            // set the owning side to null (unless already changed)
-            if ($ressourceRequest->getRessources() === $this) {
-                $ressourceRequest->setRessources(null);
-            }
+            $ressourceRequest->removeRessource($this);
         }
 
         return $this;

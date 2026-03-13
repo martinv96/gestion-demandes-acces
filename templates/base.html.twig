@@ -48,16 +48,20 @@
 
 				{# User section en bas #}
 				<div class="p-4 border-top">
-					<div class="mb-3 px-2">
-						<p class="text-sm fw-medium mb-0">Marie Dubois</p>
-						<p class="text-muted small mb-0">Ressources Humaines</p>
-					</div>
-					<form action="#" method="POST">
-						<button type="submit" class="btn btn-light w-100 d-flex align-items-center justify-content-center gap-2">
-							<img src="{{asset ('images/deconnexion.png')}}" alt="deconnexion" style="width:20px;height:20px;object-fit:contain;">
-							Déconnexion
-						</button>
-					</form>
+					{% if app.user %}
+						<div class="mb-3 px-2">
+							<p class="text-sm fw-medium mb-0">{{ app.user.firstname }} {{ app.user.lastname }}</p>
+							<p class="text-muted small mb-0">{{ app.user.email }}</p>
+						</div>
+						<form action="{{ path('app_logout') }}" method="POST">
+							<button type="submit" class="btn btn-light w-100 d-flex align-items-center justify-content-center gap-2">
+								<img src="{{asset ('images/deconnexion.png')}}" alt="deconnexion" style="width:20px;height:20px;object-fit:contain;">
+								Deconnexion
+							</button>
+						</form>
+					{% else %}
+						<a href="{{ path('app_login') }}" class="btn btn-primary w-100">Se connecter</a>
+					{% endif %}
 				</div>
 
 			</aside>

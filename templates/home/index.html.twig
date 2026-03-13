@@ -33,7 +33,7 @@
 
 				<h5>Demandes récentes</h5>
 
-				<a href="#" class="btn btn-outline-primary btn-sm">
+				<a href="{{ path('app_list_request') }}" class="btn btn-outline-primary btn-sm">
 					Voir toutes les demandes
 				</a>
 
@@ -63,21 +63,37 @@
 
 							<tr>
 
-								<td>{{ request.id }}</td>
-								<td>{{ request.agent }}</td>
-								<td>{{ request.service }}</td>
-								<td>{{ request.type }}</td>
-								<td>{{ request.statut }}</td>
-								<td>{{ request.date }}</td>
+								<td>#{{ request.id }}</td>
+								<td>
+									{% if request.agent %}
+										{{ request.agent.firstname }} {{ request.agent.lastname }}
+									{% else %}
+										-
+									{% endif %}
+								</td>
+								<td>
+									{% if request.agent and request.agent.service %}
+										{{ request.agent.service.name }}
+									{% else %}
+										-
+									{% endif %}
+								</td>
+								<td>{{ request.type|capitalize }}</td>
+								<td>{{ request.status|replace({'_': ' '})|capitalize }}</td>
+								<td>{{ request.creationDate ? request.creationDate|date('d/m/Y') : '-' }}</td>
 
 								<td>
-									<a href="#" class="btn btn-sm btn-outline-secondary">
+									<a href="{{ path('app_request_show', {id: request.id}) }}" class="btn btn-sm btn-outline-secondary">
 										Voir
 									</a>
 								</td>
 
 							</tr>
 
+						{% else %}
+							<tr>
+								<td colspan="7" class="text-center text-muted">Aucune demande recente</td>
+							</tr>
 						{% endfor %}
 
 					</tbody>

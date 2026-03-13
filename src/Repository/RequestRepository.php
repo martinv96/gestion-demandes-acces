@@ -16,6 +16,61 @@ class RequestRepository extends ServiceEntityRepository
         parent::__construct($registry, Request::class);
     }
 
+    /**
+     * @return list<Request>
+     */
+    public function findLatestWithRelations(int $limit = 100): array
+    {
+        /** @var list<Request> $results */
+        $results = $this->createQueryBuilder('r')
+            ->leftJoin('r.agent', 'a')->addSelect('a')
+            ->leftJoin('a.service', 's')->addSelect('s')
+            ->leftJoin('r.ressources', 're')->addSelect('re')
+            ->orderBy('r.creationDate', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        return $results;
+    }
+
+    public function countPendingRequests(): int
+    {
+        return (int) $this->createQueryBuilder('r')
+            ->select('COUNT(r.id)')
+            ->andWhere('r.status LIKE :pending')
+            ->setParameter('pending', 'en_attente%')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function countProcessedRequests(): int
+    {
+        return (int) $this->createQueryBuilder('r')
+            ->select('COUNT(r.id)')
+            ->andWhere('r.status IN (:statuses)')
+            ->setParameter('statuses', ['validee', 'traitee', 'terminee'])
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * @return list<Request>
+     */
+    public function findRecentForDashboard(int $limit = 5): array
+    {
+        /** @var list<Request> $results */
+        $results = $this->createQueryBuilder('r')
+            ->leftJoin('r.agent', 'a')->addSelect('a')
+            ->leftJoin('a.service', 's')->addSelect('s')
+            ->orderBy('r.creationDate', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        return $results;
+    }
+
     //    /**
     //     * @return Request[] Returns an array of Request objects
     //     */

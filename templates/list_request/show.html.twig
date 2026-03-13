@@ -1,0 +1,90 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Demande #{{ requestEntity.id }}{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Demande #{{ requestEntity.id }}</h1>
+            <p class="text-muted mb-0">Detail de la demande selectionnee</p>
+        </div>
+        <a href="{{ path('app_list_request') }}" class="btn btn-outline-secondary">Retour a la liste</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">Informations generales</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Type</dt>
+                        <dd class="col-sm-8 text-capitalize">{{ requestEntity.type }}</dd>
+
+                        <dt class="col-sm-4">Statut</dt>
+                        <dd class="col-sm-8">{{ requestEntity.status|replace({'_': ' '})|capitalize }}</dd>
+
+                        <dt class="col-sm-4">Arrivee</dt>
+                        <dd class="col-sm-8">{{ requestEntity.arrivalDate ? requestEntity.arrivalDate|date('d/m/Y') : '-' }}</dd>
+
+                        <dt class="col-sm-4">Depart</dt>
+                        <dd class="col-sm-8">{{ requestEntity.departureDate ? requestEntity.departureDate|date('d/m/Y') : '-' }}</dd>
+
+                        <dt class="col-sm-4">Creee le</dt>
+                        <dd class="col-sm-8">{{ requestEntity.creationDate ? requestEntity.creationDate|date('d/m/Y H:i') : '-' }}</dd>
+
+                        <dt class="col-sm-4">Mise a jour</dt>
+                        <dd class="col-sm-8">{{ requestEntity.updateDate ? requestEntity.updateDate|date('d/m/Y H:i') : '-' }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">Agent et service</div>
+                <div class="card-body">
+                    {% if requestEntity.agent %}
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Agent</dt>
+                            <dd class="col-sm-8">{{ requestEntity.agent.firstname }} {{ requestEntity.agent.lastname }}</dd>
+
+                            <dt class="col-sm-4">Fonction</dt>
+                            <dd class="col-sm-8">{{ requestEntity.agent.jobTitle ?: '-' }}</dd>
+
+                            <dt class="col-sm-4">Service</dt>
+                            <dd class="col-sm-8">{{ requestEntity.agent.service ? requestEntity.agent.service.name : '-' }}</dd>
+                        </dl>
+                    {% else %}
+                        <p class="text-muted mb-0">Aucun agent associe.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">Ressources associees</div>
+                <div class="card-body">
+                    {% if requestEntity.ressources|length > 0 %}
+                        {% for ressource in requestEntity.ressources %}
+                            <span class="badge rounded-pill text-bg-light border me-1 mb-1">{{ ressource.name }} ({{ ressource.category }})</span>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted mb-0">Aucune ressource associee.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">Commentaire</div>
+                <div class="card-body">
+                    <p class="mb-0">{{ requestEntity.commentary ?: 'Aucun commentaire.' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

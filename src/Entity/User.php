@@ -3,12 +3,16 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-class User
+#[UniqueEntity(fields: ['email'], message: 'Cet email est deja utilise.')]
+class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -21,20 +25,20 @@ class User
     #[ORM\Column(length: 100)]
     private ?string $lastname;
 
-    #[ORM\Column(length: 150)]
+    #[ORM\Column(length: 150, unique: true)]
     private ?string $email;
 
-    #[ORM\Column(length: 150)]
+    #[ORM\Column(length: 255)]
     private ?string $password;
 
     #[ORM\Column]
     private ?bool $isActive;
 
     #[ORM\ManyToOne(inversedBy: 'role_id')]
-    private ?role $role = null;
+    private ?Role $role = null;
 
     #[ORM\ManyToOne(inversedBy: 'service_id')]
-    private ?service $service = null;
+    private ?Service $service = null;
 
     /**
      * @var Collection<int, Request>
@@ -90,9 +94,14 @@ class User
 
     public function setEmail(string $email): static
     {
-        $this->email = $email;
+        $this->email = strtolower(trim($email));
 
         return $this;
+    }
+
+    public function getUserIdentifier(): string
+    {
+        return $this->email ?? '';
     }
 
     public function getPassword(): ?string
@@ -107,6 +116,28 @@ class User
         return $this;
     }
 
+    /**
+     * @return list<string>
+     */
+    public function getRoles(): array
+    {
+        $roles = ['ROLE_USER'];
+
+        if ($this->role instanceof Role && $this->role->getLabel() !== null) {
+            $roleFromDb = strtoupper(trim($this->role->getLabel()));
+            if ($roleFromDb !== '') {
+                $roles[] = str_starts_with($roleFromDb, 'ROLE_') ? $roleFromDb : sprintf('ROLE_%s', $roleFromDb);
+            }
+        }
+
+        return array_values(array_unique($roles));
+    }
+
+    public function eraseCredentials(): void
+    {
+        // Nothing to clear for now.
+    }
+
     public function isActive(): ?bool
     {
         return $this->isActive;
@@ -119,24 +150,24 @@ class User
         return $this;
     }
 
-    public function getRole(): ?role
+    public function getRole(): ?Role
     {
         return $this->role;
     }
 
-    public function setRole(?role $role): static
+    public function setRole(?Role $role): static
     {
         $this->role = $role;
 
         return $this;
     }
 
-    public function getService(): ?service
+    public function getService(): ?Service
     {
         return $this->service;
     }
 
-    public function setService(?service $service): static
+    public function setService(?Service $service): static
     {
         $this->service = $service;
 

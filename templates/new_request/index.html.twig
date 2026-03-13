@@ -5,6 +5,12 @@
 {% block body %}
 <div class="container-fluid">
 
+    {% if saved %}
+        <div class="alert alert-success" role="alert">
+            La demande a ete creee et les ressources selectionnees ont ete associees.
+        </div>
+    {% endif %}
+
     <!-- Header -->
     <div class="mb-4  flex-grow-1 d-flex flex-column">
         <h1 class="h3 d-flex align-items-center gap-2">

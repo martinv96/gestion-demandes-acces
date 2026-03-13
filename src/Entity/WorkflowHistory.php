@@ -26,10 +26,10 @@ class WorkflowHistory
     private ?\DateTime $date = null;
 
     #[ORM\ManyToOne(inversedBy: 'requestId')]
-    private ?request $request = null;
+    private ?Request $request = null;
 
     #[ORM\ManyToOne(inversedBy: 'userId')]
-    private ?user $user = null;
+    private ?User $user = null;
 
     public function getId(): ?int
     {
@@ -84,24 +84,24 @@ class WorkflowHistory
         return $this;
     }
 
-    public function getRequest(): ?request
+    public function getRequest(): ?Request
     {
         return $this->request;
     }
 
-    public function setRequest(?request $request): static
+    public function setRequest(?Request $request): static
     {
         $this->request = $request;
 
         return $this;
     }
 
-    public function getUser(): ?user
+    public function getUser(): ?User
     {
         return $this->user;
     }
 
-    public function setUser(?user $user): static
+    public function setUser(?User $user): static
     {
         $this->user = $user;
 

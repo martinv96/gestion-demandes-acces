@@ -38,13 +38,16 @@ class Request
     private ?\DateTime $updateDate = null;
 
     #[ORM\ManyToOne(inversedBy: 'agent_id')]
-    private ?agent $agent = null;
+    private ?Agent $agent = null;
 
     #[ORM\ManyToOne(inversedBy: 'author_id')]
-    private ?user $author = null;
+    private ?User $author = null;
 
-    #[ORM\ManyToOne(inversedBy: 'ressource_request')]
-    private ?Ressource $ressources = null;
+    /**
+     * @var Collection<int, Ressource>
+     */
+    #[ORM\ManyToMany(targetEntity: Ressource::class, inversedBy: 'ressource_request')]
+    private Collection $ressources;
 
     /**
      * @var Collection<int, WorkflowHistory>
@@ -54,6 +57,7 @@ class Request
 
     public function __construct()
     {
+        $this->ressources = new ArrayCollection();
         $this->requestId = new ArrayCollection();
     }
 
@@ -146,38 +150,50 @@ class Request
         return $this;
     }
 
-    public function getAgent(): ?agent
+    public function getAgent(): ?Agent
     {
         return $this->agent;
     }
 
-    public function setAgent(?agent $agent): static
+    public function setAgent(?Agent $agent): static
     {
         $this->agent = $agent;
 
         return $this;
     }
 
-    public function getAuthor(): ?user
+    public function getAuthor(): ?User
     {
         return $this->author;
     }
 
-    public function setAuthor(?user $author): static
+    public function setAuthor(?User $author): static
     {
         $this->author = $author;
 
         return $this;
     }
 
-    public function getRessources(): ?Ressource
+    /**
+     * @return Collection<int, Ressource>
+     */
+    public function getRessources(): Collection
     {
         return $this->ressources;
     }
 
-    public function setRessources(?Ressource $ressources): static
+    public function addRessource(Ressource $ressource): static
     {
-        $this->ressources = $ressources;
+        if (!$this->ressources->contains($ressource)) {
+            $this->ressources->add($ressource);
+        }
+
+        return $this;
+    }
+
+    public function removeRessource(Ressource $ressource): static
+    {
+        $this->ressources->removeElement($ressource);
 
         return $this;
     }

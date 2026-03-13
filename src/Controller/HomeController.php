@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Repository\RequestRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -9,53 +10,32 @@ use Symfony\Component\Routing\Attribute\Route;
 class HomeController extends AbstractController
 {
     #[Route('/', name: 'app_dashboard')]
-    public function dashboard(): Response
+    public function dashboard(RequestRepository $requestRepository): Response
     {
+        $pendingRequests = $requestRepository->countPendingRequests();
+        $processedRequests = $requestRepository->countProcessedRequests();
+        $totalRequests = $requestRepository->count([]);
+
         $stats = [
             [
-                "title" => "En attente validation technique",
-                "value" => 8
+                'title' => 'Demandes en attente',
+                'value' => $pendingRequests,
             ],
             [
-                "title" => "En attente validation DSI",
-                "value" => 5
+                'title' => 'Demandes traitees',
+                'value' => $processedRequests,
             ],
             [
-                "title" => "Demandes traitées",
-                "value" => 124
-            ]
+                'title' => 'Total des demandes',
+                'value' => $totalRequests,
+            ],
         ];
 
-        $recentRequests = [
-            [
-                "id" => "REQ-2026-042",
-                "agent" => "Sophie Martin",
-                "service" => "Service Urbanisme",
-                "type" => "Ouverture",
-                "statut" => "En attente validation service technique",
-                "date" => "12/03/2026"
-            ],
-            [
-                "id" => "REQ-2026-041",
-                "agent" => "Thomas Dubois",
-                "service" => "Service Finances",
-                "type" => "Modification",
-                "statut" => "En attente validation service informatique",
-                "date" => "11/03/2026"
-            ],
-            [
-                "id" => "REQ-2026-040",
-                "agent" => "Claire Bernard",
-                "service" => "Service État Civil",
-                "type" => "Ouverture",
-                "statut" => "Validée",
-                "date" => "10/03/2026"
-            ]
-        ];
+        $recentRequests = $requestRepository->findRecentForDashboard();
 
         return $this->render('home/index.html.twig', [
             'stats' => $stats,
-            'recentRequests' => $recentRequests
+            'recentRequests' => $recentRequests,
         ]);
     }
 }

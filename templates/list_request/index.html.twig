@@ -1,20 +1,80 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Hello ListRequestController!{% endblock %}
+{% block title %}Liste des demandes{% endblock %}
 
 {% block body %}
-<style>
-    .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
-    .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
-</style>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Demandes d'acces</h1>
+            <p class="text-muted mb-0">Suivi des demandes et des ressources associees</p>
+        </div>
+        <a href="{{ path('app_new_request') }}" class="btn btn-primary">Nouvelle demande</a>
+    </div>
 
-<div class="example-wrapper">
-    <h1>Hello {{ controller_name }}! ✅</h1>
-
-    This friendly message is coming from:
-    <ul>
-        <li>Your controller at <code>C:/Users/martin.vallee/Documents/projet-demande/gestion-demandes-acces/src/Controller/ListRequestController.php</code></li>
-        <li>Your template at <code>C:/Users/martin.vallee/Documents/projet-demande/gestion-demandes-acces/templates/list_request/index.html.twig</code></li>
-    </ul>
+    {% if requests is empty %}
+        <div class="alert alert-info" role="alert">
+            Aucune demande en base pour le moment.
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">ID</th>
+                            <th scope="col">Agent</th>
+                            <th scope="col">Service</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Statut</th>
+                            <th scope="col">Date arrivee</th>
+                            <th scope="col">Ressources</th>
+                            <th scope="col">Creee le</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in requests %}
+                            <tr>
+                                <td class="fw-semibold">#{{ request.id }}</td>
+                                <td>
+                                    {% if request.agent %}
+                                        {{ request.agent.firstname }} {{ request.agent.lastname }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if request.agent and request.agent.service %}
+                                        {{ request.agent.service.name }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-capitalize">{{ request.type }}</td>
+                                <td>
+                                    <span class="badge text-bg-secondary">{{ request.status|replace({'_': ' '}) }}</span>
+                                </td>
+                                <td>{{ request.arrivalDate ? request.arrivalDate|date('d/m/Y') : '-' }}</td>
+                                <td>
+                                    {% if request.ressources|length > 0 %}
+                                        {% for ressource in request.ressources %}
+                                            <span class="badge rounded-pill text-bg-light border me-1 mb-1">{{ ressource.name }}</span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">Aucune</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ request.creationDate ? request.creationDate|date('d/m/Y H:i') : '-' }}</td>
+                                <td class="text-end">
+                                    <a href="{{ path('app_request_show', {id: request.id}) }}" class="btn btn-sm btn-outline-secondary">Voir</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

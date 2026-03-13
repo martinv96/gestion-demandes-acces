@@ -28,7 +28,7 @@ class Agent
     private ?string $jobTitle;
 
     #[ORM\ManyToOne(inversedBy: 'serviceId')]
-    private ?service $service;
+    private ?Service $service;
 
     /**
      * @var Collection<int, Request>
@@ -94,12 +94,12 @@ class Agent
         return $this;
     }
 
-    public function getService(): ?service
+    public function getService(): ?Service
     {
         return $this->service;
     }
 
-    public function setService(?service $service): static
+    public function setService(?Service $service): static
     {
         $this->service = $service;
 
