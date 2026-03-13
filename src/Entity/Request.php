@@ -28,19 +28,21 @@ class Request
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
     private ?\DateTime $departureDate = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $commentary;
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $commentary = null;
 
-    #[ORM\Column]
-    private ?\DateTime $creationDate;
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    private ?\DateTimeImmutable $creationDate;
 
-    #[ORM\Column]
-    private ?\DateTime $updateDate = null;
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    private ?\DateTimeImmutable $updateDate = null;
 
     #[ORM\ManyToOne(inversedBy: 'agent_id')]
+    #[ORM\JoinColumn(nullable: false)]
     private ?Agent $agent = null;
 
     #[ORM\ManyToOne(inversedBy: 'author_id')]
+    #[ORM\JoinColumn(nullable: false)]
     private ?User $author = null;
 
     /**
@@ -126,24 +128,24 @@ class Request
         return $this;
     }
 
-    public function getCreationDate(): ?\DateTime
+    public function getCreationDate(): ?\DateTimeImmutable
     {
         return $this->creationDate;
     }
 
-    public function setCreationDate(\DateTime $creationDate): static
+    public function setCreationDate(\DateTimeImmutable $creationDate): static
     {
         $this->creationDate = $creationDate;
 
         return $this;
     }
 
-    public function getUpdateDate(): ?\DateTime
+    public function getUpdateDate(): ?\DateTimeImmutable
     {
         return $this->updateDate;
     }
 
-    public function setUpdateDate(\DateTime $updateDate): static
+    public function setUpdateDate(\DateTimeImmutable $updateDate): static
     {
         $this->updateDate = $updateDate;
 

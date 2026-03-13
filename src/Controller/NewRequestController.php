@@ -6,6 +6,7 @@ use App\Entity\Agent;
 use App\Entity\Request as AccessRequest;
 use App\Entity\Ressource;
 use App\Entity\Service;
+use App\Entity\User;
 use App\Repository\RessourceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -27,8 +28,14 @@ final class NewRequestController extends AbstractController
                 ->setType($type)
                 ->setStatus('en_attente')
                 ->setCommentary((string) $request->request->get('commentaire', ''))
-                ->setCreationDate(new \DateTime())
-                ->setUpdateDate(new \DateTime());
+                ->setCreationDate(new \DateTimeImmutable())
+                ->setUpdateDate(new \DateTimeImmutable());
+
+            $currentUser = $this->getUser();
+            if (!$currentUser instanceof User) {
+                throw $this->createAccessDeniedException('Utilisateur non authentifie.');
+            }
+            $newRequest->setAuthor($currentUser);
 
             $agent = new Agent();
             $agent

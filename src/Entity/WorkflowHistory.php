@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\WorkflowHistoryRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: WorkflowHistoryRepository::class)]
@@ -19,16 +20,18 @@ class WorkflowHistory
     #[ORM\Column(length: 255)]
     private ?string $newStatus;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: Types::TEXT)]
     private ?string $commentary;
 
-    #[ORM\Column]
-    private ?\DateTime $date = null;
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    private ?\DateTimeImmutable $date = null;
 
     #[ORM\ManyToOne(inversedBy: 'requestId')]
+    #[ORM\JoinColumn(nullable: false)]
     private ?Request $request = null;
 
     #[ORM\ManyToOne(inversedBy: 'userId')]
+    #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
     public function getId(): ?int
@@ -72,12 +75,12 @@ class WorkflowHistory
         return $this;
     }
 
-    public function getDate(): ?\DateTime
+    public function getDate(): ?\DateTimeImmutable
     {
         return $this->date;
     }
 
-    public function setDate(\DateTime $date): static
+    public function setDate(\DateTimeImmutable $date): static
     {
         $this->date = $date;
 

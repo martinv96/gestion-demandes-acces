@@ -1,0 +1,11 @@
+{
+  "files.exclude": {
+    "**/var/cache/**": true
+  },
+  "search.exclude": {
+    "**/var/cache/**": true
+  },
+  "intelephense.files.exclude": [
+    "**/var/cache/**"
+  ]
+}
