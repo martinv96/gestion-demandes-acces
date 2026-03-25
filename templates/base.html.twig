@@ -13,11 +13,11 @@
 	<body class="bg-light">
 
 		<div
-			class="d-flex min-vh-100">
+			class="app-shell d-flex min-vh-100">
 
 			{# SIDEBAR #}
 			<aside
-				class="bg-white border-end min-vh-100 d-flex flex-column justify-content-between" style="width:260px;">
+				class="app-sidebar bg-white border-end min-vh-100 d-flex flex-column justify-content-between" style="width:260px;">
 
 				{# Logo #}
 				<div class="p-4 border-bottom d-flex align-items-center gap-3">
@@ -48,7 +48,7 @@
 					</ul>
 				</nav>
 
-				{# User section en bas #}
+				{# User section (bas de page) #}
 				<div class="p-4 border-top">
 					{% if app.user %}
 						<div class="mb-3 px-2">
@@ -69,10 +69,9 @@
 			</aside>
 
 			{# CONTENU PRINCIPAL #}
-			<main class="flex-grow-1 p-4 d-flex flex-column">
+			<main class="app-main flex-grow-1 p-4 d-flex flex-column">
 				<div
 					class="flex-grow-1 d-flex flex-column">
-					{# <- nouveau wrapper #}
 				{% for type, messages in app.flashes(['success', 'warning', 'danger', 'info']) %}
 					{% for message in messages %}
 						<div class="alert alert-{{ type }} alert-dismissible fade show" role="alert">

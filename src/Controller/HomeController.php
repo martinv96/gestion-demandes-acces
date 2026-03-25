@@ -28,7 +28,7 @@ class HomeController extends AbstractController
                 'value' => $pendingRequests,
             ],
             [
-                'title' => 'Demandes traitees',
+                'title' => 'Demandes traitées',
                 'value' => $processedRequests,
             ],
             [

@@ -1,3 +1,16 @@
+.app-shell {
+    min-width: 0;
+}
+
+.app-sidebar {
+    flex: 0 0 260px;
+    min-width: 260px;
+}
+
+.app-main {
+    min-width: 0;
+}
+
 .nav-link {
     color: #495057; /* gris foncé Bootstrap par défaut */
 }
@@ -119,6 +132,32 @@
     }
 }
 
+/* boutons principaux */
+
+.btn-primary {
+    background-color: #F0F0F0;
+    border-color: #F0F0F0;
+    color: black;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-primary:hover {
+    background-color: #eaeaea;
+    border-color: #eaeaea;
+    color: black;
+}
+
+.btn-outline-primary.btn-sm {
+    border-color: #F0F0F0;
+    color: black;
+}
+
+.btn-outline-primary.btn-sm:hover {
+    background-color: #F0F0F0;
+    border-color: #F0F0F0;
+    color: black;
+}
+
 /* ── Boutons workflow bas de formulaire ── */
 .btn-workflow {
     min-width: 160px;
@@ -128,18 +167,6 @@
     border-radius: 6px;
     border: 1px solid #ced4da;
     transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.btn-workflow-active {
-    background-color: #ffffff;
-    border-color: #0d6efd;
-    color: #0d6efd;
-}
-
-.btn-workflow-active:hover {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-    color: #ffffff;
 }
 
 .btn-workflow-disabled {
