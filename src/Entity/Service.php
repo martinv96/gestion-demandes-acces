@@ -21,6 +21,9 @@ class Service
     #[ORM\Column(length: 100)]
     private ?string $email;
 
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $code = null;
+
     /**
      * @var Collection<int, User>
      */
@@ -64,6 +67,18 @@ class Service
     public function setEmail(string $email): static
     {
         $this->email = $email;
+
+        return $this;
+    }
+
+    public function getCode(): ?string
+    {
+        return $this->code;
+    }
+
+    public function setCode(?string $code): static
+    {
+        $this->code = $code !== '' ? $code : null;
 
         return $this;
     }

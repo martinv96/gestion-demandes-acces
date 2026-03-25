@@ -108,14 +108,15 @@
 				<div class="card-header">Accès logiciels</div>
 				<div class="card-body">
 					<div class="row g-2">
-						{% set logiciels = ['ciril', 'ciril RH'] %}
-						{% for logiciel in logiciels %}
+						{% for logiciel in availableLogiciels %}
 							<div class="col-md-6">
 								<div class="form-check">
-									<input class="form-check-input" type="checkbox" name="logiciels[]" id="sw_{{ loop.index }}" value="{{ logiciel }}">
-									<label class="form-check-label" for="sw_{{ loop.index }}">{{ logiciel }}</label>
+									<input class="form-check-input" type="checkbox" name="logiciels[]" id="sw_{{ loop.index }}" value="{{ logiciel.name }}">
+									<label class="form-check-label" for="sw_{{ loop.index }}">{{ logiciel.name }}</label>
 								</div>
 							</div>
+						{% else %}
+							<p class="text-muted mb-0">Aucun logiciel actif disponible.</p>
 						{% endfor %}
 					</div>
 				</div>
@@ -126,7 +127,7 @@
 				<div class="card-header">Matériel</div>
 				<div class="card-body">
 					<div class="row g-2">
-						{% set materiels = ['clés','badge', 'ordinateur', 'véhicule', 'téléphone'] %}
+						{% set materiels = ['Clés','Badge', 'Ordinateur', 'Véhicule', 'Téléphone'] %}
 						{% for mat in materiels %}
 							<div class="col-md-6">
 								<div class="form-check">
@@ -147,13 +148,23 @@
 				</div>
 			</div>
 
-			<!-- Actions -->
-			<div class="mb-5 d-flex gap-2">
-				<button type="submit" class="btn btn-primary">
-					<img src="{{asset ('images/sauvegarder.png')}}" alt="save" style="width:20px;height:20px;object-fit:contain;">
-					Créer la demande
-				</button>
-				<a href="#" class="btn btn-outline-secondary">Annuler</a>
+			<!-- Actions workflow -->
+			<div class="card mb-4">
+				<div class="card-body">
+					<div class="d-flex align-items-center gap-3 flex-wrap">
+						{% if is_granted('ROLE_RH') %}
+							<button type="submit" class="btn btn-workflow btn-workflow-active">Validation RH</button>
+						{% elseif is_granted('ROLE_ST') %}
+							<button type="submit" class="btn btn-workflow btn-workflow-active">Validation DGA-ST</button>
+						{% elseif is_granted('ROLE_DSI') %}
+							<button type="submit" class="btn btn-workflow btn-workflow-active">Validation DSI</button>
+						{% else %}
+							<button type="submit" class="btn btn-primary">Créer la demande</button>
+						{% endif %}
+
+						<a href="{{ path('app_list_request') }}" class="btn btn-outline-secondary ms-auto">Annuler</a>
+					</div>
+				</div>
 			</div>
 
 		</form>

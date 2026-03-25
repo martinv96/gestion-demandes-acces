@@ -26,7 +26,7 @@ final class NewRequestController extends AbstractController
 
             $newRequest
                 ->setType($type)
-                ->setStatus('en_attente')
+                ->setStatus('en_attente_rh')
                 ->setCommentary((string) $request->request->get('commentaire', ''))
                 ->setCreationDate(new \DateTimeImmutable())
                 ->setUpdateDate(new \DateTimeImmutable());
@@ -69,6 +69,7 @@ final class NewRequestController extends AbstractController
                 $logiciels = $request->request->all('logiciels');
                 foreach ($this->normalizeResourceNames($logiciels) as $logicielName) {
                     $ressource = $this->findOrCreateRessource($logicielName, 'logiciel', $ressourceRepository, $entityManager);
+                    $ressource->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
                     $newRequest->addRessource($ressource);
                 }
 
@@ -76,6 +77,7 @@ final class NewRequestController extends AbstractController
                 $materiels = $request->request->all('materiel');
                 foreach ($this->normalizeResourceNames($materiels) as $materielName) {
                     $ressource = $this->findOrCreateRessource($materielName, 'materiel', $ressourceRepository, $entityManager);
+                    $ressource->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
                     $newRequest->addRessource($ressource);
                 }
             }
@@ -89,6 +91,7 @@ final class NewRequestController extends AbstractController
         return $this->render('new_request/index.html.twig', [
             'controller_name' => 'NewRequestController',
             'saved' => $request->query->getBoolean('saved'),
+            'availableLogiciels' => $ressourceRepository->findBy(['category' => 'logiciel', 'isActive' => true], ['name' => 'ASC']),
         ]);
     }
 
@@ -107,6 +110,7 @@ final class NewRequestController extends AbstractController
         $ressource
             ->setName($name)
             ->setCategory($category)
+            ->setAssignmentStatus(Ressource::ASSIGNMENT_NON_ATTRIBUE)
             ->setIsActive(true);
 
         $entityManager->persist($ressource);

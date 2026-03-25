@@ -40,9 +40,11 @@
 						<li class="nav-item mb-2">
 							<a class="nav-link" href="{{ path('app_new_request') }}">Nouvelle demande</a>
 						</li>
+						{% if is_granted('ROLE_ADMIN') %}
 						<li class="nav-item mb-2">
-							<a class="nav-link" href="#">Administration</a>
+							<a class="nav-link" href="{{ path('app_admin_index') }}">Administrateur</a>
 						</li>
+						{% endif %}
 					</ul>
 				</nav>
 
@@ -71,6 +73,14 @@
 				<div
 					class="flex-grow-1 d-flex flex-column">
 					{# <- nouveau wrapper #}
+				{% for type, messages in app.flashes(['success', 'warning', 'danger', 'info']) %}
+					{% for message in messages %}
+						<div class="alert alert-{{ type }} alert-dismissible fade show" role="alert">
+							{{ message|raw }}
+							<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+						</div>
+					{% endfor %}
+				{% endfor %}
 					{% block body %}{% endblock %}
 				</div>
 			</main>

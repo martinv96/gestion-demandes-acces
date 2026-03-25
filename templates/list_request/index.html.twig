@@ -22,21 +22,20 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col">ID</th>
+                               <th scope="col">Référence</th>
                             <th scope="col">Agent</th>
                             <th scope="col">Service</th>
                             <th scope="col">Type</th>
                             <th scope="col">Statut</th>
-                            <th scope="col">Date arrivee</th>
-                            <th scope="col">Ressources</th>
-                            <th scope="col">Creee le</th>
+                            <th scope="col">Date arrivée</th>
+                            <th scope="col">Créée le</th>
                             <th scope="col"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for request in requests %}
                             <tr>
-                                <td class="fw-semibold">#{{ request.id }}</td>
+                                    <td class="fw-semibold">{{ 'REQ-%03d'|format(loop.index) }}</td>
                                 <td>
                                     {% if request.agent %}
                                         {{ request.agent.firstname }} {{ request.agent.lastname }}
@@ -53,18 +52,19 @@
                                 </td>
                                 <td class="text-capitalize">{{ request.type }}</td>
                                 <td>
-                                    <span class="badge text-bg-secondary">{{ request.status|replace({'_': ' '}) }}</span>
+                                    {% set statusMap = {
+                                        'en_attente_rh':  ['info',    'En attente RH'],
+                                        'en_attente_st':  ['warning', 'En attente DGA-ST'],
+                                        'en_attente_dsi': ['primary', 'En attente DSI'],
+                                        'traitee':        ['success', 'Traitée'],
+                                        'refusee_rh':     ['danger',  'Refusée RH'],
+                                        'refusee_st':     ['danger',  'Refusée DGA-ST'],
+                                        'refusee_dsi':    ['danger',  'Refusée DSI'],
+                                    } %}
+                                    {% set cfg = statusMap[request.status] ?? ['secondary', request.status|replace({'_': ' '})] %}
+                                    <span class="badge text-bg-{{ cfg[0] }}">{{ cfg[1] }}</span>
                                 </td>
                                 <td>{{ request.arrivalDate ? request.arrivalDate|date('d/m/Y') : '-' }}</td>
-                                <td>
-                                    {% if request.ressources|length > 0 %}
-                                        {% for ressource in request.ressources %}
-                                            <span class="badge rounded-pill text-bg-light border me-1 mb-1">{{ ressource.name }}</span>
-                                        {% endfor %}
-                                    {% else %}
-                                        <span class="text-muted">Aucune</span>
-                                    {% endif %}
-                                </td>
                                 <td>{{ request.creationDate ? request.creationDate|date('d/m/Y H:i') : '-' }}</td>
                                 <td class="text-end">
                                     <a href="{{ path('app_request_show', {id: request.id}) }}" class="btn btn-sm btn-outline-secondary">Voir</a>

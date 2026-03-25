@@ -71,6 +71,26 @@ class RequestRepository extends ServiceEntityRepository
         return $results;
     }
 
+    public function getDisplayNumber(Request $request): int
+    {
+        $createdAt = $request->getCreationDate();
+        $id = $request->getId();
+
+        if ($createdAt === null || $id === null) {
+            return 1;
+        }
+
+        $countNewer = (int) $this->createQueryBuilder('r')
+            ->select('COUNT(r.id)')
+            ->andWhere('r.creationDate > :createdAt OR (r.creationDate = :createdAt AND r.id > :id)')
+            ->setParameter('createdAt', $createdAt)
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $countNewer + 1;
+    }
+
     //    /**
     //     * @return Request[] Returns an array of Request objects
     //     */

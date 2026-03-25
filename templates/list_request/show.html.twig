@@ -1,47 +1,99 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Demande #{{ requestEntity.id }}{% endblock %}
+{% block title %}Demande {{ requestDisplayCode|default('REQ-001') }}{% endblock %}
+
+{# Macro: badge coloré selon statut #}
+{% macro statusBadge(status) %}
+    {% set map = {
+        'en_attente_rh':  ['info',     'En attente RH'],
+        'en_attente_st':  ['warning',  'En attente DGA-ST'],
+        'en_attente_dsi': ['primary',  'En attente DSI'],
+        'traitee':        ['success',  'Traitée'],
+        'refusee_rh':     ['danger',   'Refusée par RH'],
+        'refusee_st':     ['danger',   'Refusée par DGA-ST'],
+        'refusee_dsi':    ['danger',   'Refusée par DSI'],
+    } %}
+    {% set cfg = map[status] ?? ['secondary', status] %}
+    <span class="badge text-bg-{{ cfg[0] }}">{{ cfg[1] }}</span>
+{% endmacro %}
+
+{% import _self as macros %}
 
 {% block body %}
 <div class="container-fluid">
+
+    {% set history = requestEntity.requestId|sort((a, b) => a.date <=> b.date) %}
+    {% set createdAt = requestEntity.creationDate %}
+    {% set createdBy = requestEntity.author ? requestEntity.author.firstname ~ ' ' ~ requestEntity.author.lastname : 'Service RH' %}
+    {% set rhStepDone = requestEntity.status in ['en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'] %}
+    {% set stStepDone = requestEntity.status in ['en_attente_dsi', 'traitee', 'refusee_st', 'refusee_dsi'] %}
+    {% set dsiStepDone = requestEntity.status in ['traitee', 'refusee_dsi'] %}
+    {% set treatedStepDone = requestEntity.status == 'traitee' %}
+    {% set rhValidatedAt = null %}
+    {% set stValidatedAt = null %}
+    {% set dsiValidatedAt = null %}
+    {% set selectedSoftwareNames = requestEntity.ressources|filter(r => r.category == 'logiciel')|map(r => r.name) %}
+    {% set selectedMaterialNames = requestEntity.ressources|filter(r => r.category == 'materiel')|map(r => r.name) %}
+    {% set selectedMaterialNamesLower = selectedMaterialNames|map(name => name|lower) %}
+    {% set selectedServiceCode = currentServiceCode ? currentServiceCode|lower : '' %}
+    {% for entry in history %}
+        {% if entry.newStatus == 'en_attente_st' and rhValidatedAt is null %}
+            {% set rhValidatedAt = entry.date %}
+        {% endif %}
+        {% if entry.newStatus == 'en_attente_dsi' and stValidatedAt is null %}
+            {% set stValidatedAt = entry.date %}
+        {% endif %}
+        {% if entry.newStatus == 'traitee' and dsiValidatedAt is null %}
+            {% set dsiValidatedAt = entry.date %}
+        {% endif %}
+    {% endfor %}
+
+    {# En-tête #}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h3 mb-1">Demande #{{ requestEntity.id }}</h1>
-            <p class="text-muted mb-0">Detail de la demande selectionnee</p>
+            <h1 class="h3 mb-1">Demande {{ requestDisplayCode|default('REQ-001') }}</h1>
+            <p class="text-muted mb-0">
+                {{ macros.statusBadge(requestEntity.status) }}
+            </p>
         </div>
-        <a href="{{ path('app_list_request') }}" class="btn btn-outline-secondary">Retour a la liste</a>
+        <a href="{{ path('app_list_request') }}" class="btn btn-outline-secondary">Retour à la liste</a>
     </div>
 
-    <div class="row g-4">
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header">Informations generales</div>
+    <div class="row g-4 align-items-start request-detail-layout">
+        <div class="col-xl-8 col-xxl-9 order-2 order-xl-1">
+            <div class="row g-4">
+
+                {# Infos générales #}
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                <div class="card-header">Informations générales</div>
                 <div class="card-body">
                     <dl class="row mb-0">
                         <dt class="col-sm-4">Type</dt>
                         <dd class="col-sm-8 text-capitalize">{{ requestEntity.type }}</dd>
 
                         <dt class="col-sm-4">Statut</dt>
-                        <dd class="col-sm-8">{{ requestEntity.status|replace({'_': ' '})|capitalize }}</dd>
+                        <dd class="col-sm-8">{{ macros.statusBadge(requestEntity.status) }}</dd>
 
-                        <dt class="col-sm-4">Arrivee</dt>
+                        <dt class="col-sm-4">Arrivée</dt>
                         <dd class="col-sm-8">{{ requestEntity.arrivalDate ? requestEntity.arrivalDate|date('d/m/Y') : '-' }}</dd>
 
-                        <dt class="col-sm-4">Depart</dt>
+                        <dt class="col-sm-4">Départ</dt>
                         <dd class="col-sm-8">{{ requestEntity.departureDate ? requestEntity.departureDate|date('d/m/Y') : '-' }}</dd>
 
-                        <dt class="col-sm-4">Creee le</dt>
+                        <dt class="col-sm-4">Créée le</dt>
                         <dd class="col-sm-8">{{ requestEntity.creationDate ? requestEntity.creationDate|date('d/m/Y H:i') : '-' }}</dd>
 
-                        <dt class="col-sm-4">Mise a jour</dt>
+                        <dt class="col-sm-4">Mise à jour</dt>
                         <dd class="col-sm-8">{{ requestEntity.updateDate ? requestEntity.updateDate|date('d/m/Y H:i') : '-' }}</dd>
                     </dl>
                 </div>
             </div>
-        </div>
+                </div>
 
-        <div class="col-lg-6">
-            <div class="card h-100">
+                {# Agent et service #}
+                <div class="col-lg-6">
+                    <div class="card h-100">
                 <div class="card-header">Agent et service</div>
                 <div class="card-body">
                     {% if requestEntity.agent %}
@@ -56,35 +108,463 @@
                             <dd class="col-sm-8">{{ requestEntity.agent.service ? requestEntity.agent.service.name : '-' }}</dd>
                         </dl>
                     {% else %}
-                        <p class="text-muted mb-0">Aucun agent associe.</p>
+                        <p class="text-muted mb-0">Aucun agent associé.</p>
                     {% endif %}
                 </div>
             </div>
-        </div>
+                </div>
 
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">Ressources associees</div>
+                {# Ressources #}
+                <div class="col-12">
+                    <div class="card">
+                <div class="card-header">Ressources associées</div>
                 <div class="card-body">
                     {% if requestEntity.ressources|length > 0 %}
                         {% for ressource in requestEntity.ressources %}
-                            <span class="badge rounded-pill text-bg-light border me-1 mb-1">{{ ressource.name }} ({{ ressource.category }})</span>
+                            {% set assignmentLabels = {'attribue': 'Attribué', 'non_attribue': 'Non attribué'} %}
+                            <span class="badge rounded-pill text-bg-light border me-1 mb-1">
+                                {{ ressource.name }}
+                                <span class="text-muted">({{ ressource.category }}, {{ assignmentLabels[ressource.assignmentStatus] ?? ressource.assignmentStatus }})</span>
+                            </span>
                         {% endfor %}
                     {% else %}
-                        <p class="text-muted mb-0">Aucune ressource associee.</p>
+                        <p class="text-muted mb-0">Aucune ressource associée.</p>
                     {% endif %}
                 </div>
             </div>
-        </div>
+                </div>
 
-        <div class="col-12">
-            <div class="card">
+                {# Commentaire de la demande #}
+                <div class="col-12">
+                    <div class="card">
                 <div class="card-header">Commentaire</div>
                 <div class="card-body">
                     <p class="mb-0">{{ requestEntity.commentary ?: 'Aucun commentaire.' }}</p>
                 </div>
             </div>
+                </div>
+
+                {% if canEditRequestInfo %}
+                <div class="col-12">
+                    <div class="card border-warning-subtle">
+                        <div class="card-header">Modification des informations (RH)</div>
+                        <div class="card-body">
+                            <form method="post" action="{{ path('app_request_update_info', {id: requestEntity.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('request_edit_' ~ requestEntity.id) }}">
+
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="rh_edit_civilite" class="form-label">Civilité *</label>
+                                        <select class="form-select" id="rh_edit_civilite" name="civilite" required>
+                                            <option value="">Sélectionner une civilité</option>
+                                            <option value="M." {{ requestEntity.agent and requestEntity.agent.civility == 'M.' ? 'selected' : '' }}>M.</option>
+                                            <option value="Mme" {{ requestEntity.agent and requestEntity.agent.civility == 'Mme' ? 'selected' : '' }}>Mme</option>
+                                            <option value="Mlle" {{ requestEntity.agent and requestEntity.agent.civility == 'Mlle' ? 'selected' : '' }}>Mlle</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="rh_edit_prenom" class="form-label">Prénom agent</label>
+                                        <input type="text" class="form-control" id="rh_edit_prenom" name="prenom" value="{{ requestEntity.agent ? requestEntity.agent.firstname : '' }}" required>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="rh_edit_nom" class="form-label">Nom agent</label>
+                                        <input type="text" class="form-control" id="rh_edit_nom" name="nom" value="{{ requestEntity.agent ? requestEntity.agent.lastname : '' }}" required>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="rh_edit_service" class="form-label">Service *</label>
+                                        <select class="form-select" id="rh_edit_service" name="service" required>
+                                            <option value="">Sélectionner un service</option>
+                                            <option value="urbanisme" {{ selectedServiceCode == 'urbanisme' ? 'selected' : '' }}>Service Urbanisme</option>
+                                            <option value="finances" {{ selectedServiceCode == 'finances' ? 'selected' : '' }}>Service Finances</option>
+                                            <option value="etat-civil" {{ selectedServiceCode == 'etat-civil' ? 'selected' : '' }}>Service État Civil</option>
+                                            <option value="technique" {{ selectedServiceCode == 'technique' ? 'selected' : '' }}>Service Technique</option>
+                                            <option value="rh" {{ selectedServiceCode == 'rh' ? 'selected' : '' }}>Ressources Humaines</option>
+                                            <option value="dsi" {{ selectedServiceCode == 'dsi' ? 'selected' : '' }}>DSI</option>
+                                            <option value="dg" {{ selectedServiceCode == 'dg' ? 'selected' : '' }}>Direction Générale</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="rh_edit_fonction" class="form-label">Fonction</label>
+                                        <input type="text" class="form-control" id="rh_edit_fonction" name="fonction" value="{{ requestEntity.agent ? requestEntity.agent.jobTitle : '' }}" required>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="rh_edit_date_arrivee" class="form-label">Date d'arrivée *</label>
+                                        <input type="date" class="form-control" id="rh_edit_date_arrivee" name="date_arrivee" value="{{ requestEntity.arrivalDate ? requestEntity.arrivalDate|date('Y-m-d') : '' }}" required>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label for="rh_edit_date_depart" class="form-label">Date de départ</label>
+                                        <input type="date" class="form-control" id="rh_edit_date_depart" name="date_depart" value="{{ requestEntity.departureDate ? requestEntity.departureDate|date('Y-m-d') : '' }}">
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label">Type de demande</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="type" id="rh_edit_ouverture" value="ouverture" {{ requestEntity.type == 'ouverture' ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="rh_edit_ouverture">
+                                                Ouverture - Nouveau collaborateur
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="type" id="rh_edit_modification" value="modification" {{ requestEntity.type == 'modification' ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="rh_edit_modification">
+                                                Modification - Changement de service ou fonction
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="type" id="rh_edit_fermeture" value="fermeture" {{ requestEntity.type == 'fermeture' ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="rh_edit_fermeture">
+                                                Fermeture - Départ du collaborateur
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12" id="rh-edit-logiciels-card">
+                                        <label class="form-label">Accès logiciels</label>
+                                        <div class="row g-2">
+                                            {% for logiciel in availableLogiciels %}
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="logiciels[]" id="rh_edit_logiciel_{{ loop.index }}" value="{{ logiciel.name }}" {{ logiciel.name in selectedSoftwareNames ? 'checked' : '' }}>
+                                                        <label class="form-check-label" for="rh_edit_logiciel_{{ loop.index }}">{{ logiciel.name }}</label>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <p class="text-muted mb-0">Aucun logiciel actif disponible.</p>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12" id="rh-edit-materiel-card">
+                                        <label class="form-label">Matériel</label>
+                                        <div class="row g-2">
+                                            {% set materiels = ['Clés','Badge', 'Ordinateur', 'Véhicule', 'Téléphone'] %}
+                                            {% for mat in materiels %}
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="materiel[]" id="rh_edit_materiel_{{ loop.index }}" value="{{ mat }}" {{ mat|lower in selectedMaterialNamesLower ? 'checked' : '' }}>
+                                                        <label class="form-check-label" for="rh_edit_materiel_{{ loop.index }}">{{ mat }}</label>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label for="rh_edit_commentaire" class="form-label">Commentaire demande</label>
+                                        <textarea class="form-control" id="rh_edit_commentaire" name="commentaire" rows="3">{{ requestEntity.commentary ?: '' }}</textarea>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <button type="submit" class="btn btn-warning">Enregistrer les modifications RH</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {# Historique du workflow #}
+                <div class="col-12">
+                    <div class="card">
+                <div class="card-header">Historique des validations</div>
+                <div class="card-body">
+                    {% if history|length > 0 %}
+                        <ul class="list-group list-group-flush history-list">
+                        {% for entry in history %}
+                            {% set isRefusal = entry.newStatus starts with 'refusee_' %}
+                            {% set isReturnAfterRefusal =
+                                (entry.oldStatus == 'en_attente_st' and entry.newStatus == 'en_attente_rh')
+                                or (entry.oldStatus == 'en_attente_dsi' and entry.newStatus == 'en_attente_st')
+                            %}
+                            {% set eventType = isRefusal ? 'refusal' : (isReturnAfterRefusal ? 'return' : 'validation') %}
+                            {% set eventLabel = isRefusal ? 'Refus' : (isReturnAfterRefusal ? 'Retour' : 'Validation') %}
+                            {% set eventIcon = isRefusal ? '✕' : (isReturnAfterRefusal ? '↺' : '✓') %}
+                            <li class="list-group-item history-item px-0">
+                                <div class="history-item-top">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <span class="history-event-pill history-event-{{ eventType }}">
+                                            <span class="history-event-icon">{{ eventIcon }}</span>
+                                            {{ eventLabel }}
+                                        </span>
+                                        <span class="history-actor fw-semibold">
+                                            {% if entry.user %}
+                                                {{ entry.user.firstname }} {{ entry.user.lastname }}
+                                            {% else %}
+                                                Système
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <span class="history-date">
+                                        {{ entry.date ? entry.date|date('d/m/Y H:i') : '-' }}
+                                    </span>
+                                </div>
+
+                                <div class="history-transition mt-2">
+                                    {{ macros.statusBadge(entry.oldStatus) }}
+                                    <span class="history-arrow">→</span>
+                                    {{ macros.statusBadge(entry.newStatus) }}
+                                </div>
+
+                                {% if entry.commentary %}
+                                    <p class="history-comment mt-2 mb-0">{{ entry.commentary }}</p>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">Aucune action enregistrée.</p>
+                    {% endif %}
+                </div>
+            </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-xxl-3 order-1 order-xl-2">
+            <aside class="validation-journey-card card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <p class="validation-journey-eyebrow mb-1">Suivi</p>
+                            <h2 class="h5 mb-0">Parcours de validation</h2>
+                        </div>
+                        {{ macros.statusBadge(requestEntity.status) }}
+                    </div>
+
+                    <ol class="validation-timeline list-unstyled mb-0">
+                        <li class="validation-step is-complete">
+                            <span class="validation-step-marker"></span>
+                            <div class="validation-step-content">
+                                <p class="validation-step-title mb-1">Demande créée</p>
+                                <p class="validation-step-meta mb-0">
+                                    Par {{ createdBy }}
+                                    {% if createdAt %}
+                                        le {{ createdAt|date('d/m/Y') }}
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </li>
+
+                        <li class="validation-step {{ requestEntity.status == 'refusee_rh' ? 'is-refused' : (rhStepDone ? 'is-complete' : 'is-current') }}">
+                            <span class="validation-step-marker"></span>
+                            <div class="validation-step-content">
+                                <p class="validation-step-title mb-1">Validation RH</p>
+                                <p class="validation-step-meta mb-0">
+                                    {% if rhValidatedAt %}
+                                        Validée le {{ rhValidatedAt|date('d/m/Y') }}
+                                    {% elseif requestEntity.status == 'refusee_rh' %}
+                                        Refusée par le service RH
+                                    {% else %}
+                                        Étape en cours
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </li>
+
+                        <li class="validation-step {{ requestEntity.status == 'refusee_st' ? 'is-refused' : (stStepDone ? 'is-complete' : (rhStepDone ? 'is-current' : 'is-pending')) }}">
+                            <span class="validation-step-marker"></span>
+                            <div class="validation-step-content">
+                                <p class="validation-step-title mb-1">Validation DGA-ST</p>
+                                <p class="validation-step-meta mb-0">
+                                    {% if stValidatedAt %}
+                                        Validée le {{ stValidatedAt|date('d/m/Y') }}
+                                    {% elseif requestEntity.status == 'refusee_st' %}
+                                        Refusée, en attente de reprise RH
+                                    {% elseif not rhStepDone %}
+                                        En attente de la validation RH
+                                    {% else %}
+                                        Étape en cours
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </li>
+
+                        <li class="validation-step {{ requestEntity.status == 'refusee_dsi' ? 'is-refused' : (dsiStepDone ? 'is-complete' : (stStepDone ? 'is-current' : 'is-pending')) }}">
+                            <span class="validation-step-marker"></span>
+                            <div class="validation-step-content">
+                                <p class="validation-step-title mb-1">Validation DSI</p>
+                                <p class="validation-step-meta mb-0">
+                                    {% if dsiValidatedAt %}
+                                        Validée le {{ dsiValidatedAt|date('d/m/Y') }}
+                                    {% elseif requestEntity.status == 'refusee_dsi' %}
+                                        Refusée, retour demandé au DGA-ST
+                                    {% elseif stStepDone %}
+                                        Étape en cours
+                                    {% else %}
+                                        En attente de la validation DGA-ST
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </li>
+
+                        <li class="validation-step {{ treatedStepDone ? 'is-complete' : 'is-pending' }}">
+                            <span class="validation-step-marker"></span>
+                            <div class="validation-step-content">
+                                <p class="validation-step-title mb-1">Demande traitée</p>
+                                <p class="validation-step-meta mb-0">
+                                    {% if treatedStepDone and requestEntity.updateDate %}
+                                        Finalisée le {{ requestEntity.updateDate|date('d/m/Y') }}
+                                    {% else %}
+                                        En attente de la validation finale
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+            </aside>
+        </div>
+
+    </div>
+
+    {# Actions workflow en bas de page #}
+    {% if canValidate or canRefuse %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 bg-light" id="workflowActionsCard">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-3 align-items-start" id="workflowActionButtons">
+                        {% if canValidate %}
+                        <div data-workflow-action="validate">
+                            <button class="btn btn-success" type="button" data-workflow-open="validate">
+                                ✓ Valider la demande
+                            </button>
+                        </div>
+                        {% endif %}
+
+                        {% if canRefuse %}
+                        <div data-workflow-action="refuse">
+                            <button class="btn btn-danger" type="button" data-workflow-open="refuse">
+                                ✕ Refuser la demande
+                            </button>
+                        </div>
+                        {% endif %}
+
+                    </div>
+
+                    {% if canValidate %}
+                    <div class="mt-3 d-none" data-workflow-panel="validate">
+                        <form method="post" action="{{ path('app_request_validate', {id: requestEntity.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('workflow_' ~ requestEntity.id) }}">
+                            <div class="mb-2">
+                                <label class="form-label fw-semibold">Commentaire obligatoire *</label>
+                                <textarea name="comment" class="form-control" rows="3"
+                                    placeholder="Indiquer un commentaire de validation..." required></textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-success">Confirmer la validation</button>
+                                <button type="button" class="btn btn-outline-secondary" data-workflow-cancel>Annuler</button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+
+                    {% if canRefuse %}
+                    <div class="mt-3 d-none" data-workflow-panel="refuse">
+                        <form method="post" action="{{ path('app_request_refuse', {id: requestEntity.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('workflow_' ~ requestEntity.id) }}">
+                            <div class="mb-2">
+                                <label class="form-label fw-semibold">Commentaire obligatoire *</label>
+                                <textarea name="comment" class="form-control" rows="3"
+                                    placeholder="Indiquer la raison du refus..." required></textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-danger">Confirmer le refus</button>
+                                <button type="button" class="btn btn-outline-secondary" data-workflow-cancel>Annuler</button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
+    {% endif %}
+
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var actionButtons = Array.from(document.querySelectorAll('[data-workflow-action]'));
+    var panels = Array.from(document.querySelectorAll('[data-workflow-panel]'));
+    var openButtons = Array.from(document.querySelectorAll('[data-workflow-open]'));
+    var cancelButtons = Array.from(document.querySelectorAll('[data-workflow-cancel]'));
+
+    if (panels.length > 0) {
+        function closeAllPanels() {
+            panels.forEach(function (panel) {
+                panel.classList.add('d-none');
+            });
+
+            actionButtons.forEach(function (actionBlock) {
+                actionBlock.classList.remove('d-none');
+            });
+        }
+
+        function openPanel(target) {
+            closeAllPanels();
+
+            var panel = document.querySelector('[data-workflow-panel="' + target + '"]');
+            if (panel) {
+                panel.classList.remove('d-none');
+            }
+
+            actionButtons.forEach(function (actionBlock) {
+                if (actionBlock.getAttribute('data-workflow-action') !== target) {
+                    actionBlock.classList.add('d-none');
+                }
+            });
+        }
+
+        openButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                openPanel(button.getAttribute('data-workflow-open'));
+            });
+        });
+
+        cancelButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                closeAllPanels();
+            });
+        });
+    }
+
+    var rhTypeRadios = Array.from(document.querySelectorAll('input[name="type"]'));
+    var rhLogicielsCard = document.getElementById('rh-edit-logiciels-card');
+    var rhMaterielCard = document.getElementById('rh-edit-materiel-card');
+
+    function toggleRhResourcesByType() {
+        var selectedType = null;
+        rhTypeRadios.forEach(function (radio) {
+            if (radio.checked) {
+                selectedType = radio.value;
+            }
+        });
+
+        if (!rhLogicielsCard || !rhMaterielCard) {
+            return;
+        }
+
+        var isFermeture = selectedType === 'fermeture';
+        rhLogicielsCard.style.display = isFermeture ? 'none' : 'block';
+        rhMaterielCard.style.display = isFermeture ? 'none' : 'block';
+    }
+
+    if (rhTypeRadios.length > 0) {
+        rhTypeRadios.forEach(function (radio) {
+            radio.addEventListener('change', toggleRhResourcesByType);
+        });
+        toggleRhResourcesByType();
+    }
+});
+</script>
 {% endblock %}

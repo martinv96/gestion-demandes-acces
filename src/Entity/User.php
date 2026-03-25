@@ -34,6 +34,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?bool $isActive;
 
+    #[ORM\Column]
+    private bool $mustChangePassword = false;
+
     #[ORM\ManyToOne(inversedBy: 'role_id')]
     private ?Role $role = null;
 
@@ -123,10 +126,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $roles = ['ROLE_USER'];
 
+        // Rôle d'accès (ADMIN, USER…)
         if ($this->role instanceof Role && $this->role->getLabel() !== null) {
             $roleFromDb = strtoupper(trim($this->role->getLabel()));
             if ($roleFromDb !== '') {
                 $roles[] = str_starts_with($roleFromDb, 'ROLE_') ? $roleFromDb : sprintf('ROLE_%s', $roleFromDb);
+            }
+        }
+
+        // Rôle workflow dérivé du code du service (RH, ST, DSI…)
+        if ($this->service instanceof Service && $this->service->getCode() !== null) {
+            $serviceCode = strtoupper(trim($this->service->getCode()));
+            if ($serviceCode !== '') {
+                $roles[] = sprintf('ROLE_%s', $serviceCode);
             }
         }
 
@@ -146,6 +158,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setIsActive(bool $isActive): static
     {
         $this->isActive = $isActive;
+
+        return $this;
+    }
+
+    public function isMustChangePassword(): bool
+    {
+        return $this->mustChangePassword;
+    }
+
+    public function setMustChangePassword(bool $mustChangePassword): static
+    {
+        $this->mustChangePassword = $mustChangePassword;
 
         return $this;
     }

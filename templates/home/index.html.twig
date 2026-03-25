@@ -63,7 +63,7 @@
 
 							<tr>
 
-								<td>#{{ request.id }}</td>
+								<td>{{ 'REQ-%03d'|format(loop.index) }}</td>
 								<td>
 									{% if request.agent %}
 										{{ request.agent.firstname }} {{ request.agent.lastname }}
@@ -79,7 +79,18 @@
 									{% endif %}
 								</td>
 								<td>{{ request.type|capitalize }}</td>
-								<td>{{ request.status|replace({'_': ' '})|capitalize }}</td>
+								<td>
+									{% set statusMap = {
+										'en_attente_rh':  'En attente RH',
+										'en_attente_st':  'En attente DGA-ST',
+										'en_attente_dsi': 'En attente DSI',
+										'traitee':        'Traitée',
+										'refusee_rh':     'Refusée RH',
+										'refusee_st':     'Refusée DGA-ST',
+										'refusee_dsi':    'Refusée DSI'
+									} %}
+									{{ statusMap[request.status] ?? request.status|replace({'_': ' '}) }}
+								</td>
 								<td>{{ request.creationDate ? request.creationDate|date('d/m/Y') : '-' }}</td>
 
 								<td>

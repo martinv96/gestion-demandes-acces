@@ -5,3 +5,338 @@
 .nav-link:hover {
     color: #212529; /* un peu plus foncé au survol */
 }
+
+.request-detail-layout {
+    align-items: flex-start;
+}
+
+.validation-journey-card {
+    position: sticky;
+    top: 1.5rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.validation-journey-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6c757d;
+}
+
+.validation-timeline {
+    position: relative;
+    margin: 0;
+    padding: 0;
+}
+
+.validation-timeline::before {
+    content: "";
+    position: absolute;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    left: 0.625rem;
+    width: 2px;
+    background: #d9dee5;
+}
+
+.validation-step {
+    position: relative;
+    display: flex;
+    gap: 1rem;
+    padding: 0 0 1.5rem;
+}
+
+.validation-step:last-child {
+    padding-bottom: 0;
+}
+
+.validation-step-marker {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.125rem;
+    border-radius: 50%;
+    border: 2px solid #ced4da;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px #f8fafc;
+    top:0.5rem;
+}
+
+.validation-step-content {
+    min-width: 0;
+}
+
+.validation-step-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.validation-step-meta {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: #6b7280;
+}
+
+.validation-step.is-complete .validation-step-marker {
+    border-color: #2fb344;
+    background: #2fb344;
+}
+
+.validation-step.is-complete .validation-step-marker::after {
+    content: "";
+    position: absolute;
+    left: 0.35rem;
+    top: 0.15rem;
+    width: 0.3rem;
+    height: 0.55rem;
+    border: solid #ffffff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.validation-step.is-current .validation-step-marker {
+    border-color: #0d6efd;
+    background: #dbeafe;
+}
+
+.validation-step.is-refused .validation-step-marker {
+    border-color: #f59f00;
+    background: #f59f00;
+}
+
+.validation-step.is-pending .validation-step-marker {
+    background: #ffffff;
+    border-color: #d0d7de;
+}
+
+@media (max-width: 1199.98px) {
+    .validation-journey-card {
+        position: static;
+    }
+}
+
+/* ── Boutons workflow bas de formulaire ── */
+.btn-workflow {
+    min-width: 160px;
+    padding: 0.55rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-workflow-active {
+    background-color: #ffffff;
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+.btn-workflow-active:hover {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #ffffff;
+}
+
+.btn-workflow-disabled {
+    background-color: #f1f3f5;
+    border-color: #dee2e6;
+    color: #adb5bd;
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+/* ── Pages admin ── */
+.admin-tabs {
+    border-bottom: 1px solid #e5e7eb;
+    gap: 0;
+}
+
+.admin-tab-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-bottom: none;
+    padding: 0.45rem 1.1rem;
+    font-size: 0.9rem;
+    color: #6b7280;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    margin-bottom: -1px;
+    transition: color 0.15s ease;
+}
+
+.admin-tab-btn:hover {
+    color: #1f2937;
+}
+
+.admin-tab-btn.active {
+    background: #ffffff;
+    border-color: #e5e7eb;
+    border-bottom-color: #ffffff;
+    color: #1f2937;
+    font-weight: 500;
+}
+
+.admin-table thead th {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0.75rem 1rem;
+    background: none;
+}
+
+.admin-table tbody td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.admin-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 0.25rem 0.4rem;
+    color: #9ca3af;
+    border-radius: 4px;
+    transition: color 0.15s ease, background-color 0.15s ease;
+    line-height: 1;
+}
+
+.btn-icon:hover {
+    color: #374151;
+    background-color: #f3f4f6;
+}
+
+.btn-icon.text-danger:hover {
+    color: #dc3545 !important;
+    background-color: #fef2f2;
+}
+
+.admin-badge-btn {
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0.3em 0.65em;
+    transition: opacity 0.15s ease;
+}
+
+.admin-badge-btn:hover {
+    opacity: 0.8;
+}
+
+.admin-modal .modal-header {
+    padding: 1.25rem 1.5rem 0.75rem;
+}
+
+.admin-modal .modal-body {
+    padding: 0.75rem 1.5rem;
+}
+
+.admin-modal .modal-footer {
+    padding: 0.75rem 1.5rem 1.25rem;
+}
+
+/* ── Historique workflow ── */
+.history-list .history-item {
+    border-bottom: 1px solid #eef2f7;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+}
+
+.history-list .history-item:last-child {
+    border-bottom: 0;
+}
+
+.history-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.history-actor {
+    color: #1f2937;
+}
+
+.history-date {
+    font-size: 0.78rem;
+    color: #475569;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    padding: 0.15rem 0.5rem;
+    white-space: nowrap;
+}
+
+.history-event-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-radius: 999px;
+    padding: 0.16rem 0.55rem;
+    border: 1px solid transparent;
+}
+
+.history-event-icon {
+    font-size: 0.82rem;
+    line-height: 1;
+}
+
+.history-event-validation {
+    color: #166534;
+    background: #ecfdf3;
+    border-color: #bbf7d0;
+}
+
+.history-event-refusal {
+    color: #9a3412;
+    background: #fff7ed;
+    border-color: #fed7aa;
+}
+
+.history-event-return {
+    color: #334155;
+    background: #f8fafc;
+    border-color: #dbe4ee;
+}
+
+.history-transition {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 8px;
+    padding: 0.35rem 0.55rem;
+}
+
+.history-arrow {
+    color: #64748b;
+    font-weight: 600;
+}
+
+.history-comment {
+    color: #334155;
+    font-size: 0.86rem;
+    background: #f9fcff;
+    border-radius: 6px;
+    padding: 0.45rem 0.6rem;
+}
+
+.history-transition .badge {
+    background: #eef2f7 !important;
+    color: #334155 !important;
+    border: 1px solid #dbe4ee;
+}

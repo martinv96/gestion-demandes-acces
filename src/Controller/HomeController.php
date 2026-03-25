@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\User;
 use App\Repository\RequestRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,6 +13,11 @@ class HomeController extends AbstractController
     #[Route('/', name: 'app_dashboard')]
     public function dashboard(RequestRepository $requestRepository): Response
     {
+        $user = $this->getUser();
+        if ($user instanceof User && $user->isMustChangePassword()) {
+            return $this->redirectToRoute('app_force_change_password');
+        }
+
         $pendingRequests = $requestRepository->countPendingRequests();
         $processedRequests = $requestRepository->countProcessedRequests();
         $totalRequests = $requestRepository->count([]);

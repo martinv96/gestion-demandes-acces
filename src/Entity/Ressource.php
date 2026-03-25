@@ -10,6 +10,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: RessourceRepository::class)]
 class Ressource
 {
+    public const ASSIGNMENT_ATTRIBUE = 'attribue';
+    public const ASSIGNMENT_NON_ATTRIBUE = 'non_attribue';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -23,6 +26,9 @@ class Ressource
 
     #[ORM\Column]
     private ?bool $isActive;
+
+    #[ORM\Column(length: 30)]
+    private string $assignmentStatus = self::ASSIGNMENT_NON_ATTRIBUE;
 
     /**
      * @var Collection<int, Request>
@@ -74,6 +80,26 @@ class Ressource
         $this->isActive = $isActive;
 
         return $this;
+    }
+
+    public function getAssignmentStatus(): string
+    {
+        return $this->assignmentStatus;
+    }
+
+    public function setAssignmentStatus(string $assignmentStatus): static
+    {
+        $this->assignmentStatus = $assignmentStatus;
+
+        return $this;
+    }
+
+    public static function getAssignmentStatusLabels(): array
+    {
+        return [
+            self::ASSIGNMENT_ATTRIBUE => 'Attribué',
+            self::ASSIGNMENT_NON_ATTRIBUE => 'Non attribué',
+        ];
     }
 
     /**
