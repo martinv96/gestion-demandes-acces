@@ -1,0 +1,76 @@
+/* Pages admin */
+
+.admin-tabs {
+    border-bottom: 1px solid #e5e7eb;
+    gap: 0;
+}
+
+.admin-tab-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-bottom: none;
+    padding: 0.45rem 1.1rem;
+    font-size: 0.9rem;
+    color: #6b7280;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    margin-bottom: -1px;
+    transition: color 0.15s ease;
+}
+
+.admin-tab-btn:hover {
+    color: #1f2937;
+}
+
+.admin-tab-btn.active {
+    background: #ffffff;
+    border-color: #e5e7eb;
+    border-bottom-color: #ffffff;
+    color: #1f2937;
+    font-weight: 500;
+}
+
+.admin-table thead th {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0.75rem 1rem;
+    background: none;
+}
+
+.admin-table tbody td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.admin-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.admin-badge-btn {
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0.3em 0.65em;
+    transition: opacity 0.15s ease;
+}
+
+.admin-badge-btn:hover {
+    opacity: 0.8;
+}
+
+.admin-modal .modal-header {
+    padding: 1.25rem 1.5rem 0.75rem;
+}
+
+.admin-modal .modal-body {
+    padding: 0.75rem 1.5rem;
+}
+
+.admin-modal .modal-footer {
+    padding: 0.75rem 1.5rem 1.25rem;
+}

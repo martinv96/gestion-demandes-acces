@@ -1,0 +1,18 @@
+/* Layout principal */
+
+.app-shell {
+    min-width: 0;
+}
+
+.app-sidebar {
+    flex: 0 0 260px;
+    min-width: 260px;
+}
+
+.app-main {
+    min-width: 0;
+}
+
+.request-detail-layout {
+    align-items: flex-start;
+}

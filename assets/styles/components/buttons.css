@@ -1,0 +1,65 @@
+/* Boutons */
+
+.btn-primary {
+    background-color: #F0F0F0;
+    border-color: #F0F0F0;
+    color: black;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-primary:hover {
+    background-color: #eaeaea;
+    border-color: #eaeaea;
+    color: black;
+}
+
+.btn-outline-primary.btn-sm {
+    border-color: #F0F0F0;
+    color: black;
+}
+
+.btn-outline-primary.btn-sm:hover {
+    background-color: #F0F0F0;
+    border-color: #F0F0F0;
+    color: black;
+}
+
+/* Boutons workflow bas de formulaire */
+.btn-workflow {
+    min-width: 160px;
+    padding: 0.55rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-workflow-disabled {
+    background-color: #f1f3f5;
+    border-color: #dee2e6;
+    color: #adb5bd;
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+/* Boutons icône */
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 0.25rem 0.4rem;
+    color: #9ca3af;
+    border-radius: 4px;
+    transition: color 0.15s ease, background-color 0.15s ease;
+    line-height: 1;
+}
+
+.btn-icon:hover {
+    color: #374151;
+    background-color: #f3f4f6;
+}
+
+.btn-icon.text-danger:hover {
+    color: #dc3545 !important;
+    background-color: #fef2f2;
+}

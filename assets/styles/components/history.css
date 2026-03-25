@@ -1,0 +1,95 @@
+/* Historique workflow */
+
+.history-list .history-item {
+    border-bottom: 1px solid #eef2f7;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+}
+
+.history-list .history-item:last-child {
+    border-bottom: 0;
+}
+
+.history-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.history-actor {
+    color: #1f2937;
+}
+
+.history-date {
+    font-size: 0.78rem;
+    color: #475569;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    padding: 0.15rem 0.5rem;
+    white-space: nowrap;
+}
+
+.history-event-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-radius: 999px;
+    padding: 0.16rem 0.55rem;
+    border: 1px solid transparent;
+}
+
+.history-event-icon {
+    font-size: 0.82rem;
+    line-height: 1;
+}
+
+.history-event-validation {
+    color: #166534;
+    background: #ecfdf3;
+    border-color: #bbf7d0;
+}
+
+.history-event-refusal {
+    color: #9a3412;
+    background: #fff7ed;
+    border-color: #fed7aa;
+}
+
+.history-event-return {
+    color: #334155;
+    background: #f8fafc;
+    border-color: #dbe4ee;
+}
+
+.history-transition {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 8px;
+    padding: 0.35rem 0.55rem;
+}
+
+.history-arrow {
+    color: #64748b;
+    font-weight: 600;
+}
+
+.history-comment {
+    color: #334155;
+    font-size: 0.86rem;
+    background: #f9fcff;
+    border-radius: 6px;
+    padding: 0.45rem 0.6rem;
+}
+
+.history-transition .badge {
+    background: #eef2f7 !important;
+    color: #334155 !important;
+    border: 1px solid #dbe4ee;
+}
