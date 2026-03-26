@@ -10,6 +10,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class HomeController extends AbstractController
 {
+    // route pour la page d'accueil / dashboard
     #[Route('/', name: 'app_dashboard')]
     public function dashboard(RequestRepository $requestRepository): Response
     {
@@ -26,14 +27,17 @@ class HomeController extends AbstractController
             [
                 'title' => 'Demandes en attente',
                 'value' => $pendingRequests,
+                'icon' => 'images/logoEnCours.png',
             ],
             [
                 'title' => 'Demandes traitées',
                 'value' => $processedRequests,
+                'icon' => 'images/logoTraité.png',
             ],
             [
                 'title' => 'Total des demandes',
                 'value' => $totalRequests,
+                'icon' => 'images/logoTotaux.png',
             ],
         ];
 

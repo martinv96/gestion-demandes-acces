@@ -13,72 +13,67 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use App\Form\Model\NewRequestData;
+use App\Form\NewRequestType;
 
 final class NewRequestController extends AbstractController
 {
+    // route pour créer une nouvelle demande d'accès
     #[Route('/new/request', name: 'app_new_request', methods: ['GET', 'POST'])]
-    public function index(Request $request, EntityManagerInterface $entityManager, RessourceRepository $ressourceRepository): Response
+    public function index(Request $request, EntityManagerInterface $entityManager): Response
     {
-        if ($request->isMethod('POST')) {
-            $type = (string) $request->request->get('type', 'ouverture');
+        $formData = new \App\Form\Model\NewRequestData();
+        $form = $this->createForm(\App\Form\NewRequestType::class, $formData);
 
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
             $newRequest = new AccessRequest();
 
             $newRequest
-                ->setType($type)
+                ->setType($formData->getType() ?? 'ouverture')
                 ->setStatus('en_attente_rh')
-                ->setCommentary((string) $request->request->get('commentaire', ''))
+                ->setCommentary($formData->getCommentary())
                 ->setCreationDate(new \DateTimeImmutable())
                 ->setUpdateDate(new \DateTimeImmutable());
 
             $currentUser = $this->getUser();
             if (!$currentUser instanceof User) {
-                throw $this->createAccessDeniedException('Utilisateur non authentifie.');
+                throw $this->createAccessDeniedException('Utilisateur non authentifié.');
             }
+
             $newRequest->setAuthor($currentUser);
 
             $agent = new Agent();
             $agent
-                ->setCivility('N/A')
-                ->setFirstname((string) $request->request->get('prenom', ''))
-                ->setLastname((string) $request->request->get('nom', ''))
-                ->setJobTitle((string) $request->request->get('fonction', ''));
-
-            $serviceCode = (string) $request->request->get('service', '');
-            if ($serviceCode !== '') {
-                $agent->setService($this->findOrCreateService($serviceCode, $entityManager));
-            }
+                ->setCivility($formData->getCivility() ?? 'N/A')
+                ->setFirstname($formData->getFirstname() ?? '')
+                ->setLastname($formData->getLastname() ?? '')
+                ->setJobTitle($formData->getJobTitle() ?? '')
+                ->setService($formData->getService());
 
             $entityManager->persist($agent);
             $newRequest->setAgent($agent);
 
-            $arrivalDate = $request->request->get('date_arrivee');
-            if (is_string($arrivalDate) && $arrivalDate !== '') {
-                $newRequest->setArrivalDate(new \DateTime($arrivalDate));
+            if ($formData->getArrivalDate() instanceof \DateTime) {
+                $newRequest->setArrivalDate($formData->getArrivalDate());
             } else {
                 $newRequest->setArrivalDate(new \DateTime());
             }
 
-            $departureDate = $request->request->get('date_depart');
-            if (is_string($departureDate) && $departureDate !== '') {
-                $newRequest->setDepartureDate(new \DateTime($departureDate));
+            if ($formData->getDepartureDate() instanceof \DateTime) {
+                $newRequest->setDepartureDate($formData->getDepartureDate());
             }
 
-            if ($type !== 'fermeture') {
-                /** @var array<string> $logiciels */
-                $logiciels = $request->request->all('logiciels');
-                foreach ($this->normalizeResourceNames($logiciels) as $logicielName) {
-                    $ressource = $this->findOrCreateRessource($logicielName, 'logiciel', $ressourceRepository, $entityManager);
-                    $ressource->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
-                    $newRequest->addRessource($ressource);
+            if (($formData->getType() ?? 'ouverture') !== 'fermeture') {
+                foreach ($formData->getLogiciels() as $logiciel) {
+                    $logiciel->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
+                    $newRequest->addRessource($logiciel);
                 }
 
-                /** @var array<string> $materiels */
-                $materiels = $request->request->all('materiel');
-                foreach ($this->normalizeResourceNames($materiels) as $materielName) {
-                    $ressource = $this->findOrCreateRessource($materielName, 'materiel', $ressourceRepository, $entityManager);
-                    $ressource->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
-                    $newRequest->addRessource($ressource);
+                foreach ($formData->getMateriels() as $materiel) {
+                    $materiel->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
+                    $newRequest->addRessource($materiel);
                 }
             }
 
@@ -91,7 +86,7 @@ final class NewRequestController extends AbstractController
         return $this->render('new_request/index.html.twig', [
             'controller_name' => 'NewRequestController',
             'saved' => $request->query->getBoolean('saved'),
-            'availableLogiciels' => $ressourceRepository->findBy(['category' => 'logiciel', 'isActive' => true], ['name' => 'ASC']),
+            'form' => $form->createView(),
         ]);
     }
 
@@ -163,6 +158,7 @@ final class NewRequestController extends AbstractController
         return $service;
     }
 
+    // Méthode pour mapper les codes de service aux labels affichés dans le formulaire
     private function mapServiceCodeToLabel(string $serviceCode): string
     {
         return match ($serviceCode) {

@@ -1,0 +1,13 @@
+.dashboard-stat-body {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.dashboard-stat-icon {
+	width: 40px;
+	height: 40px;
+	object-fit: contain;
+	flex-shrink: 0;
+}

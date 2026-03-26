@@ -8,15 +8,19 @@ use App\Entity\Service;
 use App\Entity\User;
 use App\Repository\RessourceRepository;
 use App\Repository\RequestRepository;
+use App\Repository\ServiceRepository;
 use App\Service\WorkflowService;
+use App\Security\Voter\RequestVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
+
 final class ListRequestController extends AbstractController
 {
+    // route pour afficher la liste des demandes
     #[Route('/list/request', name: 'app_list_request', methods: ['GET'])]
     public function index(RequestRepository $requestRepository): Response
     {
@@ -27,33 +31,39 @@ final class ListRequestController extends AbstractController
         ]);
     }
 
+    // route pour afficher les détails d'une demande
     #[Route('/request/{id}', name: 'app_request_show', methods: ['GET'], requirements: ['id' => '\\d+'])]
     public function show(
         AccessRequest $requestEntity,
         WorkflowService $workflowService,
         RequestRepository $requestRepository,
-        RessourceRepository $ressourceRepository
-    ): Response
-    {
+        RessourceRepository $ressourceRepository,
+        ServiceRepository $serviceRepository
+    ): Response {
         $user = $this->getUser();
         $displayNumber = $requestRepository->getDisplayNumber($requestEntity);
-        $canEditRequestInfo = $user instanceof User
-            && in_array('ROLE_RH', $user->getRoles(), true)
-            && $this->canEditAfterRefusal($requestEntity);
+        $canEditRequestInfo = $this->isGranted(RequestVoter::EDIT_INFO, $requestEntity);
 
         return $this->render('list_request/show.html.twig', [
             'requestEntity' => $requestEntity,
             'requestDisplayCode' => sprintf('REQ-%03d', $displayNumber),
-            'canValidate'   => $user instanceof User && $workflowService->canValidate($requestEntity, $user),
-            'canRefuse'     => $user instanceof User && $workflowService->canRefuse($requestEntity, $user),
+            'canValidate'   => $this->isGranted(RequestVoter::VALIDATE, $requestEntity),
+            'canRefuse'     => $this->isGranted(RequestVoter::REFUSE, $requestEntity),
             'canEditRequestInfo' => $canEditRequestInfo,
-            'currentServiceCode' => $this->resolveServiceCode($requestEntity->getAgent()?->getService()),
+            'selectedServiceId' => $requestEntity->getAgent()?->getService()?->getId(),
+            'availableServices' => $canEditRequestInfo
+                ? $serviceRepository->findBy([], ['name' => 'ASC'])
+                : [],
             'availableLogiciels' => $canEditRequestInfo
                 ? $ressourceRepository->findBy(['category' => 'logiciel', 'isActive' => true], ['name' => 'ASC'])
+                : [],
+            'availableMateriels' => $canEditRequestInfo
+                ? $ressourceRepository->findBy(['category' => 'materiel', 'isActive' => true], ['name' => 'ASC'])
                 : [],
         ]);
     }
 
+    // route pour valider une demande
     #[Route('/request/{id}/validate', name: 'app_request_validate', methods: ['POST'], requirements: ['id' => '\\d+'])]
     public function validate(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService): Response
     {
@@ -63,6 +73,8 @@ final class ListRequestController extends AbstractController
         if (!$user instanceof User) {
             throw $this->createAccessDeniedException();
         }
+
+        $this->denyAccessUnlessGranted(RequestVoter::VALIDATE, $requestEntity);
 
         if (!$this->isCsrfTokenValid('workflow_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
             $this->addFlash('danger', 'Token de sécurité invalide.');
@@ -82,6 +94,7 @@ final class ListRequestController extends AbstractController
         return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
     }
 
+    // route pour refuser une demande
     #[Route('/request/{id}/refuse', name: 'app_request_refuse', methods: ['POST'], requirements: ['id' => '\\d+'])]
     public function refuse(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService): Response
     {
@@ -91,6 +104,8 @@ final class ListRequestController extends AbstractController
         if (!$user instanceof User) {
             throw $this->createAccessDeniedException();
         }
+
+        $this->denyAccessUnlessGranted(RequestVoter::REFUSE, $requestEntity);
 
         if (!$this->isCsrfTokenValid('workflow_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
             $this->addFlash('danger', 'Token de sécurité invalide.');
@@ -110,13 +125,13 @@ final class ListRequestController extends AbstractController
         return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
     }
 
+    // route pour modifier les informations d'une demande (après refus RH ou pour corriger une erreur)
     #[Route('/request/{id}/update-info', name: 'app_request_update_info', methods: ['POST'], requirements: ['id' => '\\d+'])]
     public function updateInfo(
         AccessRequest $requestEntity,
         Request $httpRequest,
         EntityManagerInterface $entityManager
-    ): Response
-    {
+    ): Response {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
         $user = $this->getUser();
@@ -124,13 +139,7 @@ final class ListRequestController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        if (!in_array('ROLE_RH', $user->getRoles(), true)) {
-            throw $this->createAccessDeniedException('Seul le RH peut modifier les informations de la demande.');
-        }
-
-        if (!$this->canEditAfterRefusal($requestEntity)) {
-            throw $this->createAccessDeniedException('La modification RH est disponible uniquement après un refus.');
-        }
+        $this->denyAccessUnlessGranted(RequestVoter::EDIT_INFO, $requestEntity);
 
         if (!$this->isCsrfTokenValid('request_edit_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
             $this->addFlash('danger', 'Token de sécurité invalide.');
@@ -157,9 +166,13 @@ final class ListRequestController extends AbstractController
                 ->setLastname((string) $httpRequest->request->get('nom', $agent->getLastname() ?? ''))
                 ->setJobTitle((string) $httpRequest->request->get('fonction', $agent->getJobTitle() ?? ''));
 
-            $serviceCode = (string) $httpRequest->request->get('service', '');
-            if ($serviceCode !== '') {
-                $agent->setService($this->findOrCreateService($serviceCode, $entityManager));
+            $serviceId = (int) $httpRequest->request->get('service', 0);
+            if ($serviceId > 0) {
+                $service = $entityManager->getRepository(Service::class)->find($serviceId);
+                if (!$service instanceof Service) {
+                    throw new \InvalidArgumentException('Service invalide.');
+                }
+                $agent->setService($service);
             }
 
             $arrivalDate = (string) $httpRequest->request->get('date_arrivee', '');
@@ -194,17 +207,23 @@ final class ListRequestController extends AbstractController
                 }
             }
 
+            // Si la demande était refusée par RH, la repasser à "en_attente_rh" après modification
+            if ($requestEntity->getStatus() === 'refusee_rh') {
+                $requestEntity->setStatus('en_attente_rh');
+            }
+
             $requestEntity->setUpdateDate(new \DateTimeImmutable());
 
             $entityManager->flush();
             $this->addFlash('success', 'Les informations de la demande ont été mises à jour.');
-        } catch (\InvalidArgumentException|\LogicException $e) {
+        } catch (\InvalidArgumentException | \LogicException $e) {
             $this->addFlash('danger', $e->getMessage());
         }
 
         return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
     }
 
+    // Méthode utilitaire pour trouver ou créer une ressource
     private function findOrCreateRessource(
         string $name,
         string $category,
@@ -233,6 +252,7 @@ final class ListRequestController extends AbstractController
      *
      * @return array<string>
      */
+    // Méthode utilitaire pour normaliser les noms de ressources (trim, unique, etc.)
     private function normalizeResourceNames(array $rawNames): array
     {
         $normalized = [];
@@ -253,96 +273,4 @@ final class ListRequestController extends AbstractController
         return array_values(array_unique($normalized));
     }
 
-    private function findOrCreateService(string $serviceCode, EntityManagerInterface $entityManager): Service
-    {
-        $serviceCode = strtolower(trim($serviceCode));
-        $serviceName = $this->mapServiceCodeToLabel($serviceCode);
-
-        /** @var Service|null $service */
-        $service = $entityManager->getRepository(Service::class)->findOneBy(['name' => $serviceName]);
-        if ($service instanceof Service) {
-            if ($service->getCode() === null || $service->getCode() === '') {
-                $service->setCode(strtoupper($serviceCode));
-            }
-
-            return $service;
-        }
-
-        $service = new Service();
-        $service
-            ->setName($serviceName)
-            ->setEmail(sprintf('%s@mairie.local', $serviceCode))
-            ->setCode(strtoupper($serviceCode));
-
-        $entityManager->persist($service);
-
-        return $service;
-    }
-
-    private function mapServiceCodeToLabel(string $serviceCode): string
-    {
-        return match ($serviceCode) {
-            'urbanisme' => 'Service Urbanisme',
-            'finances' => 'Service Finances',
-            'etat-civil' => 'Service Etat Civil',
-            'technique' => 'Service Technique',
-            'rh' => 'Ressources Humaines',
-            'dsi' => 'DSI',
-            'dg' => 'Direction Generale',
-            default => ucfirst($serviceCode),
-        };
-    }
-
-    private function resolveServiceCode(?Service $service): ?string
-    {
-        if (!$service instanceof Service) {
-            return null;
-        }
-
-        $code = $service->getCode();
-        if (is_string($code) && trim($code) !== '') {
-            return strtolower(trim($code));
-        }
-
-        return match ($service->getName()) {
-            'Service Urbanisme' => 'urbanisme',
-            'Service Finances' => 'finances',
-            'Service Etat Civil' => 'etat-civil',
-            'Service Technique' => 'technique',
-            'Ressources Humaines' => 'rh',
-            'DSI' => 'dsi',
-            'Direction Generale' => 'dg',
-            default => null,
-        };
-    }
-
-    private function canEditAfterRefusal(AccessRequest $requestEntity): bool
-    {
-        $status = $requestEntity->getStatus() ?? '';
-
-        if (in_array($status, [
-            WorkflowService::STATUS_TRAITEE,
-            WorkflowService::STATUS_REFUSEE_RH,
-            WorkflowService::STATUS_REFUSEE_ST,
-            WorkflowService::STATUS_REFUSEE_DSI,
-        ], true)) {
-            return false;
-        }
-
-        foreach ($requestEntity->getRequestId() as $historyEntry) {
-            $oldStatus = $historyEntry->getOldStatus();
-            $newStatus = $historyEntry->getNewStatus();
-
-            $isRefusalFromSt = $oldStatus === WorkflowService::STATUS_EN_ATTENTE_ST
-                && $newStatus === WorkflowService::STATUS_EN_ATTENTE_RH;
-            $isRefusalFromDsi = $oldStatus === WorkflowService::STATUS_EN_ATTENTE_DSI
-                && $newStatus === WorkflowService::STATUS_EN_ATTENTE_ST;
-
-            if ($isRefusalFromSt || $isRefusalFromDsi) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }

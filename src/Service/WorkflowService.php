@@ -45,6 +45,7 @@ class WorkflowService
         ],
     ];
 
+    // Constructeur pour injecter l'EntityManager
     public function __construct(private EntityManagerInterface $em) {}
 
     public function canValidate(AccessRequest $request, User $user): bool
@@ -54,6 +55,7 @@ class WorkflowService
         return $transition !== null && in_array($transition['role'], $user->getRoles(), true);
     }
 
+    // Méthode pour vérifier si l'utilisateur peut refuser la demande
     public function canRefuse(AccessRequest $request, User $user): bool
     {
         $transition = self::TRANSITIONS[$request->getStatus() ?? '']['refuse'] ?? null;
@@ -61,6 +63,7 @@ class WorkflowService
         return $transition !== null && in_array($transition['role'], $user->getRoles(), true);
     }
 
+    // Méthode pour valider une demande avec un commentaire obligatoire
     public function validate(AccessRequest $request, User $user, string $comment): void
     {
         if (trim($comment) === '') {
@@ -76,6 +79,7 @@ class WorkflowService
         $this->applyTransition($request, $user, $transition['next'], $comment);
     }
 
+    // Méthode pour refuser une demande avec un commentaire obligatoire
     public function refuse(AccessRequest $request, User $user, string $comment): void
     {
         if (trim($comment) === '') {
@@ -91,11 +95,13 @@ class WorkflowService
         $this->applyTransition($request, $user, $transition['next'], $comment);
     }
 
+    // Méthode pour obtenir le label lisible d'un statut
     public static function getLabel(string $status): string
     {
         return self::LABELS[$status] ?? $status;
     }
 
+    // Méthode interne pour appliquer une transition et enregistrer l'historique
     private function applyTransition(AccessRequest $request, User $user, string $newStatus, string $comment): void
     {
         $history = new WorkflowHistory();
@@ -112,5 +118,46 @@ class WorkflowService
 
         $this->em->persist($history);
         $this->em->flush();
+    }
+
+    // Méthode pour vérifier si un utilisateur peut éditer une demande après un refus
+    public function canEditAfterRefusal(AccessRequest $request, User $user): bool
+    {
+        if (!in_array('ROLE_RH', $user->getRoles(), true)) {
+            return false;
+        }
+
+        $status = $request->getStatus() ?? '';
+
+        // RH peut éditer si la demande est refusée par RH
+        if ($status === self::STATUS_REFUSEE_RH) {
+            return true;
+        }
+
+        // RH ne peut pas éditer si demande traitée ou refusée par ST/DSI
+        if (in_array($status, [
+            self::STATUS_TRAITEE,
+            self::STATUS_REFUSEE_ST,
+            self::STATUS_REFUSEE_DSI,
+        ], true)) {
+            return false;
+        }
+
+        // RH peut éditer si en attente RH après refus de ST ou DSI
+        foreach ($request->getRequestId() as $historyEntry) {
+            $oldStatus = $historyEntry->getOldStatus() ?? '';
+            $newStatus = $historyEntry->getNewStatus() ?? '';
+
+            $isRefusalFromSt = $oldStatus === self::STATUS_EN_ATTENTE_ST
+                && $newStatus === self::STATUS_EN_ATTENTE_RH;
+            $isRefusalFromDsi = $oldStatus === self::STATUS_EN_ATTENTE_DSI
+                && $newStatus === self::STATUS_EN_ATTENTE_ST;
+
+            if ($isRefusalFromSt || $isRefusalFromDsi) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

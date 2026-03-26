@@ -1,0 +1,198 @@
+/* Formulaires */
+
+.request-form {
+    max-width: 1100px;
+}
+
+.request-form-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.request-form-card .card-header {
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+    color: #0f172a;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.95rem 1.25rem;
+}
+
+.request-form-card .card-body {
+    padding: 1.25rem;
+}
+
+.request-form .form-label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.45rem;
+}
+
+.request-form .form-control,
+.request-form .form-select {
+    min-height: 46px;
+    border-radius: 10px;
+    border: 1px solid #dbe3ec;
+    background-color: #ffffff;
+    color: #0f172a;
+    box-shadow: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.request-form textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.request-form .form-control::placeholder,
+.request-form .form-select::placeholder {
+    color: #94a3b8;
+}
+
+.request-form .form-control:focus,
+.request-form .form-select:focus {
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.18);
+}
+
+.request-form .form-check {
+    margin-bottom: 0;
+}
+
+.request-form .form-check-input {
+    border-color: #cbd5e1;
+
+}
+
+.request-form .form-check-input:focus {
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.18);
+}
+
+.request-form .form-check-input:checked {
+    background-color: #334155;
+    border-color: #334155;
+}
+
+.request-form .form-check-label {
+    color: #1e293b;
+    font-size: 0.92rem;
+}
+
+.request-form .form-error-message,
+.request-form .invalid-feedback,
+.request-form .form-text.text-danger,
+.request-form ul li {
+    font-size: 0.82rem;
+}
+
+.request-form .form-errors-global {
+    margin-bottom: 1rem;
+}
+
+.request-form .form-errors-global ul,
+.request-form .field-errors ul {
+    margin: 0;
+    padding-left: 1rem;
+}
+
+.request-form .field-errors {
+    margin-top: 0.35rem;
+    color: #b42318;
+}
+
+.request-form .field-errors:empty {
+    display: none;
+}
+
+.request-form .request-choice-group .form-check {
+    padding: 0.85rem 1rem 0.85rem 2.4rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    margin-bottom: 0.75rem;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.request-form .request-choice-group .form-check:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
+.request-form .request-choice-group .form-check-input {
+    margin-top: 0.2rem;
+    margin-left: -1.45rem;
+    
+}
+
+.request-form .request-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 1rem;
+}
+
+.request-form .request-checkbox-grid .form-check {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem 1rem 0.85rem 2.5rem;
+    margin: 0.85rem;
+    background: #ffffff;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    
+}
+
+.request-form .request-checkbox-grid .form-check-input {
+    margin-left: -1.45rem;
+    margin-right: 1rem;
+    margin-top: 0.2rem;
+}
+
+.request-form .request-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.request-form .request-actions .btn-outline-secondary {
+    min-width: 140px;
+}
+
+.request-form .request-actions .btn-primary,
+.request-form .request-actions .btn-workflow {
+    min-width: 180px;
+}
+
+.request-form .request-actions .request-cancel {
+    margin-left: auto;
+}
+
+@media (max-width: 767.98px) {
+    .request-form-card .card-body {
+        padding: 1rem;
+    }
+
+    .request-form .request-checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .request-form .request-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .request-form .request-actions .request-cancel {
+        margin-left: 0;
+    }
+
+    .request-form .request-actions .btn-primary,
+    .request-form .request-actions .btn-workflow,
+    .request-form .request-actions .btn-outline-secondary {
+        width: 100%;
+    }
+}

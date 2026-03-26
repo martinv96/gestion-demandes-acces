@@ -19,8 +19,7 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/admin', name: 'app_admin_')]
 final class AdminController extends AbstractController
 {
-    // ── Index ─────────────────────────────────────────────────────────────────
-
+    // route pour afficher le tableau de bord admin
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(
         Request $request,
@@ -40,8 +39,7 @@ final class AdminController extends AbstractController
         ]);
     }
 
-    // ── Utilisateurs ──────────────────────────────────────────────────────────
-
+    // route pour ajouter un utilisateur
     #[Route('/user/add', name: 'user_add', methods: ['POST'])]
     public function userAdd(
         Request $request,
@@ -111,6 +109,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
     }
 
+    // route pour modifier un utilisateur
     #[Route('/user/{id}/edit', name: 'user_edit', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function userEdit(
         User $user,
@@ -151,6 +150,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
     }
 
+    // route pour activer/désactiver un utilisateur
     #[Route('/user/{id}/toggle', name: 'user_toggle', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function userToggle(User $user, Request $request, EntityManagerInterface $em): Response
     {
@@ -166,6 +166,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
     }
 
+    // route pour supprimer un utilisateur
     #[Route('/user/{id}/delete', name: 'user_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function userDelete(User $user, Request $request, EntityManagerInterface $em): Response
     {
@@ -187,8 +188,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
     }
 
-    // ── Services ──────────────────────────────────────────────────────────────
-
+    // route pour réinitialiser le mot de passe d'un utilisateur
     #[Route('/user/{id}/reset-password', name: 'user_reset_password', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function userResetPassword(
         User $user,
@@ -226,6 +226,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
     }
 
+    // route pour ajouter un service
     #[Route('/service/add', name: 'service_add', methods: ['POST'])]
     public function serviceAdd(Request $request, EntityManagerInterface $em): Response
     {
@@ -254,6 +255,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
     }
 
+    // route pour modifier un service
     #[Route('/service/{id}/edit', name: 'service_edit', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function serviceEdit(Service $service, Request $request, EntityManagerInterface $em): Response
     {
@@ -279,6 +281,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
     }
 
+    // route pour supprimer un service
     #[Route('/service/{id}/delete', name: 'service_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function serviceDelete(Service $service, Request $request, EntityManagerInterface $em): Response
     {
@@ -295,8 +298,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
     }
 
-    // ── Logiciels ─────────────────────────────────────────────────────────────
-
+    // route pour ajouter un logiciel
     #[Route('/logiciel/add', name: 'logiciel_add', methods: ['POST'])]
     public function logicielAdd(Request $request, EntityManagerInterface $em): Response
     {
@@ -326,6 +328,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_index', ['tab' => 'logiciels']);
     }
 
+    // route pour modifier un logiciel
     #[Route('/logiciel/{id}/edit', name: 'logiciel_edit', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function logicielEdit(Ressource $logiciel, Request $request, EntityManagerInterface $em): Response
     {
@@ -349,6 +352,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_index', ['tab' => 'logiciels']);
     }
 
+    // route pour activer ou désactiver un logiciel
     #[Route('/logiciel/{id}/toggle', name: 'logiciel_toggle', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function logicielToggle(Ressource $logiciel, Request $request, EntityManagerInterface $em): Response
     {
@@ -363,7 +367,8 @@ final class AdminController extends AbstractController
         $em->flush();
         return $this->redirectToRoute('app_admin_index', ['tab' => 'logiciels']);
     }
-
+    
+    // route pour supprimer un logiciel
     #[Route('/logiciel/{id}/delete', name: 'logiciel_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function logicielDelete(Ressource $logiciel, Request $request, EntityManagerInterface $em): Response
     {

@@ -35,7 +35,7 @@
     {% set selectedSoftwareNames = requestEntity.ressources|filter(r => r.category == 'logiciel')|map(r => r.name) %}
     {% set selectedMaterialNames = requestEntity.ressources|filter(r => r.category == 'materiel')|map(r => r.name) %}
     {% set selectedMaterialNamesLower = selectedMaterialNames|map(name => name|lower) %}
-    {% set selectedServiceCode = currentServiceCode ? currentServiceCode|lower : '' %}
+    {% set selectedServiceId = selectedServiceId ?? null %}
     {% for entry in history %}
         {% if entry.newStatus == 'en_attente_st' and rhValidatedAt is null %}
             {% set rhValidatedAt = entry.date %}
@@ -177,13 +177,9 @@
                                         <label for="rh_edit_service" class="form-label">Service *</label>
                                         <select class="form-select" id="rh_edit_service" name="service" required>
                                             <option value="">Sélectionner un service</option>
-                                            <option value="urbanisme" {{ selectedServiceCode == 'urbanisme' ? 'selected' : '' }}>Service Urbanisme</option>
-                                            <option value="finances" {{ selectedServiceCode == 'finances' ? 'selected' : '' }}>Service Finances</option>
-                                            <option value="etat-civil" {{ selectedServiceCode == 'etat-civil' ? 'selected' : '' }}>Service État Civil</option>
-                                            <option value="technique" {{ selectedServiceCode == 'technique' ? 'selected' : '' }}>Service Technique</option>
-                                            <option value="rh" {{ selectedServiceCode == 'rh' ? 'selected' : '' }}>Ressources Humaines</option>
-                                            <option value="dsi" {{ selectedServiceCode == 'dsi' ? 'selected' : '' }}>DSI</option>
-                                            <option value="dg" {{ selectedServiceCode == 'dg' ? 'selected' : '' }}>Direction Générale</option>
+                                            {% for service in availableServices %}
+                                                <option value="{{ service.id }}" {{ selectedServiceId == service.id ? 'selected' : '' }}>{{ service.name }}</option>
+                                            {% endfor %}
                                         </select>
                                     </div>
 
@@ -243,14 +239,15 @@
                                     <div class="col-12" id="rh-edit-materiel-card">
                                         <label class="form-label">Matériel</label>
                                         <div class="row g-2">
-                                            {% set materiels = ['Clés','Badge', 'Ordinateur', 'Véhicule', 'Téléphone'] %}
-                                            {% for mat in materiels %}
+                                            {% for materiel in availableMateriels %}
                                                 <div class="col-md-6">
                                                     <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" name="materiel[]" id="rh_edit_materiel_{{ loop.index }}" value="{{ mat }}" {{ mat|lower in selectedMaterialNamesLower ? 'checked' : '' }}>
-                                                        <label class="form-check-label" for="rh_edit_materiel_{{ loop.index }}">{{ mat }}</label>
+                                                        <input class="form-check-input" type="checkbox" name="materiel[]" id="rh_edit_materiel_{{ loop.index }}" value="{{ materiel.name }}" {{ materiel.name|lower in selectedMaterialNamesLower ? 'checked' : '' }}>
+                                                        <label class="form-check-label" for="rh_edit_materiel_{{ loop.index }}">{{ materiel.name }}</label>
                                                     </div>
                                                 </div>
+                                            {% else %}
+                                                <p class="text-muted mb-0">Aucun matériel actif disponible.</p>
                                             {% endfor %}
                                         </div>
                                     </div>

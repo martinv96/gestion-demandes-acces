@@ -26,7 +26,7 @@ class RequestRepository extends ServiceEntityRepository
             ->leftJoin('r.agent', 'a')->addSelect('a')
             ->leftJoin('a.service', 's')->addSelect('s')
             ->leftJoin('r.ressources', 're')->addSelect('re')
-            ->orderBy('r.creationDate', 'DESC')
+            ->orderBy('r.creationDate', 'ASC')
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();

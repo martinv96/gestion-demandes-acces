@@ -14,12 +14,13 @@
 
 			{% for stat in stats %}
 				<div class="col-md-4">
-					<div class="card shadow-sm">
-						<div class="card-body">
-
-							<h6 class="text-muted">{{ stat.title }}</h6>
-							<h2>{{ stat.value }}</h2>
-
+					<div class="card shadow-sm dashboard-stat-card">
+						<div class="card-body dashboard-stat-body">
+							<div>
+								<h6 class="text-muted mb-1">{{ stat.title }}</h6>
+								<h2 class="mb-0">{{ stat.value }}</h2>
+							</div>
+							<img class="dashboard-stat-icon" src="{{ asset(stat.icon) }}" alt="{{ stat.title }}">
 						</div>
 					</div>
 				</div>
@@ -66,7 +67,8 @@
 								<td>{{ 'REQ-%03d'|format(loop.index) }}</td>
 								<td>
 									{% if request.agent %}
-										{{ request.agent.firstname }} {{ request.agent.lastname }}
+										{{ request.agent.firstname }}
+										{{ request.agent.lastname }}
 									{% else %}
 										-
 									{% endif %}
@@ -81,15 +83,16 @@
 								<td>{{ request.type|capitalize }}</td>
 								<td>
 									{% set statusMap = {
-										'en_attente_rh':  'En attente RH',
-										'en_attente_st':  'En attente DGA-ST',
-										'en_attente_dsi': 'En attente DSI',
-										'traitee':        'Traitée',
-										'refusee_rh':     'Refusée RH',
-										'refusee_st':     'Refusée DGA-ST',
-										'refusee_dsi':    'Refusée DSI'
+										'en_attente_rh':  {'label': 'En attente RH', 'color': 'warning'},
+										'en_attente_st':  {'label': 'En attente DGA-ST', 'color': 'warning'},
+										'en_attente_dsi': {'label': 'En attente DSI', 'color': 'warning'},
+										'traitee':        {'label': 'Traitée', 'color': 'success'},
+										'refusee_rh':     {'label': 'Refusée RH', 'color': 'danger'},
+										'refusee_st':     {'label': 'Refusée DGA-ST', 'color': 'danger'},
+										'refusee_dsi':    {'label': 'Refusée DSI', 'color': 'danger'}
 									} %}
-									{{ statusMap[request.status] ?? request.status|replace({'_': ' '}) }}
+										{% set statusConfig = statusMap[request.status] ?? {'label': request.status|replace({'_': ' '}), 'color': 'secondary'} %}
+										<span class="badge text-bg-{{ statusConfig.color }}">{{ statusConfig.label }}</span>
 								</td>
 								<td>{{ request.creationDate ? request.creationDate|date('d/m/Y') : '-' }}</td>
 

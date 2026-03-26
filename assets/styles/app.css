@@ -1,4 +1,4 @@
-/* app css - import */
+/* app css - import des composants */
 
 @import "components/layout.css";
 @import "components/navigation.css";
@@ -6,4 +6,5 @@
 @import "components/timeline.css";
 @import "components/history.css";
 @import "components/admin.css";
-
+@import "components/form.css";
+@import "components/dashboard.css";
