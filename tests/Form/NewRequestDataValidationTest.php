@@ -57,8 +57,21 @@ final class NewRequestDataValidationTest extends KernelTestCase
         self::assertSame('La date de départ est obligatoire pour une fermeture.', $violations[0]->getMessage());
     }
 
+    public function testOuvertureRequiresArrivalDate(): void
+    {
+        $data = $this->createValidData();
+        $data->setType('ouverture');
+        $data->setArrivalDate(null);
+
+        $violations = $this->validator->validate($data);
+
+        self::assertGreaterThan(0, $violations->count());
+        self::assertSame('arrivalDate', $violations[0]->getPropertyPath());
+        self::assertSame('La date d’arrivée est obligatoire pour une ouverture.', $violations[0]->getMessage());
+    }
+
     /* 
-        Teste que la date de départ doit être postérieure ou égale à la date d'arrivée.
+        Teste que la date de départ ne peut pas être antérieure à la date d'arrivée.
         créer un objet valide, puis modifie les dates pour que la date de départ soit antérieure à la date d'arrivée.
     */
     public function testDepartureDateMustBeAfterArrivalDate(): void
@@ -71,7 +84,7 @@ final class NewRequestDataValidationTest extends KernelTestCase
 
         self::assertGreaterThan(0, $violations->count());
         self::assertSame('departureDate', $violations[0]->getPropertyPath());
-        self::assertSame('La date de départ doit être postérieure ou égale à la date d’arrivée.', $violations[0]->getMessage());
+        self::assertSame('La date de départ ne peut pas être antérieure à la date d’arrivée.', $violations[0]->getMessage());
     }
 
     /* 

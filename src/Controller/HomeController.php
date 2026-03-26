@@ -11,6 +11,8 @@ use Symfony\Component\Routing\Attribute\Route;
 class HomeController extends AbstractController
 {
     // route pour la page d'accueil / dashboard
+    // ! la route affiche des stats pour les demandes (en attente, traitées et totaux avec icones) 
+    // ! + liste des 5 dernieres demandes
     #[Route('/', name: 'app_dashboard')]
     public function dashboard(RequestRepository $requestRepository): Response
     {

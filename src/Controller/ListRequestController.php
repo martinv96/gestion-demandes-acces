@@ -21,6 +21,8 @@ use Symfony\Component\Routing\Attribute\Route;
 final class ListRequestController extends AbstractController
 {
     // route pour afficher la liste des demandes
+    // ! route qui affiche la liste de toutes les demandes d'accès (avec status type et date)
+    // ! + un lien vers la page de détail de chaque demande
     #[Route('/list/request', name: 'app_list_request', methods: ['GET'])]
     public function index(RequestRepository $requestRepository): Response
     {
@@ -32,6 +34,7 @@ final class ListRequestController extends AbstractController
     }
 
     // route pour afficher les détails d'une demande
+    // ! route qui affiche les détails d'une demande d'accès spécifique
     #[Route('/request/{id}', name: 'app_request_show', methods: ['GET'], requirements: ['id' => '\\d+'])]
     public function show(
         AccessRequest $requestEntity,
@@ -64,6 +67,7 @@ final class ListRequestController extends AbstractController
     }
 
     // route pour valider une demande
+    // ! route qui permet de valider une demande d'accès spécifique
     #[Route('/request/{id}/validate', name: 'app_request_validate', methods: ['POST'], requirements: ['id' => '\\d+'])]
     public function validate(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService): Response
     {
@@ -95,6 +99,7 @@ final class ListRequestController extends AbstractController
     }
 
     // route pour refuser une demande
+    // ! route qui permet de refuser une demande d'accès spécifique
     #[Route('/request/{id}/refuse', name: 'app_request_refuse', methods: ['POST'], requirements: ['id' => '\\d+'])]
     public function refuse(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService): Response
     {
@@ -125,7 +130,8 @@ final class ListRequestController extends AbstractController
         return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
     }
 
-    // route pour modifier les informations d'une demande (après refus RH ou pour corriger une erreur)
+    // ! route pour modifier les informations d'une demande (après refus RH ou pour corriger une erreur)
+    // ! elle permet de mettre à jour les informations d'une demande d'accès spécifique
     #[Route('/request/{id}/update-info', name: 'app_request_update_info', methods: ['POST'], requirements: ['id' => '\\d+'])]
     public function updateInfo(
         AccessRequest $requestEntity,
@@ -141,12 +147,14 @@ final class ListRequestController extends AbstractController
 
         $this->denyAccessUnlessGranted(RequestVoter::EDIT_INFO, $requestEntity);
 
+        // ! vérification du token CSRF pour sécuriser la requête de mise à jour des informations de la demande
         if (!$this->isCsrfTokenValid('request_edit_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
             $this->addFlash('danger', 'Token de sécurité invalide.');
 
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
+        // ! récupération et validation des données du formulaire de mise à jour des informations de la demande
         try {
             $type = (string) $httpRequest->request->get('type', $requestEntity->getType() ?? 'ouverture');
             if (!in_array($type, ['ouverture', 'modification', 'fermeture'], true)) {
@@ -156,6 +164,7 @@ final class ListRequestController extends AbstractController
             $requestEntity->setType($type);
 
             $agent = $requestEntity->getAgent();
+            // ! si demande n'a pas d'agent associé, on ne peut pas mettre à jour les informations de l'agent, donc on lance une exception
             if ($agent === null) {
                 throw new \LogicException('Aucun agent associé à la demande.');
             }
@@ -167,6 +176,8 @@ final class ListRequestController extends AbstractController
                 ->setJobTitle((string) $httpRequest->request->get('fonction', $agent->getJobTitle() ?? ''));
 
             $serviceId = (int) $httpRequest->request->get('service', 0);
+
+            // ! si un service est sélectionné (id > 0), on le récupère et on l'associe à l'agent, sinon on laisse le service actuel de l'agent
             if ($serviceId > 0) {
                 $service = $entityManager->getRepository(Service::class)->find($serviceId);
                 if (!$service instanceof Service) {
@@ -176,6 +187,9 @@ final class ListRequestController extends AbstractController
             }
 
             $arrivalDate = (string) $httpRequest->request->get('date_arrivee', '');
+
+            // ! si date arrivé fournie, on la convertit en DateTime 
+            // !et on la set sur la demande, sinon on laisse la date d'arrivée actuelle de la demande
             if ($arrivalDate !== '') {
                 $requestEntity->setArrivalDate(new \DateTime($arrivalDate));
             }
@@ -185,6 +199,9 @@ final class ListRequestController extends AbstractController
 
             $requestEntity->setCommentary((string) $httpRequest->request->get('commentaire', ''));
 
+            // ! mise à jour des ressources associées à la demande : 
+            // ! on supprime d'abord toutes les ressources existantes, 
+            // ! puis on ajoute celles sélectionnées dans le formulaire
             foreach ($requestEntity->getRessources()->toArray() as $existingResource) {
                 $requestEntity->removeRessource($existingResource);
             }
@@ -207,7 +224,7 @@ final class ListRequestController extends AbstractController
                 }
             }
 
-            // Si la demande était refusée par RH, la repasser à "en_attente_rh" après modification
+            // ! Si la demande était refusée par RH, la repasser à "en_attente_rh" après modification
             if ($requestEntity->getStatus() === 'refusee_rh') {
                 $requestEntity->setStatus('en_attente_rh');
             }
@@ -223,7 +240,7 @@ final class ListRequestController extends AbstractController
         return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
     }
 
-    // Méthode utilitaire pour trouver ou créer une ressource
+    // ! Méthode utilitaire pour trouver ou créer une ressource
     private function findOrCreateRessource(
         string $name,
         string $category,
@@ -252,7 +269,7 @@ final class ListRequestController extends AbstractController
      *
      * @return array<string>
      */
-    // Méthode utilitaire pour normaliser les noms de ressources (trim, unique, etc.)
+    // ! Méthode utilitaire pour normaliser les noms de ressources (trim, unique, etc.)
     private function normalizeResourceNames(array $rawNames): array
     {
         $normalized = [];

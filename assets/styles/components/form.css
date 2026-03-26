@@ -123,7 +123,7 @@
 }
 
 .request-form .request-choice-group .form-check-input {
-    margin-top: 0.2rem;
+    margin-top: 0.3rem;
     margin-left: -1.45rem;
     
 }
@@ -149,7 +149,7 @@
 .request-form .request-checkbox-grid .form-check-input {
     margin-left: -1.45rem;
     margin-right: 1rem;
-    margin-top: 0.2rem;
+    margin-top: 0.1rem;
 }
 
 .request-form .request-actions {

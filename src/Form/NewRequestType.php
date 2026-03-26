@@ -58,6 +58,7 @@ final class NewRequestType extends AbstractType
                 'label' => 'Date d’arrivée',
                 'widget' => 'single_text',
                 'input' => 'datetime',
+                'required' => false,
             ])
             ->add('departureDate', DateType::class, [
                 'label' => 'Date de départ',

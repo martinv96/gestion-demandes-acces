@@ -34,7 +34,6 @@ final class NewRequestData
     #[Assert\Length(max: 100, maxMessage: 'La fonction ne doit pas dépasser {{ limit }} caractères.')]
     private ?string $jobTitle = null;
 
-    #[Assert\NotNull(message: 'La date d’arrivée est obligatoire.')]
     private ?\DateTime $arrivalDate = null;
 
     private ?\DateTime $departureDate = null;
@@ -56,19 +55,27 @@ final class NewRequestData
      */
     private array $materiels = [];
 
+    #[Assert\NotBlank(message: 'Le commentaire est obligatoire.')]
     private ?string $commentary = null;
 
     #[Assert\Callback]
     // Méthode de validation personnalisée pour vérifier les dates
     public function validate(ExecutionContextInterface $context): void
     {
+        if ($this->type === 'ouverture' && !$this->arrivalDate instanceof \DateTime) {
+            $context
+                ->buildViolation('La date d’arrivée est obligatoire pour une ouverture.')
+                ->atPath('arrivalDate')
+                ->addViolation();
+        }
+
         if (
             $this->arrivalDate instanceof \DateTime
             && $this->departureDate instanceof \DateTime
             && $this->departureDate < $this->arrivalDate
         ) {
             $context
-                ->buildViolation('La date de départ doit être postérieure ou égale à la date d’arrivée.')
+                ->buildViolation('La date de départ ne peut pas être antérieure à la date d’arrivée.')
                 ->atPath('departureDate')
                 ->addViolation();
         }
