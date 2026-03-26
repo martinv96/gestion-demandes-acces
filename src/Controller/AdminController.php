@@ -16,10 +16,20 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
+/* 
+    ? AdminController gère les actions liées à l'administration du système.
+    ! Il permet de gérer les utilisateurs, les services, les ressources et les rôles.
+    ! Seuls les utilisateurs avec le rôle ROLE_ADMIN peuvent accéder à ces fonctionnalités.
+*/
+
 #[Route('/admin', name: 'app_admin_')]
 final class AdminController extends AbstractController
 {
+    private const TEMP_PASSWORD_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    private const TEMP_PASSWORD_LENGTH = 12;
+
     // route pour afficher le tableau de bord admin
+    // ! la route /admin affiche un tableau de bord avec des onglets pour gérer les utilisateurs, les services, les ressources et les rôles.
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(
         Request $request,
@@ -40,6 +50,7 @@ final class AdminController extends AbstractController
     }
 
     // route pour ajouter un utilisateur
+    // ! la route /admin/user/add permet d'ajouter un nouvel utilisateur via un formulaire.
     #[Route('/user/add', name: 'user_add', methods: ['POST'])]
     public function userAdd(
         Request $request,
@@ -51,6 +62,7 @@ final class AdminController extends AbstractController
     ): Response {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
+        // ! vérification du token CSRF pour éviter les attaques de type Cross-Site Request Forgery.
         if (!$this->isCsrfTokenValid('admin_user_add', (string) $request->request->get('_token'))) {
             $this->addFlash('danger', 'Token de sécurité invalide.');
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
@@ -62,6 +74,8 @@ final class AdminController extends AbstractController
         $roleId     = (int) $request->request->get('role_id', 0);
         $serviceId  = (int) $request->request->get('service_id', 0);
 
+
+        // ! validation des champs du formulaire : les champs prénom, nom et email sont obligatoires.
         if ($firstname === '' || $lastname === '' || $email === '') {
             $this->addFlash('danger', 'Tous les champs sont obligatoires.');
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
@@ -69,19 +83,14 @@ final class AdminController extends AbstractController
 
         $role    = $roleId    > 0 ? $roleRepository->find($roleId)       : null;
         $service = $serviceId > 0 ? $serviceRepository->find($serviceId) : null;
-        // Vérifier que l'email n'est pas déjà utilisé
+        // ! Vérifier que l'email n'est pas déjà utilisé
         if ($userRepository->findOneBy(['email' => strtolower(trim($email))]) !== null) {
             $this->addFlash('danger', sprintf('L\'adresse email "%s" est déjà utilisée.', htmlspecialchars($email, ENT_QUOTES)));
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
 
 
-        // Alphabet sans caractères ambigus (pas l/1/I/i, pas O/0)
-        $alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-        $tempPassword = '';
-        for ($i = 0; $i < 12; $i++) {
-            $tempPassword .= $alphabet[random_int(0, strlen($alphabet) - 1)];
-        }
+        $tempPassword = $this->generateTemporaryPassword();
 
         $user = new User();
         $user->setFirstname($firstname)
@@ -110,6 +119,7 @@ final class AdminController extends AbstractController
     }
 
     // route pour modifier un utilisateur
+    // ! la route /admin/user/{id}/edit permet de modifier les informations d'un utilisateur existant via un formulaire.
     #[Route('/user/{id}/edit', name: 'user_edit', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function userEdit(
         User $user,
@@ -151,6 +161,7 @@ final class AdminController extends AbstractController
     }
 
     // route pour activer/désactiver un utilisateur
+    // ! la route /admin/user/{id}/toggle permet d'activer ou de désactiver un utilisateur existant.
     #[Route('/user/{id}/toggle', name: 'user_toggle', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function userToggle(User $user, Request $request, EntityManagerInterface $em): Response
     {
@@ -167,6 +178,7 @@ final class AdminController extends AbstractController
     }
 
     // route pour supprimer un utilisateur
+    // ! la route /admin/user/{id}/delete permet de supprimer un utilisateur existant du système.
     #[Route('/user/{id}/delete', name: 'user_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function userDelete(User $user, Request $request, EntityManagerInterface $em): Response
     {
@@ -189,6 +201,8 @@ final class AdminController extends AbstractController
     }
 
     // route pour réinitialiser le mot de passe d'un utilisateur
+    // ! la route /admin/user/{id}/reset-password permet de réinitialiser le mot de passe d'un utilisateur existant.
+    // ! un nouveau mot de passe temporaire est généré et affiché à l'administrateur après la réinitialisation.
     #[Route('/user/{id}/reset-password', name: 'user_reset_password', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function userResetPassword(
         User $user,
@@ -203,11 +217,7 @@ final class AdminController extends AbstractController
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
 
-        $alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-        $tempPassword = '';
-        for ($i = 0; $i < 12; $i++) {
-            $tempPassword .= $alphabet[random_int(0, strlen($alphabet) - 1)];
-        }
+        $tempPassword = $this->generateTemporaryPassword();
 
         $user->setPassword($hasher->hashPassword($user, $tempPassword));
         $user->setMustChangePassword(true);
@@ -226,7 +236,20 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
     }
 
+    private function generateTemporaryPassword(): string
+    {
+        $password = '';
+        $maxIndex = strlen(self::TEMP_PASSWORD_ALPHABET) - 1;
+
+        for ($i = 0; $i < self::TEMP_PASSWORD_LENGTH; $i++) {
+            $password .= self::TEMP_PASSWORD_ALPHABET[random_int(0, $maxIndex)];
+        }
+
+        return $password;
+    }
+
     // route pour ajouter un service
+    // ! la route /admin/service/add permet d'ajouter un nouveau service via un formulaire.
     #[Route('/service/add', name: 'service_add', methods: ['POST'])]
     public function serviceAdd(Request $request, EntityManagerInterface $em): Response
     {
@@ -256,6 +279,7 @@ final class AdminController extends AbstractController
     }
 
     // route pour modifier un service
+    // ! la route /admin/service/{id}/edit permet de modifier les informations d'un service existant via un formulaire.
     #[Route('/service/{id}/edit', name: 'service_edit', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function serviceEdit(Service $service, Request $request, EntityManagerInterface $em): Response
     {
@@ -282,6 +306,7 @@ final class AdminController extends AbstractController
     }
 
     // route pour supprimer un service
+    // ! la route /admin/service/{id}/delete permet de supprimer un service existant.
     #[Route('/service/{id}/delete', name: 'service_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function serviceDelete(Service $service, Request $request, EntityManagerInterface $em): Response
     {
@@ -299,6 +324,7 @@ final class AdminController extends AbstractController
     }
 
     // route pour ajouter un logiciel
+    // ! la route /admin/logiciel/add permet d'ajouter un nouveau logiciel via un formulaire.
     #[Route('/logiciel/add', name: 'logiciel_add', methods: ['POST'])]
     public function logicielAdd(Request $request, EntityManagerInterface $em): Response
     {
@@ -329,6 +355,7 @@ final class AdminController extends AbstractController
     }
 
     // route pour modifier un logiciel
+    // ! la route /admin/logiciel/{id}/edit permet de modifier les informations d'un logiciel existant via un formulaire.
     #[Route('/logiciel/{id}/edit', name: 'logiciel_edit', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function logicielEdit(Ressource $logiciel, Request $request, EntityManagerInterface $em): Response
     {
@@ -352,7 +379,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin_index', ['tab' => 'logiciels']);
     }
 
-    // route pour activer ou désactiver un logiciel
+    // ! la route /admin/logiciel/{id}/toggle permet d'activer ou de désactiver un logiciel existant.
     #[Route('/logiciel/{id}/toggle', name: 'logiciel_toggle', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function logicielToggle(Ressource $logiciel, Request $request, EntityManagerInterface $em): Response
     {
@@ -369,6 +396,7 @@ final class AdminController extends AbstractController
     }
     
     // route pour supprimer un logiciel
+    // ! la route /admin/logiciel/{id}/delete permet de supprimer un logiciel existant.
     #[Route('/logiciel/{id}/delete', name: 'logiciel_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function logicielDelete(Ressource $logiciel, Request $request, EntityManagerInterface $em): Response
     {
