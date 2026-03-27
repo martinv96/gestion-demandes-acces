@@ -25,6 +25,7 @@ final class ForcePasswordChangeListener
         private RouterInterface $router,
     ) {}
 
+    // ! methode qui écoute les requetes entrantes, vérifie si l'user doit changer le mdp et le redirige vers la page de changement mdp si necessaire
     public function __invoke(RequestEvent $event): void
     {
         if (!$event->isMainRequest()) {

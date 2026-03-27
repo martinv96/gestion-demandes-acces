@@ -6,16 +6,24 @@ use App\Entity\Request as AccessRequest;
 use App\Entity\Ressource;
 use App\Entity\Service;
 use App\Entity\User;
+use App\Entity\WorkflowHistory;
 use App\Repository\RessourceRepository;
 use App\Repository\RequestRepository;
 use App\Repository\ServiceRepository;
+use App\Repository\WorkflowHistoryRepository;
 use App\Service\WorkflowService;
 use App\Security\Voter\RequestVoter;
 use Doctrine\ORM\EntityManagerInterface;
+use PhpParser\Node\Expr\Isset_;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+
 
 
 final class ListRequestController extends AbstractController
@@ -24,12 +32,77 @@ final class ListRequestController extends AbstractController
     // ! route qui affiche la liste de toutes les demandes d'accès (avec status type et date)
     // ! + un lien vers la page de détail de chaque demande
     #[Route('/list/request', name: 'app_list_request', methods: ['GET'])]
-    public function index(RequestRepository $requestRepository): Response
+    public function index(RequestRepository $requestRepository, ServiceRepository $serviceRepository, Request $httpRequest): Response
     {
-        $requests = $requestRepository->findLatestWithRelations();
+        // ! gestion des filtres de recherche : status, service, type et date d'arrivée
+        $allowedStatuses = ['en_attente_rh', 'en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'];
+        $allowedTypes = ['ouverture', 'modification', 'fermeture'];
+
+        $status        = (string) $httpRequest->query->get('status', '');
+        $serviceId     = (string) $httpRequest->query->get('serviceId', '');
+        $type          = (string) $httpRequest->query->get('type', '');
+        $arrivalDate   = (string) $httpRequest->query->get('arrivalDate', '');
+        $departureDate = (string) $httpRequest->query->get('departureDate', '');
+        $agent         = trim((string) $httpRequest->query->get('agent', ''));
+
+        $filters = [];
+
+        if ($status !== '' && in_array($status, $allowedStatuses, true)) {
+            $filters['status'] = $status;
+        } else {
+            $status = '';
+        }
+
+        if ($serviceId !== '' && ctype_digit($serviceId)) {
+            $filters['serviceId'] = (int) $serviceId;
+        } else {
+            $serviceId = '';
+        }
+
+        if ($type !== '' && in_array($type, $allowedTypes, true)) {
+            $filters['type'] = $type;
+        } else {
+            $type = '';
+        }
+
+        if ($arrivalDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $arrivalDate)) {
+            $filters['arrivalDate'] = $arrivalDate;
+        } else {
+            $arrivalDate = '';
+        }
+
+        if ($departureDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $departureDate)) {
+            $filters['departureDate'] = $departureDate;
+        } else {
+            $departureDate = '';
+        }
+
+        if ($agent !== '' && mb_strlen($agent) <= 100) {
+            $filters['agent'] = $agent;
+        } else {
+            $agent = '';
+        }
+
+        $requests            = $requestRepository->findWithFilters($filters);
+        $services            = $serviceRepository->findBy([], ['name' => 'ASC']);
+        $availableDates      = $requestRepository->findDistinctArrivalDates();
+        $availableDepartures = $requestRepository->findDistinctDepartureDates();
+        $totalCount          = $requestRepository->count([]);
 
         return $this->render('list_request/index.html.twig', [
-            'requests' => $requests,
+            'requests'            => $requests,
+            'services'            => $services,
+            'availableDates'      => $availableDates,
+            'availableDepartures' => $availableDepartures,
+            'totalCount'          => $totalCount,
+            'filters'             => [
+                'status'        => $status,
+                'serviceId'     => $serviceId,
+                'type'          => $type,
+                'arrivalDate'   => $arrivalDate,
+                'departureDate' => $departureDate,
+                'agent'         => $agent,
+            ],
         ]);
     }
 
@@ -290,4 +363,140 @@ final class ListRequestController extends AbstractController
         return array_values(array_unique($normalized));
     }
 
+
+    // ! route pour exporter la liste des demandes au format CSV
+    #[Route('/request/exportCsv', name: 'app_request_export_csv', methods: ['GET'])]
+    public function exportXlsx(
+    Request $httpRequest,
+    RequestRepository $requestRepository,
+    WorkflowHistoryRepository $historyRepository
+): Response {
+    $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+    // Reprend la logique de filtres de ta liste
+    $allowedStatuses = ['en_attente_rh', 'en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'];
+    $allowedTypes = ['ouverture', 'modification', 'fermeture'];
+
+    $status = (string) $httpRequest->query->get('status', '');
+    $serviceId = (string) $httpRequest->query->get('serviceId', '');
+    $type = (string) $httpRequest->query->get('type', '');
+    $arrivalDate = (string) $httpRequest->query->get('arrivalDate', '');
+    $departureDate = (string) $httpRequest->query->get('departureDate', '');
+    $agent = trim((string) $httpRequest->query->get('agent', ''));
+
+    $filters = [];
+
+    if ($status !== '' && in_array($status, $allowedStatuses, true)) {
+        $filters['status'] = $status;
+    }
+
+    if ($serviceId !== '' && ctype_digit($serviceId)) {
+        $filters['serviceId'] = (int) $serviceId;
+    }
+
+    if ($type !== '' && in_array($type, $allowedTypes, true)) {
+        $filters['type'] = $type;
+    }
+
+    if ($arrivalDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $arrivalDate)) {
+        $filters['arrivalDate'] = $arrivalDate;
+    }
+
+    if ($departureDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $departureDate)) {
+        $filters['departureDate'] = $departureDate;
+    }
+
+    if ($agent !== '' && mb_strlen($agent) <= 100) {
+        $filters['agent'] = $agent;
+    }
+
+    $requests = $requestRepository->findForExportWithFilters($filters);
+    $latestHistoryByRequestId = $historyRepository->findLatestByRequests($requests);
+
+    $statusLabels = [
+        'en_attente_rh' => 'En attente RH',
+        'en_attente_st' => 'En attente DGA-ST',
+        'en_attente_dsi' => 'En attente DSI',
+        'traitee' => 'Traitee',
+        'refusee_rh' => 'Refusee RH',
+        'refusee_st' => 'Refusee DGA-ST',
+        'refusee_dsi' => 'Refusee DSI',
+    ];
+
+    $typeLabels = [
+        'ouverture' => 'Ouverture',
+        'modification' => 'Modification',
+        'fermeture' => 'Fermeture',
+    ];
+
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('Demandes');
+
+    // En-tetes
+    $headers = [
+        'Reference',
+        'Type',
+        'Statut',
+        'Agent',
+        'Service',
+        'Date arrivee',
+        'Date depart',
+        'Dernier commentaire',
+        'Date derniere transition',
+    ];
+
+    $sheet->fromArray($headers, null, 'A1');
+
+    // Style en-tete (simple et propre)
+    $sheet->getStyle('A1:I1')->getFont()->setBold(true);
+    $sheet->getStyle('A1:I1')->getFill()
+        ->setFillType(Fill::FILL_SOLID)
+        ->getStartColor()->setARGB('FFEFEFEF');
+
+    $row = 2;
+    foreach ($requests as $requestEntity) {
+        $requestId = $requestEntity->getId();
+        $agentEntity = $requestEntity->getAgent();
+        $serviceEntity = $agentEntity?->getService();
+        $history = ($requestId !== null && isset($latestHistoryByRequestId[$requestId])) ? $latestHistoryByRequestId[$requestId] : null;
+
+        $agentFullName = trim((string) $agentEntity?->getFirstname() . ' ' . (string) $agentEntity?->getLastname());
+        if ($agentFullName === '') {
+            $agentFullName = '-';
+        }
+
+        $sheet->setCellValue('A' . $row, $requestId !== null ? sprintf('REQ-%03d', $requestId) : '-');
+        $sheet->setCellValue('B' . $row, $typeLabels[$requestEntity->getType() ?? ''] ?? (string) $requestEntity->getType());
+        $sheet->setCellValue('C' . $row, $statusLabels[$requestEntity->getStatus() ?? ''] ?? (string) $requestEntity->getStatus());
+        $sheet->setCellValue('D' . $row, $agentFullName);
+        $sheet->setCellValue('E' . $row, $serviceEntity?->getName() ?? '-');
+        $sheet->setCellValue('F' . $row, $requestEntity->getArrivalDate()?->format('d/m/Y') ?? '-');
+        $sheet->setCellValue('G' . $row, $requestEntity->getDepartureDate()?->format('d/m/Y') ?? '-');
+        $sheet->setCellValue('H' . $row, $history?->getCommentary() ?? '-');
+        $sheet->setCellValue('I' . $row, $history?->getDate()?->format('d/m/Y H:i') ?? '-');
+
+        $row++;
+    }
+
+    // Lisibilite
+    foreach (range('A', 'I') as $col) {
+        $sheet->getColumnDimension($col)->setAutoSize(true);
+    }
+    $sheet->setAutoFilter('A1:I1');
+    $sheet->freezePane('A2');
+
+    $filename = sprintf('demandes_acces_%s.xlsx', (new \DateTimeImmutable())->format('Y-m-d_His'));
+
+    $response = new StreamedResponse(function () use ($spreadsheet): void {
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+    });
+
+    $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+    $response->headers->set('Cache-Control', 'max-age=0');
+
+    return $response;
+}
 }

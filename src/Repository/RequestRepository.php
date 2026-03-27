@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Request;
+use App\Entity\WorkflowHistory;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -32,6 +33,84 @@ class RequestRepository extends ServiceEntityRepository
             ->getResult();
 
         return $results;
+    }
+
+    /**
+     * @param array{status?: string, serviceId?: int, type?: string, arrivalDate?: string, departureDate?: string, agent?: string} $filters
+     * @return list<Request>
+     */
+    public function findWithFilters(array $filters = [], int $limit = 100): array
+    {
+        $qb = $this->createQueryBuilder('r')
+            ->leftJoin('r.agent', 'a')->addSelect('a')
+            ->leftJoin('a.service', 's')->addSelect('s')
+            ->leftJoin('r.ressources', 're')->addSelect('re')
+            ->orderBy('r.creationDate', 'ASC')
+            ->setMaxResults($limit);
+
+        if (!empty($filters['status'])) {
+            $qb->andWhere('r.status = :status')->setParameter('status', $filters['status']);
+        }
+
+        if (!empty($filters['serviceId'])) {
+            $qb->andWhere('s.id = :serviceId')->setParameter('serviceId', $filters['serviceId']);
+        }
+
+        if (!empty($filters['type'])) {
+            $qb->andWhere('r.type = :type')->setParameter('type', $filters['type']);
+        }
+
+        if (!empty($filters['arrivalDate'])) {
+            $qb->andWhere('r.arrivalDate = :arrivalDate')
+                ->setParameter('arrivalDate', new \DateTime($filters['arrivalDate']));
+        }
+
+        if (!empty($filters['departureDate'])) {
+            $qb->andWhere('r.departureDate = :departureDate')
+                ->setParameter('departureDate', new \DateTime($filters['departureDate']));
+        }
+
+        if (!empty($filters['agent'])) {
+            $qb->andWhere('LOWER(a.firstname) LIKE :agent OR LOWER(a.lastname) LIKE :agent')
+                ->setParameter('agent', '%' . mb_strtolower($filters['agent']) . '%');
+        }
+
+        /** @var list<Request> $results */
+        $results = $qb->getQuery()->getResult();
+
+        return $results;
+    }
+
+    /**
+     * @return list<\DateTime>
+     */
+    public function findDistinctArrivalDates(): array
+    {
+        $result = $this->createQueryBuilder('r')
+            ->select('r.arrivalDate')
+            ->where('r.arrivalDate IS NOT NULL')
+            ->groupBy('r.arrivalDate')
+            ->orderBy('r.arrivalDate', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        return array_column($result, 'arrivalDate');
+    }
+
+    /**
+     * @return list<\DateTime>
+     */
+    public function findDistinctDepartureDates(): array
+    {
+        $result = $this->createQueryBuilder('r')
+            ->select('r.departureDate')
+            ->where('r.departureDate IS NOT NULL')
+            ->groupBy('r.departureDate')
+            ->orderBy('r.departureDate', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        return array_column($result, 'departureDate');
     }
 
     public function countPendingRequests(): int
@@ -115,4 +194,47 @@ class RequestRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
+
+    public function findForExportWithFilters(array $filters = []): array
+    {
+        $qb = $this->createQueryBuilder('r')
+            ->leftJoin('r.agent', 'a')->addSelect('a')
+            ->leftJoin('a.service', 's')->addSelect('s')
+            ->leftJoin('r.ressources', 're')->addSelect('re')
+            ->orderBy('r.creationDate', 'ASC');
+
+        if (!empty($filters['status'])) {
+            $qb->andWhere('r.status = :status')->setParameter('status', $filters['status']);
+        }
+
+        if (!empty($filters['serviceId'])) {
+            $qb->andWhere('s.id = :serviceId')->setParameter('serviceId', $filters['serviceId']);
+        }
+
+        if (!empty($filters['type'])) {
+            $qb->andWhere('r.type = :type')->setParameter('type', $filters['type']);
+        }
+
+        if (!empty($filters['arrivalDate'])) {
+            $qb->andWhere('r.arrivalDate = :arrivalDate')
+                ->setParameter('arrivalDate', new \DateTime($filters['arrivalDate']));
+        }
+
+        if (!empty($filters['departureDate'])) {
+            $qb->andWhere('r.departureDate = :departureDate')
+                ->setParameter('departureDate', new \DateTime($filters['departureDate']));
+        }
+
+        if (!empty($filters['agent'])) {
+            $qb->andWhere('LOWER(a.firstname) LIKE :agent OR LOWER(a.lastname) LIKE :agent')
+                ->setParameter('agent', '%' . mb_strtolower($filters['agent']) . '%');
+        }
+
+        /** @var list<Request> $results */
+        $results = $qb->getQuery()->getResult();
+
+        return $results;
+    }
+
+    
 }

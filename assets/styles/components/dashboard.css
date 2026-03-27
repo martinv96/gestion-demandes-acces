@@ -11,3 +11,19 @@
 	object-fit: contain;
 	flex-shrink: 0;
 }
+
+.btnExport {
+        background-color: #107C41;
+        color: #ffffff;
+        border: none;
+		margin-bottom: 0.3rem;
+        border-radius: 0.25rem;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+
+	.btnExport:hover {
+		background-color: #0E6B35;
+		color: #ffffff;
+	}

@@ -3,6 +3,8 @@
 {% block title %}Liste des demandes{% endblock %}
 
 {% block body %}
+
+{# Contenu principal #}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -12,17 +14,123 @@
         <a href="{{ path('app_new_request') }}" class="btn btn-primary">Nouvelle demande</a>
     </div>
 
-    {% if requests is empty %}
+    {% if totalCount == 0 %}
         <div class="alert alert-info" role="alert">
             Aucune demande en base pour le moment.
         </div>
     {% else %}
-        <div class="card">
+
+    {# Filtres #}
+    <div class="card mb-4 p-3">
+        <form method="GET">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                    <img src="{{ asset('images/filtre.png') }}" alt="Filtres" style="width:16px;height:16px;object-fit:contain;">
+                    <label class="form-label form-label-sm mb-1 text-muted fw-semibold d-inline-block">Filtres</label>
+                 </div>
+            {# Ligne 1 : statut, service, type #}
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-4">
+                    <label class="form-label form-label-sm mb-1 text-muted fw-semibold">Statut</label>
+                    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">Tous les statuts</option>
+                        {% set statusOptions = {
+                            'en_attente_rh': 'En attente RH',
+                            'en_attente_st': 'En attente DGA-ST',
+                            'en_attente_dsi': 'En attente DSI',
+                            'traitee': 'Traitée',
+                            'refusee_rh': 'Refusée RH',
+                            'refusee_st': 'Refusée DGA-ST',
+                            'refusee_dsi': 'Refusée DSI'
+                        } %}
+                        {% for value, label in statusOptions %}
+                            <option value="{{ value }}" {% if value == filters.status %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label form-label-sm mb-1 text-muted fw-semibold">Service</label>
+                    <select name="serviceId" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">Tous les services</option>
+                        {% for service in services %}
+                            <option value="{{ service.id }}" {% if service.id == filters.serviceId %}selected{% endif %}>{{ service.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label form-label-sm mb-1 text-muted fw-semibold">Type</label>
+                    <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">Tous les types</option>
+                        {% set typeOptions = {
+                            'ouverture': 'Ouverture',
+                            'modification': 'Modification',
+                            'fermeture': 'Fermeture'
+                        } %}
+                        {% for value, label in typeOptions %}
+                            <option value="{{ value }}" {% if value == filters.type %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            {# Ligne 2 : agent, date arrivée, date départ, reset #}
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-6 col-xl-4">
+                    <label class="form-label form-label-sm mb-1 text-muted fw-semibold">Agent</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" name="agent" class="form-control"
+                               placeholder="Nom ou prénom…" value="{{ filters.agent }}">
+                        <button type="submit" class="btn btn-outline-secondary">
+                            <img src="{{ asset('images/chercher.png') }}" alt="Rechercher" style="width:16px;height:16px;object-fit:contain;">
+                        </button>
+                    </div>
+                </div>
+                <div class="col-12 col-md-3 col-xl-3">
+                    <label class="form-label form-label-sm mb-1 text-muted fw-semibold">Date d'arrivée</label>
+                    <select name="arrivalDate" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">Toutes</option>
+                        {% for date in availableDates %}
+                            {% set dateValue = date|date('Y-m-d') %}
+                            <option value="{{ dateValue }}" {% if dateValue == filters.arrivalDate %}selected{% endif %}>{{ date|date('d/m/Y') }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-3 col-xl-3">
+                    <label class="form-label form-label-sm mb-1 text-muted fw-semibold">Date de départ</label>
+                    <select name="departureDate" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">Toutes</option>
+                        {% for date in availableDepartures %}
+                            {% set dateValue = date|date('Y-m-d') %}
+                            <option value="{{ dateValue }}" {% if dateValue == filters.departureDate %}selected{% endif %}>{{ date|date('d/m/Y') }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if filters.status or filters.serviceId or filters.type or filters.arrivalDate or filters.departureDate or filters.agent %}
+                <div class="col-12 col-md-12 col-xl-2 d-grid">
+                    <a href="{{ path('app_list_request') }}" class="btn btn-sm btn-outline-secondary">Réinitialiser</a>
+                </div>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    {% if requests is empty %}
+        <div class="alert alert-warning" role="alert">
+            Aucune demande ne correspond aux critères sélectionnés.
+        </div>
+    {% else %}
+
+        <div class="d-flex justify-content-end mb-3">
+            <a href="{{ path('app_request_export_csv', app.request.query.all) }}" class="btn btnExport">
+                Exporter CSV
+            </a>
+        </div>
+
+        {# Tableau des demandes #}
+        <div class="card">   
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                               <th scope="col">Référence</th>
+                            <th scope="col">Référence</th>
                             <th scope="col">Agent</th>
                             <th scope="col">Service</th>
                             <th scope="col">Type</th>
@@ -35,7 +143,7 @@
                     <tbody>
                         {% for request in requests %}
                             <tr>
-                                    <td class="fw-semibold">{{ 'REQ-%03d'|format(loop.index) }}</td>
+                                <td class="fw-semibold">{{ 'REQ-%03d'|format(loop.index) }}</td>
                                 <td>
                                     {% if request.agent %}
                                         {{ request.agent.firstname }} {{ request.agent.lastname }}
@@ -75,6 +183,7 @@
                 </table>
             </div>
         </div>
+    {% endif %}
     {% endif %}
 </div>
 {% endblock %}

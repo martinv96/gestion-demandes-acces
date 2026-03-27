@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\WorkflowHistory;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use App\Entity\Request as AccessRequest;
 
 /**
  * @extends ServiceEntityRepository<WorkflowHistory>
@@ -40,4 +41,48 @@ class WorkflowHistoryRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
+
+  
+public function findLatestByRequests(array $requests): array
+{
+    $requestIds = [];
+
+    foreach ($requests as $request) {
+        $id = $request->getId();
+        if ($id !== null) {
+            $requestIds[] = $id;
+        }
+    }
+
+    if ($requestIds === []) {
+        return [];
+    }
+
+    $histories = $this->createQueryBuilder('w')
+        ->andWhere('IDENTITY(w.request) IN (:requestIds)')
+        ->setParameter('requestIds', $requestIds)
+        ->orderBy('w.request', 'ASC')
+        ->addOrderBy('w.date', 'DESC')
+        ->getQuery()
+        ->getResult();
+
+    $latestByRequestId = [];
+
+    foreach ($histories as $history) {
+        if (!$history instanceof WorkflowHistory) {
+            continue;
+        }
+
+        $requestId = $history->getRequest()?->getId();
+        if ($requestId === null) {
+            continue;
+        }
+
+        if (!isset($latestByRequestId[$requestId])) {
+            $latestByRequestId[$requestId] = $history;
+        }
+    }
+
+    return $latestByRequestId;
+}
 }
