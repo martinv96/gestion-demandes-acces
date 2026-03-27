@@ -25,6 +25,7 @@ final class NewRequestController extends AbstractController
 
         $form->handleRequest($request);
 
+        // Si le formulaire est soumis et valide, créer la demande d'accès
         if ($form->isSubmitted() && $form->isValid()) {
             $newRequest = new AccessRequest();
 
@@ -36,6 +37,8 @@ final class NewRequestController extends AbstractController
                 ->setUpdateDate(new \DateTimeImmutable());
 
             $currentUser = $this->getUser();
+
+            // si l'user est null, c'est qu'il n'est pas authentifié, on bloque l'accès
             if (!$currentUser instanceof User) {
                 throw $this->createAccessDeniedException('Utilisateur non authentifié.');
             }
@@ -53,6 +56,9 @@ final class NewRequestController extends AbstractController
             $entityManager->persist($agent);
             $newRequest->setAgent($agent);
 
+
+            // si date arrivée donnée, on la set, sinon null (selon ouverture ou fermeture)
+            // ouverture : date arrivée obligatoire, sinon la validation échouera (validation dans NewRequestData)
             if ($formData->getArrivalDate() instanceof \DateTime) {
                 $newRequest->setArrivalDate($formData->getArrivalDate());
             } else {
@@ -63,6 +69,7 @@ final class NewRequestController extends AbstractController
                 $newRequest->setDepartureDate($formData->getDepartureDate());
             }
 
+            // si ce n'est une fermeture, on ajoute les ressources, sinon c'est vide
             if (($formData->getType() ?? 'ouverture') !== 'fermeture') {
                 foreach ($formData->getLogiciels() as $logiciel) {
                     $logiciel->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);

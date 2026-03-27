@@ -70,6 +70,7 @@ final class NewRequestType extends AbstractType
                 'label' => 'Type de demande *',
                 'expanded' => true,
                 'multiple' => false,
+                'required' => true,
                 'choices' => [
                     'Ouverture - Nouveau collaborateur' => 'ouverture',
                     'Modification - Changement de service ou fonction' => 'modification',
@@ -108,7 +109,7 @@ final class NewRequestType extends AbstractType
             ])
             ->add('commentary', TextareaType::class, [
                 'label' => 'Commentaires',
-                'required' => false,
+                'required' => true,
                 'attr' => [
                     'rows' => 4,
                     'placeholder' => 'Informations complémentaires, besoins spécifiques...',

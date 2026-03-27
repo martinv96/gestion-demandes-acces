@@ -91,8 +91,8 @@
 										'refusee_st':     {'label': 'Refusée DGA-ST', 'color': 'danger'},
 										'refusee_dsi':    {'label': 'Refusée DSI', 'color': 'danger'}
 									} %}
-										{% set statusConfig = statusMap[request.status] ?? {'label': request.status|replace({'_': ' '}), 'color': 'secondary'} %}
-										<span class="badge text-bg-{{ statusConfig.color }}">{{ statusConfig.label }}</span>
+									{% set statusConfig = statusMap[request.status] ?? {'label': request.status|replace({'_': ' '}), 'color': 'secondary'} %}
+									<span class="badge text-bg-{{ statusConfig.color }}">{{ statusConfig.label }}</span>
 								</td>
 								<td>{{ request.creationDate ? request.creationDate|date('d/m/Y') : '-' }}</td>
 

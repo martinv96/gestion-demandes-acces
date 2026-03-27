@@ -67,6 +67,7 @@ DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/$
 ```
 
 Important:
+
 - Les commandes doivent etre lancees depuis le dossier `gestion-demandes-acces`.
 - Le `DATABASE_URL` doit correspondre au moteur reel (PostgreSQL dans `compose.yaml`).
 
@@ -84,11 +85,13 @@ docker compose ps
 Si l'application tourne dans un conteneur PHP, executer les commandes dans ce conteneur.
 
 1. Identifier le nom du service PHP:
+
 ```bash
 docker compose config --services
 ```
 
-2. Lancer les commandes Symfony (adapter `<php_service>`):
+1. Lancer les commandes Symfony (adapter `<php_service>`):
+
 ```bash
 docker compose exec <php_service> composer install --no-dev --optimize-autoloader
 docker compose exec <php_service> php bin/console doctrine:migrations:migrate --no-interaction
@@ -99,9 +102,11 @@ docker compose exec <php_service> php bin/console cache:warmup --env=prod
 ## 7) Exposer l'application
 
 Option simple (test):
+
 - Exposer directement le port web de votre service applicatif.
 
 Option recommandee (prod):
+
 - Reverse proxy Nginx ou Caddy devant l'application.
 - HTTPS Lets Encrypt.
 
@@ -121,11 +126,13 @@ docker compose exec <php_service> php bin/console cache:warmup --env=prod
 ## 9) Sauvegarde et logs
 
 Sauvegarde base PostgreSQL:
+
 ```bash
 docker compose exec -T database pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > backup_$(date +%F).sql
 ```
 
 Logs:
+
 ```bash
 docker compose logs -f
 ```
