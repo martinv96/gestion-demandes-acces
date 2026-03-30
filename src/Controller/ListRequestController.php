@@ -14,7 +14,6 @@ use App\Repository\WorkflowHistoryRepository;
 use App\Service\WorkflowService;
 use App\Security\Voter\RequestVoter;
 use Doctrine\ORM\EntityManagerInterface;
-use PhpParser\Node\Expr\Isset_;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -116,13 +115,11 @@ final class ListRequestController extends AbstractController
         RessourceRepository $ressourceRepository,
         ServiceRepository $serviceRepository
     ): Response {
-        $user = $this->getUser();
-        $displayNumber = $requestRepository->getDisplayNumber($requestEntity);
         $canEditRequestInfo = $this->isGranted(RequestVoter::EDIT_INFO, $requestEntity);
 
         return $this->render('list_request/show.html.twig', [
             'requestEntity' => $requestEntity,
-            'requestDisplayCode' => sprintf('REQ-%03d', $displayNumber),
+            
             'canValidate'   => $this->isGranted(RequestVoter::VALIDATE, $requestEntity),
             'canRefuse'     => $this->isGranted(RequestVoter::REFUSE, $requestEntity),
             'canEditRequestInfo' => $canEditRequestInfo,

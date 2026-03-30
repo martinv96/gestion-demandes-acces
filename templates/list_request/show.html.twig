@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Demande {{ requestDisplayCode|default('REQ-001') }}{% endblock %}
+{% block title %}Demande {{ 'REQ-%03d'|format(requestEntity.id) }}{% endblock %}
 
 {# Macro: badge coloré selon statut #}
 {% macro statusBadge(status) %}
@@ -51,7 +51,7 @@
     {# En-tête #}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h3 mb-1">Demande {{ requestDisplayCode|default('REQ-001') }}</h1>
+            <h1 class="h3 mb-1">Demande {{ 'REQ-%03d'|format(requestEntity.id) }}</h1>
             <p class="text-muted mb-0">
                 {{ macros.statusBadge(requestEntity.status) }}
             </p>

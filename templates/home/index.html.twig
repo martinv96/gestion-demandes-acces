@@ -64,7 +64,7 @@
 
 							<tr>
 
-								<td>{{ 'REQ-%03d'|format(loop.index) }}</td>
+								<td>{{ 'REQ-%03d'|format(request.id) }}</td>
 								<td>
 									{% if request.agent %}
 										{{ request.agent.firstname }}

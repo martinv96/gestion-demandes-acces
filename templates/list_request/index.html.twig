@@ -143,7 +143,7 @@
                     <tbody>
                         {% for request in requests %}
                             <tr>
-                                <td class="fw-semibold">{{ 'REQ-%03d'|format(loop.index) }}</td>
+                                <td class="fw-semibold">{{ 'REQ-%03d'|format(request.id) }}</td>
                                 <td>
                                     {% if request.agent %}
                                         {{ request.agent.firstname }} {{ request.agent.lastname }}

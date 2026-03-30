@@ -128,7 +128,7 @@ class RequestRepository extends ServiceEntityRepository
         return (int) $this->createQueryBuilder('r')
             ->select('COUNT(r.id)')
             ->andWhere('r.status IN (:statuses)')
-            ->setParameter('statuses', ['validee', 'traitee', 'terminee'])
+            ->setParameter('statuses', ['validee', 'traitee'])
             ->getQuery()
             ->getSingleScalarResult();
     }
@@ -142,8 +142,8 @@ class RequestRepository extends ServiceEntityRepository
         $results = $this->createQueryBuilder('r')
             ->leftJoin('r.agent', 'a')->addSelect('a')
             ->leftJoin('a.service', 's')->addSelect('s')
-            ->orderBy('r.creationDate', 'DESC')
             ->setMaxResults($limit)
+            ->orderBy('r.creationDate', 'ASC')
             ->getQuery()
             ->getResult();
 
