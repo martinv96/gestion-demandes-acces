@@ -29,17 +29,17 @@ class HomeController extends AbstractController
             [
                 'title' => 'Demandes en attente',
                 'value' => $pendingRequests,
-                'icon' => 'images/logoEnCours.png',
+                'icon' => 'images/dashboard/logoEnCours.png',
             ],
             [
                 'title' => 'Demandes traitées',
                 'value' => $processedRequests,
-                'icon' => 'images/logoTraité.png',
+                'icon' => 'images/dashboard/logoTraité.png',
             ],
             [
                 'title' => 'Total des demandes',
                 'value' => $totalRequests,
-                'icon' => 'images/logoTotaux.png',
+                'icon' => 'images/dashboard/logoTotaux.png',
             ],
         ];
 

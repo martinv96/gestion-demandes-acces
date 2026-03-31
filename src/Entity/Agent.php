@@ -27,6 +27,9 @@ class Agent
     #[ORM\Column(length: 100)]
     private ?string $jobTitle;
 
+    #[ORM\Column(length: 180, nullable: true)]
+    private ?string $email = null;
+
     #[ORM\ManyToOne(inversedBy: 'serviceId')]
     private ?Service $service;
 
@@ -90,6 +93,18 @@ class Agent
     public function setJobTitle(string $jobTitle): static
     {
         $this->jobTitle = $jobTitle;
+
+        return $this;
+    }
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(?string $email): static
+    {
+        $this->email = $email;
 
         return $this;
     }

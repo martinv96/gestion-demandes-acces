@@ -20,6 +20,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 
@@ -119,7 +121,7 @@ final class ListRequestController extends AbstractController
 
         return $this->render('list_request/show.html.twig', [
             'requestEntity' => $requestEntity,
-            
+
             'canValidate'   => $this->isGranted(RequestVoter::VALIDATE, $requestEntity),
             'canRefuse'     => $this->isGranted(RequestVoter::REFUSE, $requestEntity),
             'canEditRequestInfo' => $canEditRequestInfo,
@@ -364,136 +366,222 @@ final class ListRequestController extends AbstractController
     // ! route pour exporter la liste des demandes au format CSV
     #[Route('/request/exportCsv', name: 'app_request_export_csv', methods: ['GET'])]
     public function exportXlsx(
-    Request $httpRequest,
-    RequestRepository $requestRepository,
-    WorkflowHistoryRepository $historyRepository
-): Response {
-    $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+        Request $httpRequest,
+        RequestRepository $requestRepository,
+        WorkflowHistoryRepository $historyRepository
+    ): Response {
+        // ! vérification que l'utilisateur est authentifié avant de permettre l'exportation de la liste des demandes
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
-    // Reprend la logique de filtres de ta liste
-    $allowedStatuses = ['en_attente_rh', 'en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'];
-    $allowedTypes = ['ouverture', 'modification', 'fermeture'];
+        // Reprend la logique de filtres de ta liste
+        $allowedStatuses = ['en_attente_rh', 'en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'];
+        $allowedTypes = ['ouverture', 'modification', 'fermeture'];
 
-    $status = (string) $httpRequest->query->get('status', '');
-    $serviceId = (string) $httpRequest->query->get('serviceId', '');
-    $type = (string) $httpRequest->query->get('type', '');
-    $arrivalDate = (string) $httpRequest->query->get('arrivalDate', '');
-    $departureDate = (string) $httpRequest->query->get('departureDate', '');
-    $agent = trim((string) $httpRequest->query->get('agent', ''));
+        $status = (string) $httpRequest->query->get('status', '');
+        $serviceId = (string) $httpRequest->query->get('serviceId', '');
+        $type = (string) $httpRequest->query->get('type', '');
+        $arrivalDate = (string) $httpRequest->query->get('arrivalDate', '');
+        $departureDate = (string) $httpRequest->query->get('departureDate', '');
+        $agent = trim((string) $httpRequest->query->get('agent', ''));
 
-    $filters = [];
+        // partie filtrage des demandes en fonction des critères de recherche fournis dans la requête HTTP
+        $filters = [];
 
-    if ($status !== '' && in_array($status, $allowedStatuses, true)) {
-        $filters['status'] = $status;
-    }
-
-    if ($serviceId !== '' && ctype_digit($serviceId)) {
-        $filters['serviceId'] = (int) $serviceId;
-    }
-
-    if ($type !== '' && in_array($type, $allowedTypes, true)) {
-        $filters['type'] = $type;
-    }
-
-    if ($arrivalDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $arrivalDate)) {
-        $filters['arrivalDate'] = $arrivalDate;
-    }
-
-    if ($departureDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $departureDate)) {
-        $filters['departureDate'] = $departureDate;
-    }
-
-    if ($agent !== '' && mb_strlen($agent) <= 100) {
-        $filters['agent'] = $agent;
-    }
-
-    $requests = $requestRepository->findForExportWithFilters($filters);
-    $latestHistoryByRequestId = $historyRepository->findLatestByRequests($requests);
-
-    $statusLabels = [
-        'en_attente_rh' => 'En attente RH',
-        'en_attente_st' => 'En attente DGA-ST',
-        'en_attente_dsi' => 'En attente DSI',
-        'traitee' => 'Traitee',
-        'refusee_rh' => 'Refusee RH',
-        'refusee_st' => 'Refusee DGA-ST',
-        'refusee_dsi' => 'Refusee DSI',
-    ];
-
-    $typeLabels = [
-        'ouverture' => 'Ouverture',
-        'modification' => 'Modification',
-        'fermeture' => 'Fermeture',
-    ];
-
-    $spreadsheet = new Spreadsheet();
-    $sheet = $spreadsheet->getActiveSheet();
-    $sheet->setTitle('Demandes');
-
-    // En-tetes
-    $headers = [
-        'Reference',
-        'Type',
-        'Statut',
-        'Agent',
-        'Service',
-        'Date arrivee',
-        'Date depart',
-        'Dernier commentaire',
-        'Date derniere transition',
-    ];
-
-    $sheet->fromArray($headers, null, 'A1');
-
-    // Style en-tete (simple et propre)
-    $sheet->getStyle('A1:I1')->getFont()->setBold(true);
-    $sheet->getStyle('A1:I1')->getFill()
-        ->setFillType(Fill::FILL_SOLID)
-        ->getStartColor()->setARGB('FFEFEFEF');
-
-    $row = 2;
-    foreach ($requests as $requestEntity) {
-        $requestId = $requestEntity->getId();
-        $agentEntity = $requestEntity->getAgent();
-        $serviceEntity = $agentEntity?->getService();
-        $history = ($requestId !== null && isset($latestHistoryByRequestId[$requestId])) ? $latestHistoryByRequestId[$requestId] : null;
-
-        $agentFullName = trim((string) $agentEntity?->getFirstname() . ' ' . (string) $agentEntity?->getLastname());
-        if ($agentFullName === '') {
-            $agentFullName = '-';
+        // ! pour chaque critère de filtre (status, serviceId, type, arrivalDate, departureDate, agent), 
+        // ! on vérifie s'il est présent et valide dans la requête, 
+        // ! puis on l'ajoute au tableau de filtres qui sera utilisé pour interroger la base de données
+        if ($status !== '' && in_array($status, $allowedStatuses, true)) {
+            $filters['status'] = $status;
         }
 
-        $sheet->setCellValue('A' . $row, $requestId !== null ? sprintf('REQ-%03d', $requestId) : '-');
-        $sheet->setCellValue('B' . $row, $typeLabels[$requestEntity->getType() ?? ''] ?? (string) $requestEntity->getType());
-        $sheet->setCellValue('C' . $row, $statusLabels[$requestEntity->getStatus() ?? ''] ?? (string) $requestEntity->getStatus());
-        $sheet->setCellValue('D' . $row, $agentFullName);
-        $sheet->setCellValue('E' . $row, $serviceEntity?->getName() ?? '-');
-        $sheet->setCellValue('F' . $row, $requestEntity->getArrivalDate()?->format('d/m/Y') ?? '-');
-        $sheet->setCellValue('G' . $row, $requestEntity->getDepartureDate()?->format('d/m/Y') ?? '-');
-        $sheet->setCellValue('H' . $row, $history?->getCommentary() ?? '-');
-        $sheet->setCellValue('I' . $row, $history?->getDate()?->format('d/m/Y H:i') ?? '-');
+        if ($serviceId !== '' && ctype_digit($serviceId)) {
+            $filters['serviceId'] = (int) $serviceId;
+        }
 
-        $row++;
+        if ($type !== '' && in_array($type, $allowedTypes, true)) {
+            $filters['type'] = $type;
+        }
+
+        if ($arrivalDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $arrivalDate)) {
+            $filters['arrivalDate'] = $arrivalDate;
+        }
+
+        if ($departureDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $departureDate)) {
+            $filters['departureDate'] = $departureDate;
+        }
+
+        if ($agent !== '' && mb_strlen($agent) <= 100) {
+            $filters['agent'] = $agent;
+        }
+
+        // ! récupération des demandes filtrées à partir du repository, ainsi que de l'historique le plus récent pour chaque demande
+        $requests = $requestRepository->findWithFilters($filters);
+        $latestHistoryByRequestId = $historyRepository->findLatestByRequests($requests);
+
+        // ! définition des labels lisibles pour les statuts et types de demandes, qui seront utilisés dans l'export Excel
+        $statusLabels = [
+            'en_attente_rh' => 'En attente RH',
+            'en_attente_st' => 'En attente DGA-ST',
+            'en_attente_dsi' => 'En attente DSI',
+            'traitee' => 'Traitée',
+            'refusee_rh' => 'Refusée RH',
+            'refusee_st' => 'Refusée DGA-ST',
+            'refusee_dsi' => 'Refusée DSI',
+        ];
+
+        $typeLabels = [
+            'ouverture' => 'Ouverture',
+            'modification' => 'Modification',
+            'fermeture' => 'Fermeture',
+        ];
+
+        // ! création d'un nouveau classeur Excel et configuration de la feuille de calcul pour l'export des demandes
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Demandes');
+
+        // ! définition de styles de couleurs pour les différentes valeurs de statut et de type de demandes,
+        // ! qui seront appliqués aux cellules correspondantes dans l'export Excel pour une meilleure lisibilité
+        $statusStyleMap = [
+            'en_attente_rh' => ['font' => 'FF9A6700', 'border' => 'FFF59E0B'],
+            'en_attente_st' => ['font' => 'FF9A6700', 'border' => 'FFF59E0B'],
+            'en_attente_dsi' => ['font' => 'FF1D4ED8', 'border' => 'FF60A5FA'],
+            'traitee' => ['font' => 'FF15803D', 'border' => 'FF4ADE80'],
+            'refusee_rh' => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
+            'refusee_st' => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
+            'refusee_dsi' => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
+        ];
+
+        $typeStyleMap = [
+            'ouverture' => ['font' => 'FF0F766E', 'border' => 'FF2DD4BF'],
+            'modification' => ['font' => 'FF1D4ED8', 'border' => 'FF60A5FA'],
+            'fermeture' => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
+        ];
+
+        // En-tetes
+        $headers = [
+            'Référence',
+            'Type',
+            'Statut',
+            'Agent',
+            'Service',
+            'Date d\'arrivée',
+            'Date de départ',
+            'Dernier commentaire',
+            'Date de dernière action',
+        ];
+
+        $sheet->fromArray($headers, null, 'A1');
+
+        // Style en-tete
+        $spreadsheet->getDefaultStyle()->getFont()->setName('Aptos')->setSize(11);
+        $sheet->getStyle('A1:I1')->getFont()->setBold(true)->setSize(12)->getColor()->setARGB('FF1F2937');
+        $sheet->getStyle('A1:I1')->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+            ->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle('A1:I1')->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFE2E8F0');
+        $sheet->getStyle('A1:I1')->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN)
+            ->getColor()->setARGB('FFCBD5E1');
+        $sheet->getRowDimension(1)->setRowHeight(24);
+
+        $row = 2;
+
+        // ! boucle pour remplir les lignes de la feuille Excel avec les données des demandes, 
+        // ! en appliquant les styles définis en fonction du statut et du type de chaque demande
+        foreach ($requests as $requestEntity) {
+            $requestId = $requestEntity->getId();
+            $agentEntity = $requestEntity->getAgent();
+            $serviceEntity = $agentEntity?->getService();
+            $requestStatus = $requestEntity->getStatus() ?? '';
+            $requestType = $requestEntity->getType() ?? '';
+            $history = ($requestId !== null && isset($latestHistoryByRequestId[$requestId])) ? $latestHistoryByRequestId[$requestId] : null;
+
+            // ! construction du nom complet de l'agent (prénom + nom), ou '-' si les informations sont manquantes
+            $agentFullName = trim((string) $agentEntity?->getFirstname() . ' ' . (string) $agentEntity?->getLastname());
+            if ($agentFullName === '') {
+                $agentFullName = '-';
+            }
+
+            // ! remplissage des cellules de la ligne avec les données de la demande, en utilisant les labels lisibles pour le statut et le type
+            $sheet->setCellValue('A' . $row, $requestEntity->getReference());
+            $sheet->setCellValue('B' . $row, $typeLabels[$requestEntity->getType() ?? ''] ?? (string) $requestEntity->getType());
+            $sheet->setCellValue('C' . $row, $statusLabels[$requestEntity->getStatus() ?? ''] ?? (string) $requestEntity->getStatus());
+            $sheet->setCellValue('D' . $row, $agentFullName);
+            $sheet->setCellValue('E' . $row, $serviceEntity?->getName() ?? '-');
+            $sheet->setCellValue('F' . $row, $requestEntity->getArrivalDate()?->format('d/m/Y') ?? '-');
+            $sheet->setCellValue('G' . $row, $requestEntity->getDepartureDate()?->format('d/m/Y') ?? '-');
+            $sheet->setCellValue('H' . $row, $history?->getCommentary() ?? '-');
+            $sheet->setCellValue('I' . $row, $history?->getDate()?->format('d/m/Y H:i') ?? '-');
+
+            // ! application de styles conditionnels pour la ligne en fonction du statut et du type de la demande,
+            // ! ainsi que pour l'amélioration de la lisibilité (bordures, couleurs de fond alternées, alignement, etc.)
+            $sheet->getStyle('A' . $row . ':I' . $row)->getBorders()->getAllBorders()
+                ->setBorderStyle(Border::BORDER_THIN)
+                ->getColor()->setARGB('FFE5E7EB');
+
+            if ($row % 2 === 0) {
+                $sheet->getStyle('A' . $row . ':I' . $row)->getFill()
+                    ->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()->setARGB('FFF8FAFC');
+            }
+
+            $sheet->getStyle('A' . $row)->getFont()->setBold(true)->getColor()->setARGB('FF0F4C81');
+            $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            $sheet->getStyle('B' . $row . ':C' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            if (isset($typeStyleMap[$requestType])) {
+                $sheet->getStyle('B' . $row)->getFont()->setBold(true)->getColor()->setARGB($typeStyleMap[$requestType]['font']);
+                $sheet->getStyle('B' . $row)->getBorders()->getLeft()
+                    ->setBorderStyle(Border::BORDER_MEDIUM)
+                    ->getColor()->setARGB($typeStyleMap[$requestType]['border']);
+            }
+
+            if (isset($statusStyleMap[$requestStatus])) {
+                $sheet->getStyle('C' . $row)->getFont()->setBold(true)->getColor()->setARGB($statusStyleMap[$requestStatus]['font']);
+                $sheet->getStyle('C' . $row)->getBorders()->getLeft()
+                    ->setBorderStyle(Border::BORDER_MEDIUM)
+                    ->getColor()->setARGB($statusStyleMap[$requestStatus]['border']);
+            }
+
+            $sheet->getStyle('F' . $row . ':G' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('I' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getRowDimension($row)->setRowHeight(22);
+
+            $row++;
+        }
+
+        // ! Lisibilité : ajustement des colonnes, filtre et gel de la première ligne
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        $sheet->getColumnDimension('A')->setWidth(15);
+        $sheet->getColumnDimension('B')->setWidth(18);
+        $sheet->getColumnDimension('C')->setWidth(22);
+        $sheet->getColumnDimension('D')->setWidth(24);
+        $sheet->getColumnDimension('E')->setWidth(24);
+        $sheet->getColumnDimension('F')->setWidth(16);
+        $sheet->getColumnDimension('G')->setWidth(16);
+        $sheet->getColumnDimension('H')->setWidth(42);
+        $sheet->getColumnDimension('I')->setWidth(22);
+        $sheet->setAutoFilter('A1:I1');
+        $sheet->freezePane('A2');
+        $sheet->setSelectedCell('A1');
+
+        $filename = sprintf('demandes_acces_%s.xlsx', (new \DateTimeImmutable())->format('Y-m-d_His'));
+
+        $response = new StreamedResponse(function () use ($spreadsheet): void {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        });
+
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $response->headers->set('Cache-Control', 'max-age=0');
+
+        return $response;
     }
-
-    // Lisibilite
-    foreach (range('A', 'I') as $col) {
-        $sheet->getColumnDimension($col)->setAutoSize(true);
-    }
-    $sheet->setAutoFilter('A1:I1');
-    $sheet->freezePane('A2');
-
-    $filename = sprintf('demandes_acces_%s.xlsx', (new \DateTimeImmutable())->format('Y-m-d_His'));
-
-    $response = new StreamedResponse(function () use ($spreadsheet): void {
-        $writer = new Xlsx($spreadsheet);
-        $writer->save('php://output');
-    });
-
-    $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
-    $response->headers->set('Cache-Control', 'max-age=0');
-
-    return $response;
-}
 }

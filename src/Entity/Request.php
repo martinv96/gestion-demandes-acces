@@ -57,15 +57,43 @@ class Request
     #[ORM\OneToMany(targetEntity: WorkflowHistory::class, mappedBy: 'request')]
     private Collection $requestId;
 
+    /**
+     * Demande d'origine (ex: une ouverture traitée)
+     */
+    #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'childRequests')]
+    #[ORM\JoinColumn(onDelete: 'SET NULL', nullable: true)]
+    private ?self $parentRequest = null;
+
+    /**
+     * Demandes filles (modification/fermeture liées à une demande d'origine)
+     *
+     * @var Collection<int, self>
+     */
+    #[ORM\OneToMany(targetEntity: self::class, mappedBy: 'parentRequest')]
+    private Collection $childRequests;
+
     public function __construct()
     {
         $this->ressources = new ArrayCollection();
         $this->requestId = new ArrayCollection();
+        $this->childRequests = new ArrayCollection();
     }
 
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getReference(): string
+    {
+        $prefix = match ($this->type) {
+            'ouverture' => 'OUV',
+            'modification' => 'MOD',
+            'fermeture' => 'FER',
+            default => 'REQ',
+        };
+
+        return sprintf('%s-%03d', $prefix, $this->id ?? 0);
     }
 
     public function getType(): ?string
@@ -224,6 +252,47 @@ class Request
             // set the owning side to null (unless already changed)
             if ($requestId->getRequest() === $this) {
                 $requestId->setRequest(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getParentRequest(): ?self
+    {
+        return $this->parentRequest;
+    }
+
+    public function setParentRequest(?self $parentRequest): static
+    {
+        $this->parentRequest = $parentRequest;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public function getChildRequests(): Collection
+    {
+        return $this->childRequests;
+    }
+
+    public function addChildRequest(self $childRequest): static
+    {
+        if (!$this->childRequests->contains($childRequest)) {
+            $this->childRequests->add($childRequest);
+            $childRequest->setParentRequest($this);
+        }
+
+        return $this;
+    }
+
+    public function removeChildRequest(self $childRequest): static
+    {
+        if ($this->childRequests->removeElement($childRequest)) {
+            if ($childRequest->getParentRequest() === $this) {
+                $childRequest->setParentRequest(null);
             }
         }
 

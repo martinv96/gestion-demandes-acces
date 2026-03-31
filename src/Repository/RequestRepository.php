@@ -195,46 +195,5 @@ class RequestRepository extends ServiceEntityRepository
     //        ;
     //    }
 
-    public function findForExportWithFilters(array $filters = []): array
-    {
-        $qb = $this->createQueryBuilder('r')
-            ->leftJoin('r.agent', 'a')->addSelect('a')
-            ->leftJoin('a.service', 's')->addSelect('s')
-            ->leftJoin('r.ressources', 're')->addSelect('re')
-            ->orderBy('r.creationDate', 'ASC');
 
-        if (!empty($filters['status'])) {
-            $qb->andWhere('r.status = :status')->setParameter('status', $filters['status']);
-        }
-
-        if (!empty($filters['serviceId'])) {
-            $qb->andWhere('s.id = :serviceId')->setParameter('serviceId', $filters['serviceId']);
-        }
-
-        if (!empty($filters['type'])) {
-            $qb->andWhere('r.type = :type')->setParameter('type', $filters['type']);
-        }
-
-        if (!empty($filters['arrivalDate'])) {
-            $qb->andWhere('r.arrivalDate = :arrivalDate')
-                ->setParameter('arrivalDate', new \DateTime($filters['arrivalDate']));
-        }
-
-        if (!empty($filters['departureDate'])) {
-            $qb->andWhere('r.departureDate = :departureDate')
-                ->setParameter('departureDate', new \DateTime($filters['departureDate']));
-        }
-
-        if (!empty($filters['agent'])) {
-            $qb->andWhere('LOWER(a.firstname) LIKE :agent OR LOWER(a.lastname) LIKE :agent')
-                ->setParameter('agent', '%' . mb_strtolower($filters['agent']) . '%');
-        }
-
-        /** @var list<Request> $results */
-        $results = $qb->getQuery()->getResult();
-
-        return $results;
-    }
-
-    
 }

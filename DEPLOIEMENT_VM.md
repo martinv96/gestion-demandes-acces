@@ -313,7 +313,7 @@ docker --version
 docker compose version
 ```
 
-### 3. Récupérer le projet
+### 3. Récuperer le projet
 
 ```bash
 cd /opt

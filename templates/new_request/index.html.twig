@@ -1,137 +1,363 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Nouvelle demande{% endblock %}
+{% block title %}Nouvelle demande
+{% endblock %}
 
 {% block body %}
-    <div class="container-fluid">
-        {% if saved %}
-            <div class="alert alert-success" role="alert">
-                La demande a été créée et les ressources sélectionnées ont été associées.
-            </div>
-        {% endif %}
+	<div class="container-fluid">
+		{% if saved %}
+			<div class="alert alert-success" role="alert">
+				La demande a été créée et les ressources sélectionnées ont été associées.
+			</div>
+		{% endif %}
 
-        <div class="mb-4">
-            <h1 class="h3 d-flex align-items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-file-plus" viewBox="0 0 16 16">
-                    <path d="M8 6a.5.5 0 0 1 .5.5V8H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V9H6a.5.5 0 0 1 0-1h1.5V6.5A.5.5 0 0 1 8 6z"/>
-                    <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h6.5L14 4.5zM13 4H9V0H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4z"/>
-                </svg>
-                Nouvelle demande d'accès
-            </h1>
-            <p class="text-muted mb-0">Créer une demande d'accès pour un agent</p>
-        </div>
+		<div class="mb-4">
+			<h1 class="h3 d-flex align-items-center gap-2">
+				<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-file-plus" viewbox="0 0 16 16">
+					<path d="M8 6a.5.5 0 0 1 .5.5V8H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V9H6a.5.5 0 0 1 0-1h1.5V6.5A.5.5 0 0 1 8 6z"/>
+					<path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h6.5L14 4.5zM13 4H9V0H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4z"/>
+				</svg>
+				Nouvelle demande d'accès
+			</h1>
+			<p class="text-muted mb-0">Créer une demande d'accès pour un agent</p>
+		</div>
 
-        {{ form_start(form, {'attr': {'class': 'request-form'}}) }}
+		{{ form_start(form, {'attr': {'class': 'request-form'}}) }}
 
-            {% if form.vars.errors|length > 0 %}
-                <div class="alert alert-danger form-errors-global">
-                    {{ form_errors(form) }}
-                </div>
-            {% endif %}
+		{% if form.vars.errors|length > 0 %}
+			<div class="alert alert-danger form-errors-global">
+				{{ form_errors(form) }}
+			</div>
+		{% endif %}
 
-            <div class="card request-form-card mb-4">
-                <div class="card-header">Informations agent</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            {{ form_row(form.civility) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.firstname) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.lastname) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.email) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.service) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.jobTitle) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.arrivalDate) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form_row(form.departureDate) }}
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="card request-form-card mb-4">
-                <div class="card-header">Type de demande</div>
-                <div class="card-body request-choice-group">
-                    {{ form_row(form.type) }}
-                </div>
-            </div>
+             {# type de demande #}
+		<div class="card request-form-card mb-4">
+			<div class="card-header">Type de demande</div>
+			<div class="card-body request-choice-group">
+				{{ form_row(form.type) }}
+			</div>
+		</div>
 
-            <div class="card request-form-card mb-4" id="logiciels-card">
-                <div class="card-header">Accès logiciels</div>
-                <div class="card-body request-checkbox-grid">
-                    {{ form_widget(form.logiciels) }}
-                    <div class="field-errors">{{ form_errors(form.logiciels) }}</div>
-                </div>
-            </div>
+        {# modal: demande d'origine #}
+		<div class="modal fade" id="parentRequestModal" tabindex="-1" aria-labelledby="parentRequestModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="parentRequestModalLabel">Sélectionner la demande d'origine</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+					</div>
+					<div class="modal-body">
+						<p class="text-muted mb-3">
+							Ce champ est obligatoire pour une modification ou une fermeture.
+						</p>
+						{{ form_row(form.parentRequest) }}
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+						<button type="button" class="btn btn-primary" id="confirmParentRequestBtn" data-bs-dismiss="modal">Valider</button>
+					</div>
+				</div>
+			</div>
+		</div>
 
-            <div class="card request-form-card mb-4" id="materiel-card">
-                <div class="card-header">Matériel</div>
-                <div class="card-body request-checkbox-grid">
-                    {{ form_widget(form.materiels) }}
-                    <div class="field-errors">{{ form_errors(form.materiels) }}</div>
-                </div>
-            </div>
 
-            <div class="card request-form-card mb-4">
-                <div class="card-header">Commentaires</div>
-                <div class="card-body">
-                    {{ form_row(form.commentary) }}
-                </div>
-            </div>
+        {# informations agent #}
+		<div class="card request-form-card mb-4">
+			<div class="card-header">Informations agent</div>
+			<div class="card-body">
+				<div class="row g-3">
+					<div class="col-md-6">
+						{{ form_row(form.civility) }}
+					</div>
+					<div class="col-md-6">
+						{{ form_row(form.firstname) }}
+					</div>
+					<div class="col-md-6">
+						{{ form_row(form.lastname) }}
+					</div>
+					<div class="col-md-6">
+						{{ form_row(form.email) }}
+					</div>
+					<div class="col-md-6">
+						{{ form_row(form.service) }}
+					</div>
+					<div class="col-md-6">
+						{{ form_row(form.jobTitle) }}
+					</div>
+					<div class="col-md-6">
+						{{ form_row(form.arrivalDate) }}
+					</div>
+					<div class="col-md-6">
+						{{ form_row(form.departureDate) }}
+					</div>
+				</div>
+			</div>
+		</div>
 
-            <div class="card request-form-card mb-4">
-                <div class="card-body">
-                    <div class="request-actions">
-                        {% if is_granted('ROLE_RH') %}
-                            <button type="submit" class="btn btn-workflow">Validation RH</button>
-                        {% elseif is_granted('ROLE_ST') %}
-                            <button type="submit" class="btn btn-workflow">Validation DGA-ST</button>
-                        {% elseif is_granted('ROLE_DSI') %}
-                            <button type="submit" class="btn btn-workflow">Validation DSI</button>
-                        {% else %}
-                            <button type="submit" class="btn btn-primary">Créer la demande</button>
-                        {% endif %}
+   
+        {# récapitulatif demande d'origine #}
+		<div class="card request-form-card mb-4 d-none" id="parent-request-summary-card">
+			<div class="card-header">Récapitulatif demande d’origine</div>
+			<div class="card-body">
+				<div class="row g-3">
+					<div class="col-md-6">
+						<strong>Agent :</strong>
+						<span id="summary-agent">-</span>
+					</div>
+					<div class="col-md-6">
+						<strong>Service :</strong>
+						<span id="summary-service">-</span>
+					</div>
+					<div class="col-md-6">
+						<strong>Date d’arrivée :</strong>
+						<span id="summary-arrival">-</span>
+					</div>
+					<div class="col-md-6">
+						<strong>Date de départ :</strong>
+						<span id="summary-departure">-</span>
+					</div>
+					<div class="col-12">
+						<strong>Commentaire :</strong>
+						<span id="summary-commentary">-</span>
+					</div>
+					<div class="col-md-6">
+						<strong>Logiciels :</strong>
+						<ul class="mb-0" id="summary-logiciels"></ul>
+					</div>
+					<div class="col-md-6">
+						<strong>Matériels :</strong>
+						<ul class="mb-0" id="summary-materiels"></ul>
+					</div>
+				</div>
+			</div>
+		</div>
 
-                        <a href="{{ path('app_list_request') }}" class="btn btn-outline-secondary request-cancel">Annuler</a>
-                    </div>
-                </div>
-            </div>
+        {# accès logiciels #}
+		<div class="card request-form-card mb-4" id="logiciels-card">
+			<div class="card-header">Accès logiciels</div>
+			<div class="card-body request-checkbox-grid">
+				{{ form_widget(form.logiciels) }}
+				<div class="field-errors">{{ form_errors(form.logiciels) }}</div>
+			</div>
+		</div>
 
-        {{ form_end(form) }}
-    </div>
+        {# accès matériel #}
+		<div class="card request-form-card mb-4" id="materiel-card">
+			<div class="card-header">Matériel</div>
+			<div class="card-body request-checkbox-grid">
+				{{ form_widget(form.materiels) }}
+				<div class="field-errors">{{ form_errors(form.materiels) }}</div>
+			</div>
+		</div>
 
-    <script>
-        const typeRadios = document.querySelectorAll('input[name="{{ form.type.vars.full_name }}"]');
-        const logicielsCard = document.getElementById('logiciels-card');
-        const materielCard = document.getElementById('materiel-card');
+        {# commentaires #}
+		<div class="card request-form-card mb-4">
+			<div class="card-header">Commentaires</div>
+			<div class="card-body">
+				{{ form_row(form.commentary) }}
+			</div>
+		</div>
 
-        function toggleResourceCards(value) {
-            const hidden = value === 'fermeture';
-            logicielsCard.style.display = hidden ? 'none' : 'block';
-            materielCard.style.display = hidden ? 'none' : 'block';
-        }
+        {# parcours de validation #}
+		<div class="card request-form-card mb-4">
+			<div class="card-body">
+				<div class="request-actions">
+					{% if is_granted('ROLE_RH') %}
+						<button type="submit" class="btn btn-workflow">Validation RH</button>
+					{% elseif is_granted('ROLE_ST') %}
+						<button type="submit" class="btn btn-workflow">Validation DGA-ST</button>
+					{% elseif is_granted('ROLE_DSI') %}
+						<button type="submit" class="btn btn-workflow">Validation DSI</button>
+					{% else %}
+						<button type="submit" class="btn btn-primary">Créer la demande</button>
+					{% endif %}
 
-        typeRadios.forEach((radio) => {
-            radio.addEventListener('change', function () {
-                toggleResourceCards(this.value);
-            });
+					<a href="{{ path('app_list_request') }}" class="btn btn-outline-secondary request-cancel">Annuler</a>
+				</div>
+			</div>
+		</div>
+
+		{{ form_end(form) }}
+	</div>
+
+<script>
+    const typeFieldName      = '{{ form.type.vars.full_name }}';
+    const typeRadios         = document.querySelectorAll(`input[name="${typeFieldName}"]`);
+    const logicielsCard      = document.getElementById('logiciels-card');
+    const materielCard       = document.getElementById('materiel-card');
+    const parentRequestInput = document.getElementById('{{ form.parentRequest.vars.id }}');
+    const confirmParentRequestBtn = document.getElementById('confirmParentRequestBtn');
+    const modalElement       = document.getElementById('parentRequestModal');
+    const requestForm        = document.querySelector('.request-form');
+
+    const fieldCivility      = document.getElementById('{{ form.civility.vars.id }}');
+    const fieldFirstname     = document.getElementById('{{ form.firstname.vars.id }}');
+    const fieldLastname      = document.getElementById('{{ form.lastname.vars.id }}');
+    const fieldEmail         = document.getElementById('{{ form.email.vars.id }}');
+    const fieldService       = document.getElementById('{{ form.service.vars.id }}');
+    const fieldJobTitle      = document.getElementById('{{ form.jobTitle.vars.id }}');
+    const fieldArrivalDate   = document.getElementById('{{ form.arrivalDate.vars.id }}');
+    const fieldDepartureDate = document.getElementById('{{ form.departureDate.vars.id }}');
+    const fieldCommentary    = document.getElementById('{{ form.commentary.vars.id }}');
+
+    const summaryAgent = document.getElementById('summary-agent');
+    const summaryService = document.getElementById('summary-service');
+    const summaryArrival = document.getElementById('summary-arrival');
+    const summaryDeparture = document.getElementById('summary-departure');
+    const summaryCommentary = document.getElementById('summary-commentary');
+    const summaryLogiciels = document.getElementById('summary-logiciels');
+    const summaryMateriels = document.getElementById('summary-materiels');
+
+    let parentModal = null;
+    if (window.bootstrap && modalElement) {
+        parentModal = new window.bootstrap.Modal(modalElement);
+    }
+
+    function isTypeRequiringParent(typeValue) {
+        return typeValue === 'modification' || typeValue === 'fermeture';
+    }
+
+    function splitCsv(value) {
+        if (!value) return [];
+        return value.split(',').map(v => v.trim()).filter(Boolean);
+    }
+
+    function getSelectedParentOption() {
+        if (!parentRequestInput) return null;
+        const option = parentRequestInput.options[parentRequestInput.selectedIndex];
+        return (option && option.value) ? option : null;
+    }
+
+    function setCardBodyOpacity(card, disabled) {
+        if (!card) return;
+        const body = card.querySelector('.card-body');
+        if (body) body.classList.toggle('opacity-50', disabled);
+    }
+
+    function setResourceCheckboxes(card, selectedIds, disabled) {
+        if (!card) return;
+        card.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = selectedIds.includes(checkbox.value);
+            checkbox.disabled = disabled;
+        });
+        setCardBodyOpacity(card, disabled);
+    }
+
+    function setFieldOpacity(field, disabled) {
+        if (!field) return;
+        const col = field.closest('.col-md-6') || field.closest('.col-12') || field.parentElement;
+        if (col) col.classList.toggle('opacity-50', disabled);
+    }
+
+    function disableAgentSection(disabled) {
+        // Griser chaque champ individuellement (sauf departureDate)
+        [fieldCivility, fieldFirstname, fieldLastname, fieldEmail,
+         fieldService, fieldJobTitle, fieldArrivalDate].forEach(el => {
+            if (el) el.disabled = disabled;
+            setFieldOpacity(el, disabled);
         });
 
-        const checkedRadio = document.querySelector('input[name="{{ form.type.vars.full_name }}"]:checked');
-        if (checkedRadio) {
-            toggleResourceCards(checkedRadio.value);
+        if (fieldCommentary) fieldCommentary.disabled = disabled;
+        setCardBodyOpacity(fieldCommentary ? fieldCommentary.closest('.card') : null, disabled);
+    }
+
+    // Pré-remplir les champs et cocher les ressources associées en fonction de la demande parent sélectionnée
+    function prefillFromParent() {
+        const option = getSelectedParentOption();
+        if (!option) return null;
+        const d = option.dataset;
+
+        if (fieldCivility)      fieldCivility.value      = d.civility || '';
+        if (fieldFirstname)     fieldFirstname.value     = d.firstname || '';
+        if (fieldLastname)      fieldLastname.value      = d.lastname || '';
+        if (fieldEmail)         fieldEmail.value         = d.email || '';
+        if (fieldService)       fieldService.value       = d.serviceId || '';
+        if (fieldJobTitle)      fieldJobTitle.value      = d.jobTitle || '';
+        if (fieldArrivalDate)   fieldArrivalDate.value   = d.arrivalDateInput || '';
+        if (fieldDepartureDate) fieldDepartureDate.value = d.departureDateInput || '';
+        if (fieldCommentary)    fieldCommentary.value    = d.commentary || '';
+
+        return {
+            logicielIds: splitCsv(d.logicielIds),
+            materielIds: splitCsv(d.materielIds),
+        };
+    }
+
+    function resetToEditable() {
+        disableAgentSection(false);
+        [logicielsCard, materielCard].forEach(card => {
+            if (!card) return;
+            card.querySelectorAll('input[type="checkbox"]').forEach(c => { c.checked = false; c.disabled = false; });
+            setCardBodyOpacity(card, false);
+        });
+    }
+
+    function applyTypeUi(typeValue) {
+        const isFermeture  = typeValue === 'fermeture';
+        const needsParent  = isFermeture || typeValue === 'modification';
+
+        if (parentRequestInput) parentRequestInput.required = needsParent;
+
+        if (!needsParent) {
+            resetToEditable();
+            return;
         }
-    </script>
+
+        if (!getSelectedParentOption()) {
+            if (parentModal) parentModal.show();
+            return;
+        }
+
+        const parentData = prefillFromParent();
+
+        if (isFermeture) {
+            // Griser tout sauf la date de départ
+            disableAgentSection(true);
+            if (fieldDepartureDate) fieldDepartureDate.disabled = false;
+			if (fieldCommentary) fieldCommentary.disabled = false;
+			setCardBodyOpacity(fieldCommentary ? fieldCommentary.closest('.card') : null, false);
+            setResourceCheckboxes(logicielsCard, parentData ? parentData.logicielIds : [], true);
+            setResourceCheckboxes(materielCard,  parentData ? parentData.materielIds : [], true);
+        } else {
+            // Modification : pré-remplir, tout laisser éditable
+            disableAgentSection(false);
+            if (parentData) {
+                setResourceCheckboxes(logicielsCard, parentData.logicielIds, false);
+                setResourceCheckboxes(materielCard,  parentData.materielIds, false);
+            }
+        }
+    }
+
+    // Re-enable les champs disabled avant soumission
+    // (les champs disabled ne sont pas inclus dans le POST sinon)
+    if (requestForm) {
+        requestForm.addEventListener('submit', function () {
+            requestForm.querySelectorAll('input:disabled, select:disabled, textarea:disabled').forEach(el => {
+                el.disabled = false;
+            });
+        });
+    }
+
+    typeRadios.forEach(radio => {
+        radio.addEventListener('change', function () { applyTypeUi(this.value); });
+    });
+
+    if (parentRequestInput) {
+        parentRequestInput.addEventListener('change', function () {
+            const checked = document.querySelector(`input[name="${typeFieldName}"]:checked`);
+            if (checked) applyTypeUi(checked.value);
+        });
+    }
+
+    if (confirmParentRequestBtn) {
+        confirmParentRequestBtn.addEventListener('click', function () {
+            const checked = document.querySelector(`input[name="${typeFieldName}"]:checked`);
+            if (checked) applyTypeUi(checked.value);
+        });
+    }
+
+    const checkedRadio = document.querySelector(`input[name="${typeFieldName}"]:checked`);
+    applyTypeUi(checkedRadio ? checkedRadio.value : 'ouverture');
+</script>
 {% endblock %}

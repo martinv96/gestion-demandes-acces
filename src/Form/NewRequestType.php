@@ -15,6 +15,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use App\Entity\Request as AccessRequest;
 
 final class NewRequestType extends AbstractType
 {
@@ -47,7 +48,7 @@ final class NewRequestType extends AbstractType
                 'label' => 'Service *',
                 'placeholder' => 'Sélectionner un service',
                 'choice_label' => 'name',
-                'query_builder' => static fn (EntityRepository $repository) => $repository
+                'query_builder' => static fn(EntityRepository $repository) => $repository
                     ->createQueryBuilder('s')
                     ->orderBy('s.name', 'ASC'),
             ])
@@ -75,7 +76,80 @@ final class NewRequestType extends AbstractType
                     'Ouverture - Nouveau collaborateur' => 'ouverture',
                     'Modification - Changement de service ou fonction' => 'modification',
                     'Fermeture - Départ du collaborateur' => 'fermeture',
-                ],
+                ]
+            ])
+            ->add('parentRequest', EntityType::class, [
+                'class' => AccessRequest::class,
+                'label' => 'Demande d’origine',
+                'placeholder' => 'Sélectionner une demande d’origine',
+                'required' => false,
+                'choice_label' => static function (AccessRequest $request): string {
+                    $agent = $request->getAgent();
+                    $agentName = $agent ? trim(($agent->getFirstname() ?? '') . ' ' . ($agent->getLastname() ?? '')) : 'N/A';
+
+                    return sprintf('%s - %s', $request->getReference(), $agentName);
+                },
+                'choice_attr' => static function (AccessRequest $request): array {
+                    $agent = $request->getAgent();
+                    $agentName = $agent ? trim(($agent->getFirstname() ?? '') . ' ' . ($agent->getLastname() ?? '')) : 'N/A';
+                    $serviceName = ($agent && $agent->getService()) ? ($agent->getService()->getName() ?? 'N/A') : 'N/A';
+
+                    $logicielIds = [];
+                    $logicielNames = [];
+                    $materielIds = [];
+                    $materielNames = [];
+
+                    foreach ($request->getRessources() as $ressource) {
+                        $id = $ressource->getId();
+                        $name = trim((string) $ressource->getName());
+
+                        if ($ressource->getCategory() === 'logiciel') {
+                            if ($id !== null) {
+                                $logicielIds[] = (string) $id;
+                            }
+                            if ($name !== '') {
+                                $logicielNames[] = $name;
+                            }
+                            continue;
+                        }
+
+                        if ($ressource->getCategory() === 'materiel') {
+                            if ($id !== null) {
+                                $materielIds[] = (string) $id;
+                            }
+                            if ($name !== '') {
+                                $materielNames[] = $name;
+                            }
+                        }
+                    }
+
+                    return [
+                        'data-agent-name'          => $agentName,
+                        'data-service-name'         => $serviceName,
+                        'data-civility'             => $agent ? ($agent->getCivility() ?? '') : '',
+                        'data-firstname'            => $agent ? ($agent->getFirstname() ?? '') : '',
+                        'data-lastname'             => $agent ? ($agent->getLastname() ?? '') : '',
+                        'data-email'                => $agent ? ($agent->getEmail() ?? '') : '',
+                        'data-job-title'            => $agent ? ($agent->getJobTitle() ?? '') : '',
+                        'data-service-id'           => ($agent && $agent->getService()) ? (string) ($agent->getService()->getId() ?? '') : '',
+                        'data-arrival-date-input'   => $request->getArrivalDate()?->format('Y-m-d') ?? '',
+                        'data-departure-date-input' => $request->getDepartureDate()?->format('Y-m-d') ?? '',
+                        'data-commentary'           => $request->getCommentary() ?? '',
+                        'data-logiciel-ids'         => implode(',', $logicielIds),
+                        'data-materiel-ids'         => implode(',', $materielIds),
+                        'data-logiciel-names'       => implode('||', $logicielNames),
+                        'data-materiel-names'       => implode('||', $materielNames),
+                    ];
+                },
+                'query_builder' => static fn(EntityRepository $repository) => $repository
+                    ->createQueryBuilder('r')
+                    ->leftJoin('r.agent', 'a')->addSelect('a')
+                    ->leftJoin('a.service', 's')->addSelect('s')
+                    ->leftJoin('r.ressources', 're')->addSelect('re')
+                    ->where('r.status = :status')
+                    ->setParameter('status', 'traitee')
+                    ->orderBy('r.updateDate', 'DESC'),
+                'help' => 'Obligatoire pour une modification ou une fermeture.',
             ])
             ->add('logiciels', EntityType::class, [
                 'class' => Ressource::class,
@@ -84,7 +158,7 @@ final class NewRequestType extends AbstractType
                 'expanded' => true,
                 'multiple' => true,
                 'required' => false,
-                'query_builder' => static fn (EntityRepository $repository) => $repository
+                'query_builder' => static fn(EntityRepository $repository) => $repository
                     ->createQueryBuilder('r')
                     ->where('r.category = :category')
                     ->andWhere('r.isActive = :active')
@@ -99,7 +173,7 @@ final class NewRequestType extends AbstractType
                 'expanded' => true,
                 'multiple' => true,
                 'required' => false,
-                'query_builder' => static fn (EntityRepository $repository) => $repository
+                'query_builder' => static fn(EntityRepository $repository) => $repository
                     ->createQueryBuilder('r')
                     ->where('r.category = :category')
                     ->andWhere('r.isActive = :active')

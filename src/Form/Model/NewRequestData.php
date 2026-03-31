@@ -6,6 +6,7 @@ use App\Entity\Ressource;
 use App\Entity\Service;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
+use App\Entity\Request as AccessRequest;
 
 // Classe de données pour la création d'une nouvelle demande d'accès
 final class NewRequestData
@@ -44,6 +45,8 @@ final class NewRequestData
         message: 'Le type de demande est invalide.'
     )]
     private ?string $type = 'ouverture';
+
+    private ?AccessRequest $parentRequest = null;
 
     /**
      * @var array<int, Ressource>
@@ -84,6 +87,13 @@ final class NewRequestData
             $context
                 ->buildViolation('La date de départ est obligatoire pour une fermeture.')
                 ->atPath('departureDate')
+                ->addViolation();
+        }
+
+        if (in_array($this->type, ['modification', 'fermeture'], true) && !$this->parentRequest instanceof AccessRequest) {
+            $context
+                ->buildViolation('La demande d’origine est obligatoire pour une modification ou une fermeture.')
+                ->atPath('parentRequest')
                 ->addViolation();
         }
     }
@@ -218,5 +228,15 @@ final class NewRequestData
     public function setCommentary(?string $commentary): void
     {
         $this->commentary = $commentary;
+    }
+
+    public function getParentRequest(): ?AccessRequest
+    {
+        return $this->parentRequest;
+    }
+
+    public function setParentRequest(?AccessRequest $parentRequest): void
+    {
+        $this->parentRequest = $parentRequest;
     }
 }
