@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Entity\WorkflowHistory;
 use App\Form\Model\NewRequestData;
 use App\Form\NewRequestType;
+use App\Repository\RequestRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,7 +20,7 @@ final class NewRequestController extends AbstractController
 {
     // route pour créer une nouvelle demande d'accès
     #[Route('/new/request', name: 'app_new_request', methods: ['GET', 'POST'])]
-    public function index(Request $request, EntityManagerInterface $entityManager): Response
+    public function index(Request $request, EntityManagerInterface $entityManager, RequestRepository $requestRepository): Response
     {
         $formData = new NewRequestData();
         $form = $this->createForm(NewRequestType::class, $formData);
@@ -66,6 +67,67 @@ final class NewRequestController extends AbstractController
                 $newRequest->setParentRequest($parentRequest);
             }
 
+            $effectiveParentRequest = $parentRequest;
+
+            // Verrou métier : empêcher une nouvelle ouverture concurrente pour le même agent
+            if ($requestType === 'ouverture') {
+                $activeCurrent = $requestRepository->findActiveCurrentRequestForAgentIdentity(
+                    (string) $formData->getFirstname(),
+                    (string) $formData->getLastname(),
+                    (string) $formData->getEmail()
+                );
+
+                if ($activeCurrent instanceof AccessRequest) {
+                    $this->addFlash(
+                        'warning',
+                        sprintf(
+                            'Une chaîne active existe déjà pour cet agent (%s). Fermez-la ou modifiez-la avant de créer une nouvelle ouverture.',
+                            $activeCurrent->getReference()
+                        )
+                    );
+
+                    return $this->redirectToRoute('app_new_request');
+                }
+            }
+
+            // Verrous métier sur modification / fermeture
+            if (in_array($requestType, ['modification', 'fermeture'], true) && $parentRequest instanceof AccessRequest) {
+                $currentInChain = $requestRepository->findCurrentInChain($parentRequest);
+
+                $isClosedChain = $currentInChain->getType() === 'fermeture'
+                    && $currentInChain->getStatus() === 'traitee';
+
+                // Empêcher une modification sur chaîne clôturée
+                if ($requestType === 'modification' && $isClosedChain) {
+                    $this->addFlash(
+                        'warning',
+                        sprintf(
+                            'Modification impossible : la chaîne est déjà clôturée (%s).',
+                            $currentInChain->getReference()
+                        )
+                    );
+
+                    return $this->redirectToRoute('app_new_request');
+                }
+
+                // Empêcher une fermeture en double
+                if ($requestType === 'fermeture' && $isClosedChain) {
+                    $this->addFlash(
+                        'warning',
+                        sprintf(
+                            'Fermeture impossible : la chaîne est déjà clôturée (%s).',
+                            $currentInChain->getReference()
+                        )
+                    );
+
+                    return $this->redirectToRoute('app_new_request');
+                }
+
+                // Toujours rattacher la nouvelle demande au dernier état courant de la chaîne
+                $newRequest->setParentRequest($currentInChain);
+                $effectiveParentRequest = $currentInChain;
+            }
+
 
             // si date arrivée donnée, on la set, sinon null (selon ouverture ou fermeture)
             // ouverture : date arrivée obligatoire, sinon la validation échouera (validation dans NewRequestData)
@@ -81,8 +143,8 @@ final class NewRequestController extends AbstractController
 
             // Si c'est une fermeture, on copie les ressources de la demande d'origine, sinon on prend celles du formulaire
             if ($requestType === 'fermeture') {
-                if ($parentRequest instanceof AccessRequest) {
-                    foreach ($parentRequest->getRessources() as $ressource) {
+                if ($effectiveParentRequest instanceof AccessRequest) {
+                    foreach ($effectiveParentRequest->getRessources() as $ressource) {
                         $newRequest->addRessource($ressource);
                     }
                 }
@@ -101,8 +163,8 @@ final class NewRequestController extends AbstractController
             $entityManager->persist($newRequest);
 
             // Si c'est une modification ou une fermeture, on copie l'historique de la demande d'origine
-            if (($requestType === 'modification' || $requestType === 'fermeture') && $parentRequest instanceof AccessRequest) {
-                foreach ($parentRequest->getRequestId() as $parentHistory) {
+            if (($requestType === 'modification' || $requestType === 'fermeture') && $effectiveParentRequest instanceof AccessRequest) {
+                foreach ($effectiveParentRequest->getRequestId() as $parentHistory) {
                     $historyCopy = new WorkflowHistory();
                     $historyCopy
                         ->setRequest($newRequest)
@@ -115,6 +177,17 @@ final class NewRequestController extends AbstractController
                     $entityManager->persist($historyCopy);
                 }
             }
+
+            $creationHistory = new WorkflowHistory();
+            $creationHistory
+                ->setRequest($newRequest)
+                ->setUser($currentUser)
+                ->setOldStatus($effectiveParentRequest instanceof AccessRequest ? ($effectiveParentRequest->getStatus() ?? '') : '')
+                ->setNewStatus($newRequest->getStatus() ?? '')
+                ->setCommentary($formData->getCommentary() ?? '')
+                ->setDate(new \DateTimeImmutable());
+
+            $entityManager->persist($creationHistory);
 
             $entityManager->flush();
 

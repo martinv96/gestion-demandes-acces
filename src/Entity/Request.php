@@ -298,4 +298,56 @@ class Request
 
         return $this;
     }
+
+    public function hasProcessedReplacementChild(): bool
+    {
+        foreach ($this->getChildRequests() as $child) {
+            $isReplacementType = in_array($child->getType(), ['modification', 'fermeture'], true);
+            $isProcessed = $child->getStatus() === 'traitee';
+
+            if ($isReplacementType && $isProcessed) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function isCurrentState(): bool
+    {
+        return !$this->hasProcessedReplacementChild();
+    }
+
+
+    public function getCurrentStateLabel(): string
+    {
+        $typeLabel = match ($this->getType()) {
+            'ouverture' => 'Ouverture',
+            'modification' => 'Modification',
+            'fermeture' => 'Fermeture',
+            default => 'Demande',
+        };
+
+        if (!$this->isCurrentState()) {
+            return 'Remplacée - ' . $typeLabel;
+        }
+
+        if ($this->getType() === 'fermeture' && $this->getStatus() === 'traitee') {
+            return 'Clôturée - Fermeture';
+        }
+
+        return 'Active - ' . $typeLabel;
+    }
+
+    public function getCurrentStateBadgeClass(): string
+    {
+        return match (true) {
+            str_starts_with($this->getCurrentStateLabel(), 'Active - Ouverture') => 'success',
+            str_starts_with($this->getCurrentStateLabel(), 'Active - Modification') => 'primary',
+            str_starts_with($this->getCurrentStateLabel(), 'Active - Fermeture') => 'dark',
+            str_starts_with($this->getCurrentStateLabel(), 'Clôturée - Fermeture') => 'dark',
+            str_starts_with($this->getCurrentStateLabel(), 'Remplacée') => 'secondary',
+            default => 'secondary',
+        };
+    }
 }

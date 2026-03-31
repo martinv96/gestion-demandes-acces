@@ -84,11 +84,11 @@ final class ListRequestController extends AbstractController
             $agent = '';
         }
 
-        $requests            = $requestRepository->findWithFilters($filters);
+        $requests            = $requestRepository->findCurrentWithFilters($filters);
         $services            = $serviceRepository->findBy([], ['name' => 'ASC']);
-        $availableDates      = $requestRepository->findDistinctArrivalDates();
-        $availableDepartures = $requestRepository->findDistinctDepartureDates();
-        $totalCount          = $requestRepository->count([]);
+        $availableDates      = $requestRepository->findDistinctCurrentArrivalDates();
+        $availableDepartures = $requestRepository->findDistinctCurrentDepartureDates();
+        $totalCount          = $requestRepository->countCurrent();
 
         return $this->render('list_request/index.html.twig', [
             'requests'            => $requests,
@@ -104,6 +104,7 @@ final class ListRequestController extends AbstractController
                 'departureDate' => $departureDate,
                 'agent'         => $agent,
             ],
+            'exportScope' => 'current',
         ]);
     }
 
@@ -414,8 +415,12 @@ final class ListRequestController extends AbstractController
             $filters['agent'] = $agent;
         }
 
+        $scope = (string) $httpRequest->query->get('scope', 'current');
+
         // ! récupération des demandes filtrées à partir du repository, ainsi que de l'historique le plus récent pour chaque demande
-        $requests = $requestRepository->findWithFilters($filters);
+        $requests = $scope === 'history'
+            ? $requestRepository->findWithFilters($filters)
+            : $requestRepository->findCurrentWithFilters($filters);
         $latestHistoryByRequestId = $historyRepository->findLatestByRequests($requests);
 
         // ! définition des labels lisibles pour les statuts et types de demandes, qui seront utilisés dans l'export Excel

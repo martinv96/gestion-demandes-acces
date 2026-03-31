@@ -1,0 +1,94 @@
+<?php
+
+namespace App\Controller;
+
+use App\Repository\RequestRepository;
+use App\Repository\ServiceRepository;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+final class HistoryController extends AbstractController
+{
+    #[Route('/history', name: 'app_history', methods: ['GET'])]
+    public function index(
+        RequestRepository $requestRepository,
+        ServiceRepository $serviceRepository,
+        Request $httpRequest
+    ): Response {
+        $allowedStatuses = ['en_attente_rh', 'en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'];
+        $allowedTypes = ['ouverture', 'modification', 'fermeture'];
+
+        $status        = (string) $httpRequest->query->get('status', '');
+        $serviceId     = (string) $httpRequest->query->get('serviceId', '');
+        $type          = (string) $httpRequest->query->get('type', '');
+        $arrivalDate   = (string) $httpRequest->query->get('arrivalDate', '');
+        $departureDate = (string) $httpRequest->query->get('departureDate', '');
+        $agent         = trim((string) $httpRequest->query->get('agent', ''));
+
+        $filters = [];
+
+        if ($status !== '' && in_array($status, $allowedStatuses, true)) {
+            $filters['status'] = $status;
+        } else {
+            $status = '';
+        }
+
+        if ($serviceId !== '' && ctype_digit($serviceId)) {
+            $filters['serviceId'] = (int) $serviceId;
+        } else {
+            $serviceId = '';
+        }
+
+        if ($type !== '' && in_array($type, $allowedTypes, true)) {
+            $filters['type'] = $type;
+        } else {
+            $type = '';
+        }
+
+        if ($arrivalDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $arrivalDate)) {
+            $filters['arrivalDate'] = $arrivalDate;
+        } else {
+            $arrivalDate = '';
+        }
+
+        if ($departureDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $departureDate)) {
+            $filters['departureDate'] = $departureDate;
+        } else {
+            $departureDate = '';
+        }
+
+        if ($agent !== '' && mb_strlen($agent) <= 100) {
+            $filters['agent'] = $agent;
+        } else {
+            $agent = '';
+        }
+
+        $requests            = $requestRepository->findWithFilters($filters);
+        $services            = $serviceRepository->findBy([], ['name' => 'ASC']);
+        $availableDates      = $requestRepository->findDistinctArrivalDates();
+        $availableDepartures = $requestRepository->findDistinctDepartureDates();
+        $totalCount          = $requestRepository->count([]);
+
+        return $this->render('history/index.html.twig', [
+            'requests'            => $requests,
+            'services'            => $services,
+            'availableDates'      => $availableDates,
+            'availableDepartures' => $availableDepartures,
+            'totalCount'          => $totalCount,
+            'filters'             => [
+                'status'        => $status,
+                'serviceId'     => $serviceId,
+                'type'          => $type,
+                'arrivalDate'   => $arrivalDate,
+                'departureDate' => $departureDate,
+                'agent'         => $agent,
+            ],
+            'exportScope' => 'history',
+            'pageTitle'    => 'Historique des demandes',
+            'pageSubtitle' => 'Toutes les demandes enregistrées',
+            'resetRoute'   => 'app_history',
+        ]);
+    }
+}

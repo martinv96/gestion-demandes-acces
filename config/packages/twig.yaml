@@ -2,7 +2,8 @@ twig:
     file_name_pattern: '*.twig'
     form_themes:
         - 'bootstrap_5_layout.html.twig'
-
+    date:
+        timezone: 'Europe/Paris'
 when@test:
     twig:
         strict_variables: true

@@ -83,7 +83,7 @@
 								</button>
 							</div>
 						</div>
-                        {# ajout d'un calendrier avec flatpickr #}
+						{# ajout d'un calendrier avec flatpickr #}
 						<div class="col-12 col-md-3 col-xl-3">
 							<label class="form-label form-label-sm mb-1 text-muted fw-semibold">Date d'arrivée</label>
 							<input type="text" name="arrivalDate" class="form-control form-control-sm flatpickr" placeholder="Sélectionner une date" value="{{ filters.arrivalDate }}">
@@ -108,8 +108,8 @@
 			{% else %}
 
 				<div class="d-flex justify-content-end mb-3">
-					<a href="{{ path('app_request_export_csv', app.request.query.all) }}" class="btn btnExport">
-						<img src="{{ asset('images/xls1.png') }}" alt="CSV" style="width:24px;height:24px;object-fit:contain;padding-bottom:2px;">
+					<a href="{{ path('app_request_export_csv', app.request.query.all|merge({'scope': exportScope|default('current')})) }}" class="btn btnExport">
+						<img src="{{ asset('images/icones/xls.png') }}" alt="CSV" style="width:24px;height:24px;object-fit:contain;padding-bottom:2px;">
 						Exporter CSV
 					</a>
 				</div>
@@ -127,6 +127,7 @@
 									<th scope="col">Statut</th>
 									<th scope="col">Date d'arrivée</th>
 									<th scope="col">Créée le</th>
+									<th scope="col">Etat courant</th>
 									<th scope="col" class="text-center">Action</th>
 								</tr>
 							</thead>
@@ -165,10 +166,16 @@
 										</td>
 										<td>{{ request.arrivalDate ? request.arrivalDate|date('d/m/Y') : '-' }}</td>
 										<td>{{ request.creationDate ? request.creationDate|date('d/m/Y H:i') : '-' }}</td>
+										<td>
+											<span class="badge text-bg-{{ request.currentStateBadgeClass }}">
+												{{ request.currentStateLabel }}
+											</span>
+										</td>
 										<td class="text-center">
 											<a href="{{ path('app_request_show', {id: request.id}) }}">
-											<img src="{{ asset('images/icones/chercher1.png') }}" alt="Voir" style="width:24px;height:24px;object-fit:contain;">
-												<!-- Voir -->
+												<img
+												src="{{ asset('images/icones/chercher1.png') }}" alt="Voir" style="width:24px;height:24px;object-fit:contain;">
+											<!-- Voir -->
 											</a>
 										</td>
 									</tr>
@@ -182,7 +189,7 @@
 	</div>
 
 	<script>
-document.addEventListener('DOMContentLoaded', function () {
+		document.addEventListener('DOMContentLoaded', function () {
 flatpickr('.flatpickr', {
 dateFormat: 'Y-m-d',
 locale: 'fr',
@@ -192,7 +199,7 @@ instance.input.form.submit();
 }
 });
 });
-</script>
+	</script>
 
 
 {% endblock %}

@@ -43,10 +43,13 @@
 							<a class="nav-link" href="{{ path('app_dashboard') }}">Tableau de bord</a>
 						</li>
 						<li class="nav-item mb-2">
-							<a class="nav-link" href="{{ path('app_list_request') }}">Demandes</a>
+							<a class="nav-link" href="{{ path('app_list_request') }}">Dernières Demandes</a>
 						</li>
 						<li class="nav-item mb-2">
 							<a class="nav-link" href="{{ path('app_new_request') }}">Nouvelle demande</a>
+						</li>
+						<li class="nav-item mb-2">
+							<a class="nav-link" href="{{ path('app_history') }}">Historique</a>
 						</li>
 						{% if is_granted('ROLE_ADMIN') %}
 							<li class="nav-item mb-2">

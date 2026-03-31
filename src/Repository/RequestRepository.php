@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Request;
 use App\Entity\WorkflowHistory;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -18,24 +19,6 @@ class RequestRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return list<Request>
-     */
-    public function findLatestWithRelations(int $limit = 100): array
-    {
-        /** @var list<Request> $results */
-        $results = $this->createQueryBuilder('r')
-            ->leftJoin('r.agent', 'a')->addSelect('a')
-            ->leftJoin('a.service', 's')->addSelect('s')
-            ->leftJoin('r.ressources', 're')->addSelect('re')
-            ->orderBy('r.creationDate', 'ASC')
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
-
-        return $results;
-    }
-
-    /**
      * @param array{status?: string, serviceId?: int, type?: string, arrivalDate?: string, departureDate?: string, agent?: string} $filters
      * @return list<Request>
      */
@@ -45,6 +28,7 @@ class RequestRepository extends ServiceEntityRepository
             ->leftJoin('r.agent', 'a')->addSelect('a')
             ->leftJoin('a.service', 's')->addSelect('s')
             ->leftJoin('r.ressources', 're')->addSelect('re')
+            ->leftJoin('r.childRequests', 'children')->addSelect('children')
             ->orderBy('r.creationDate', 'ASC')
             ->setMaxResults($limit);
 
@@ -100,6 +84,24 @@ class RequestRepository extends ServiceEntityRepository
     /**
      * @return list<\DateTime>
      */
+    public function findDistinctCurrentArrivalDates(): array
+    {
+        $qb = $this->createQueryBuilder('r')
+            ->select('r.arrivalDate')
+            ->where('r.arrivalDate IS NOT NULL')
+            ->groupBy('r.arrivalDate')
+            ->orderBy('r.arrivalDate', 'DESC');
+
+        $this->applyCurrentScope($qb);
+
+        $result = $qb->getQuery()->getResult();
+
+        return array_column($result, 'arrivalDate');
+    }
+
+    /**
+     * @return list<\DateTime>
+     */
     public function findDistinctDepartureDates(): array
     {
         $result = $this->createQueryBuilder('r')
@@ -113,87 +115,203 @@ class RequestRepository extends ServiceEntityRepository
         return array_column($result, 'departureDate');
     }
 
-    public function countPendingRequests(): int
+    /**
+     * @return list<\DateTime>
+     */
+    public function findDistinctCurrentDepartureDates(): array
     {
-        return (int) $this->createQueryBuilder('r')
-            ->select('COUNT(r.id)')
-            ->andWhere('r.status LIKE :pending')
-            ->setParameter('pending', 'en_attente%')
-            ->getQuery()
-            ->getSingleScalarResult();
+        $qb = $this->createQueryBuilder('r')
+            ->select('r.departureDate')
+            ->where('r.departureDate IS NOT NULL')
+            ->groupBy('r.departureDate')
+            ->orderBy('r.departureDate', 'DESC');
+
+        $this->applyCurrentScope($qb);
+
+        $result = $qb->getQuery()->getResult();
+
+        return array_column($result, 'departureDate');
     }
 
-    public function countProcessedRequests(): int
+    public function countCurrent(): int
     {
-        return (int) $this->createQueryBuilder('r')
+        $qb = $this->createQueryBuilder('r')
+            ->select('COUNT(r.id)');
+
+        $this->applyCurrentScope($qb);
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    public function countPendingCurrent(): int
+    {
+        $qb = $this->createQueryBuilder('r')
+            ->select('COUNT(r.id)')
+            ->andWhere('r.status LIKE :pending')
+            ->setParameter('pending', 'en_attente%');
+
+        $this->applyCurrentScope($qb);
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    public function countProcessedCurrent(): int
+    {
+        $qb = $this->createQueryBuilder('r')
             ->select('COUNT(r.id)')
             ->andWhere('r.status IN (:statuses)')
-            ->setParameter('statuses', ['validee', 'traitee'])
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('statuses', ['traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi']);
+
+        $this->applyCurrentScope($qb);
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
     /**
      * @return list<Request>
      */
-    public function findRecentForDashboard(int $limit = 5): array
+
+    public function findRecentCurrentForDashboard(int $limit = 5): array
     {
-        /** @var list<Request> $results */
-        $results = $this->createQueryBuilder('r')
+        $qb = $this->createQueryBuilder('r')
             ->leftJoin('r.agent', 'a')->addSelect('a')
             ->leftJoin('a.service', 's')->addSelect('s')
             ->setMaxResults($limit)
-            ->orderBy('r.creationDate', 'ASC')
-            ->getQuery()
-            ->getResult();
+            ->orderBy('r.creationDate', 'ASC');
+
+        $this->applyCurrentScope($qb);
+
+        /** @var list<Request> $results */
+        $results = $qb->getQuery()->getResult();
 
         return $results;
     }
 
-    public function getDisplayNumber(Request $request): int
+    /**
+     * Page "Demandes" = état actuel :
+     * - seule la dernière demande effective d'une chaîne parent/enfant est affichée
+     * - une fermeture est affichée si elle est la dernière demande de la chaîne
+     *
+     * @param array{status?: string, serviceId?: int, type?: string, arrivalDate?: string, departureDate?: string, agent?: string} $filters
+     * @return list<Request>
+     */
+    public function findCurrentWithFilters(array $filters = [], int $limit = 100): array
     {
-        $createdAt = $request->getCreationDate();
-        $id = $request->getId();
+        $qb = $this->createQueryBuilder('r')
+            ->leftJoin('r.agent', 'a')->addSelect('a')
+            ->leftJoin('a.service', 's')->addSelect('s')
+            ->leftJoin('r.ressources', 're')->addSelect('re')
+            ->leftJoin('r.childRequests', 'children')->addSelect('children')
+            ->orderBy('r.creationDate', 'ASC')
+            ->setMaxResults($limit);
 
-        if ($createdAt === null || $id === null) {
-            return 1;
+        $this->applyCurrentScope($qb);
+
+        if (!empty($filters['status'])) {
+            $qb->andWhere('r.status = :status')->setParameter('status', $filters['status']);
         }
 
-        $countNewer = (int) $this->createQueryBuilder('r')
-            ->select('COUNT(r.id)')
-            ->andWhere('r.creationDate > :createdAt OR (r.creationDate = :createdAt AND r.id > :id)')
-            ->setParameter('createdAt', $createdAt)
-            ->setParameter('id', $id)
-            ->getQuery()
-            ->getSingleScalarResult();
+        if (!empty($filters['serviceId'])) {
+            $qb->andWhere('s.id = :serviceId')->setParameter('serviceId', $filters['serviceId']);
+        }
 
-        return $countNewer + 1;
+        if (!empty($filters['type'])) {
+            $qb->andWhere('r.type = :type')->setParameter('type', $filters['type']);
+        }
+
+        if (!empty($filters['arrivalDate'])) {
+            $qb->andWhere('r.arrivalDate = :arrivalDate')
+                ->setParameter('arrivalDate', new \DateTime($filters['arrivalDate']));
+        }
+
+        if (!empty($filters['departureDate'])) {
+            $qb->andWhere('r.departureDate = :departureDate')
+                ->setParameter('departureDate', new \DateTime($filters['departureDate']));
+        }
+
+        if (!empty($filters['agent'])) {
+            $qb->andWhere('LOWER(a.firstname) LIKE :agent OR LOWER(a.lastname) LIKE :agent')
+                ->setParameter('agent', '%' . mb_strtolower($filters['agent']) . '%');
+        }
+
+        /** @var list<Request> $results */
+        $results = $qb->getQuery()->getResult();
+
+        return $results;
     }
 
-    //    /**
-    //     * @return Request[] Returns an array of Request objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('r')
-    //            ->andWhere('r.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('r.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    // Méthode privée pour appliquer le scope "état actuel" à une requête
+    private function applyCurrentScope(QueryBuilder $qb): void
+    {
+        // Si une demande a une enfant MOD/FER traitée, elle est remplacée par la demande fille.
+        $qb->andWhere(
+            'NOT EXISTS (
+                SELECT 1
+                FROM App\Entity\Request child
+                WHERE child.parentRequest = r
+                  AND child.status = :currentProcessedStatus
+                  AND child.type IN (:currentReplacementTypes)
+            )'
+        )
+            ->setParameter('currentProcessedStatus', 'traitee')
+            ->setParameter('currentReplacementTypes', ['modification', 'fermeture']);
+    }
 
-    //    public function findOneBySomeField($value): ?Request
-    //    {
-    //        return $this->createQueryBuilder('r')
-    //            ->andWhere('r.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    public function findLatestProcessedReplacementChild(Request $parent): ?Request
+    {
+        return $this->createQueryBuilder('r')
+            ->andWhere('r.parentRequest = :parent')
+            ->andWhere('r.status = :status')
+            ->andWhere('r.type IN (:types)')
+            ->setParameter('parent', $parent)
+            ->setParameter('status', 'traitee')
+            ->setParameter('types', ['modification', 'fermeture'])
+            ->orderBy('r.creationDate', 'DESC')
+            ->addOrderBy('r.id', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 
+    public function findCurrentInChain(Request $start): Request
+    {
+        $current = $start;
 
+        while (true) {
+            $next = $this->findLatestProcessedReplacementChild($current);
+            if (!$next instanceof Request) {
+                break;
+            }
+            $current = $next;
+        }
+
+        return $current;
+    }
+
+    public function findActiveCurrentRequestForAgentIdentity(
+        string $firstname,
+        string $lastname,
+        string $email
+    ): ?Request {
+        $qb = $this->createQueryBuilder('r')
+            ->leftJoin('r.agent', 'a')->addSelect('a')
+            ->andWhere('LOWER(a.firstname) = :firstname')
+            ->andWhere('LOWER(a.lastname) = :lastname')
+            ->andWhere('LOWER(a.email) = :email')
+            ->orderBy('r.creationDate', 'DESC')
+            ->setMaxResults(1)
+            ->setParameter('firstname', mb_strtolower(trim($firstname)))
+            ->setParameter('lastname', mb_strtolower(trim($lastname)))
+            ->setParameter('email', mb_strtolower(trim($email)));
+
+        // Scope courant (même logique que la page Demandes)
+        $this->applyCurrentScope($qb);
+
+        // "Chaîne active" = pas une fermeture traitée finale
+        $qb->andWhere('NOT (r.type = :closedType AND r.status = :closedStatus)')
+            ->setParameter('closedType', 'fermeture')
+            ->setParameter('closedStatus', 'traitee');
+
+        return $qb->getQuery()->getOneOrNullResult();
+    }
 }

@@ -21,9 +21,9 @@ class HomeController extends AbstractController
             return $this->redirectToRoute('app_force_change_password');
         }
 
-        $pendingRequests = $requestRepository->countPendingRequests();
-        $processedRequests = $requestRepository->countProcessedRequests();
-        $totalRequests = $requestRepository->count([]);
+        $pendingRequests = $requestRepository->countPendingCurrent();
+        $processedRequests = $requestRepository->countProcessedCurrent();
+        $totalRequests = $requestRepository->countCurrent();
 
         $stats = [
             [
@@ -43,7 +43,7 @@ class HomeController extends AbstractController
             ],
         ];
 
-        $recentRequests = $requestRepository->findRecentForDashboard();
+        $recentRequests = $requestRepository->findRecentCurrentForDashboard();
 
         return $this->render('home/index.html.twig', [
             'stats' => $stats,
