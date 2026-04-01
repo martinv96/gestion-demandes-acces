@@ -5,6 +5,8 @@ namespace App\Controller;
 use App\Entity\Ressource;
 use App\Entity\Service;
 use App\Entity\User;
+use App\Entity\WorkflowTransitionConfig;
+use App\Repository\WorkflowTransitionConfigRepository;
 use App\Repository\RessourceRepository;
 use App\Repository\RoleRepository;
 use App\Repository\ServiceRepository;
@@ -37,8 +39,26 @@ final class AdminController extends AbstractController
         ServiceRepository $serviceRepository,
         RessourceRepository $ressourceRepository,
         RoleRepository $roleRepository,
+        WorkflowTransitionConfigRepository $workflowTransitionConfigRepository,
     ): Response {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        $activeTransitions = $workflowTransitionConfigRepository->findBy(
+            ['isActive' => true],
+            ['workflowCode' => 'ASC', 'stepOrder' => 'ASC', 'action' => 'ASC']
+        );
+
+        $workflowByCode = [];
+        foreach ($activeTransitions as $transition) {
+            $code = (string) $transition->getWorkflowCode();
+            if (!isset($workflowByCode[$code])) {
+                $workflowByCode[$code] = [];
+            }
+            $workflowByCode[$code][] = $transition;
+        }
+
+        $workflowCodes = array_keys($workflowByCode);
+        sort($workflowCodes);
 
         return $this->render('admin/index.html.twig', [
             'tab'       => $request->query->getString('tab', 'users'),
@@ -46,6 +66,8 @@ final class AdminController extends AbstractController
             'services'  => $serviceRepository->findBy([], ['name' => 'ASC']),
             'logiciels' => $ressourceRepository->findBy(['category' => 'logiciel'], ['name' => 'ASC']),
             'roles'     => $roleRepository->findBy([], ['label' => 'ASC']),
+            'workflow_transitions' => $workflowByCode,
+            'workflowCodes' => $workflowCodes,
         ]);
     }
 
@@ -94,12 +116,12 @@ final class AdminController extends AbstractController
 
         $user = new User();
         $user->setFirstname($firstname)
-             ->setLastname($lastname)
-             ->setEmail($email)
-             ->setIsActive(true)
-             ->setMustChangePassword(true)
-             ->setRole($role)
-             ->setService($service);
+            ->setLastname($lastname)
+            ->setEmail($email)
+            ->setIsActive(true)
+            ->setMustChangePassword(true)
+            ->setRole($role)
+            ->setService($service);
         $user->setPassword($hasher->hashPassword($user, $tempPassword));
 
         $em->persist($user);
@@ -107,9 +129,9 @@ final class AdminController extends AbstractController
 
         $this->addFlash('success', sprintf(
             'Utilisateur "%s %s" créé. Mot de passe provisoire : '
-            . '<strong class="font-monospace user-select-all">%s</strong> '
-            . '<button type="button" class="btn btn-sm btn-outline-light ms-2 py-0" '
-            . 'onclick="navigator.clipboard.writeText(\'%s\').then(()=>this.textContent=\'Copié !\')">Copier</button>',
+                . '<strong class="font-monospace user-select-all">%s</strong> '
+                . '<button type="button" class="btn btn-sm btn-outline-light ms-2 py-0" '
+                . 'onclick="navigator.clipboard.writeText(\'%s\').then(()=>this.textContent=\'Copié !\')">Copier</button>',
             htmlspecialchars($firstname, ENT_QUOTES),
             htmlspecialchars($lastname, ENT_QUOTES),
             $tempPassword,
@@ -150,10 +172,10 @@ final class AdminController extends AbstractController
         $service = $serviceId > 0 ? $serviceRepository->find($serviceId) : null;
 
         $user->setFirstname($firstname)
-             ->setLastname($lastname)
-             ->setEmail($email)
-             ->setRole($role)
-             ->setService($service);
+            ->setLastname($lastname)
+            ->setEmail($email)
+            ->setRole($role)
+            ->setService($service);
 
         $em->flush();
         $this->addFlash('success', 'Utilisateur mis à jour.');
@@ -225,9 +247,9 @@ final class AdminController extends AbstractController
 
         $this->addFlash('success', sprintf(
             'Mot de passe de %s %s réinitialisé. Nouveau mot de passe provisoire : '
-            . '<strong class="font-monospace user-select-all">%s</strong> '
-            . '<button type="button" class="btn btn-sm btn-outline-light ms-2 py-0" '
-            . 'onclick="navigator.clipboard.writeText(\'%s\').then(()=>this.textContent=\'Copié !\')">Copier</button>',
+                . '<strong class="font-monospace user-select-all">%s</strong> '
+                . '<button type="button" class="btn btn-sm btn-outline-light ms-2 py-0" '
+                . 'onclick="navigator.clipboard.writeText(\'%s\').then(()=>this.textContent=\'Copié !\')">Copier</button>',
             htmlspecialchars($user->getFirstname() ?? '', ENT_QUOTES),
             htmlspecialchars($user->getLastname() ?? '', ENT_QUOTES),
             $tempPassword,
@@ -248,11 +270,157 @@ final class AdminController extends AbstractController
         return $password;
     }
 
+    // ! la route /workflow/code/add permet d'ajouter une nouvelle transition de workflow via un formulaire.
+    #[Route('/workflow/code/add', name: 'workflow_code_add', methods: ['POST'])]
+    public function workflowCodeAdd(
+        Request $request,
+        EntityManagerInterface $em,
+        WorkflowTransitionConfigRepository $workflowTransitionConfigRepository
+    ): Response {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        if (!$this->isCsrfTokenValid('admin_workflow_code_add', (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Token de sécurité invalide.');
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'workflow']);
+        }
+
+        $code = strtolower(trim((string) $request->request->get('workflow_code', '')));
+        if ($code === '') {
+            $this->addFlash('danger', 'Le code du workflow est obligatoire.');
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'workflow']);
+        }
+        if (!preg_match('/^[a-z0-9_\\-]{3,50}+$/', $code)) {
+            $this->addFlash('danger', 'Le code du workflow ne peut contenir que des lettres minuscules, des chiffres et des underscores.');
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'workflow']);
+        }
+
+        $existing = $workflowTransitionConfigRepository->findOneBy([
+            'workflowCode' => $code,
+            'isActive' => true,
+        ]);
+
+        if (!$existing instanceof WorkflowTransitionConfig) {
+            $this->addFlash('danger', sprintf('Le code workflow "%s" est obligatoire.', $code));
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'workflow']);
+        }
+
+        foreach ($this->getDefaultTransitionsForCode($code) as $row) {
+            $transition = new WorkflowTransitionConfig();
+            $transition->setWorkflowCode($code)
+                ->setStepOrder($row['stepOrder'])
+                ->setAction($row['action'])
+                ->setFromStatus($row['fromStatus'])
+                ->setToStatus($row['toStatus'])
+                ->setIsActive(true);
+            $em->persist($transition);
+        }
+        $em->flush();
+
+        $this->addFlash('success', sprintf('Workflow "%s" créé avec les transitions par défaut.', $code));
+        return $this->redirectToRoute('app_admin_index', ['tab' => 'workflow']);
+    }
+
+    /** 
+     * @return array<int, array{workflowCode: string, stepOrder: int, action: string, fromStatus: string, toStatus: string, requiredRole: string}>
+     */
+
+    private function getDefaultTransitionsForCode(string $workflowCode): array
+    {
+        return [
+            [
+                'workflowCode' => $workflowCode,
+                'stepOrder' => 1,
+                'action' => 'validate',
+                'fromStatus' => 'en attente_rh',
+                'toStatus' => 'en_attente_st',
+                'requiredRole' => 'ROLE_RH',
+            ],
+            [
+                'workflowCode' => $workflowCode,
+                'stepOrder' => 1,
+                'action' => 'refuse',
+                'fromStatus' => 'en_attente_rh',
+                'toStatus' => 'refusee_rh',
+                'requiredRole' => 'ROLE_RH',
+            ],
+            [
+                'workflowCode' => $workflowCode,
+                'stepOrder' => 2,
+                'action' => 'validate',
+                'fromStatus' => 'en_attente_st',
+                'toStatus' => 'en_attente_dsi',
+                'requiredRole' => 'ROLE_ST',
+            ],
+            [
+                'workflowCode' => $workflowCode,
+                'stepOrder' => 2,
+                'action' => 'refuse',
+                'fromStatus' => 'en_attente_st',
+                'toStatus' => 'en_attente_st',
+                'requiredRole' => 'ROLE_ST',
+            ],
+            [
+                'workflowCode' => $workflowCode,
+                'stepOrder' => 3,
+                'action' => 'validate',
+                'fromStatus' => 'en_attente_dsi',
+                'toStatus' => 'traitee',
+                'requiredRole' => 'ROLE_DSI',
+            ],
+            [
+                'workflowCode' => $workflowCode,
+                'stepOrder' => 3,
+                'action' => 'rufuse',
+                'fromStatus' => 'en_attente_dsi',
+                'toStatus' => 'en_attente_st',
+                'requiredRole' => 'ROLE_DSI',
+            ],
+        ];
+    }
+
+    // ! la route /workflow/code/{workflowCode}/disable permet de désactiver un workflow existant, ce qui le rend inactif dans le système.
+    #[Route('workflow/code/{workflowCode}/disable', name: 'workflow_code_disable', methods: ['POST'])]
+    public function workflowCodeDisable(
+        string $workflowCode,
+        Request $request,
+        EntityManagerInterface $em,
+        WorkflowTransitionConfigRepository $workflowTransitionConfigRepository
+    ): Response {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        if (!$this->isCsrfTokenValid('admin_workflow_code_disable_' . $workflowCode, (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Token de sécurité invalide.');
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'workflow']);
+        }
+
+        $transitions = $workflowTransitionConfigRepository->findBy([
+            'workflowCode' => $workflowCode,
+            'isActive' => true,
+        ]);
+
+        if ($transitions === []) {
+            $this->addFlash('warning', sprintf('Aucune transition active trouvée pour "%s".', $workflowCode));
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'workflow']);
+        }
+
+        foreach ($transitions as $transition) {
+            $transition->setIsActive(false);
+        }
+
+        $em->flush();
+
+        $this->addFlash('success', sprintf('Workflow "%s" désactivé.', $workflowCode));
+        return $this->redirectToRoute('app_admin_index', ['tab' => 'workflow']);
+    }
+
     // route pour ajouter un service
     // ! la route /admin/service/add permet d'ajouter un nouveau service via un formulaire.
     #[Route('/service/add', name: 'service_add', methods: ['POST'])]
-    public function serviceAdd(Request $request, EntityManagerInterface $em): Response
-    {
+    public function serviceAdd(
+        Request $request,
+        EntityManagerInterface $em,
+        WorkflowTransitionConfigRepository $workflowTransitionConfigRepository
+    ): Response {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
         if (!$this->isCsrfTokenValid('admin_service_add', (string) $request->request->get('_token'))) {
@@ -260,19 +428,28 @@ final class AdminController extends AbstractController
             return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
         }
 
-        $name  = trim((string) $request->request->get('name', ''));
-        $email = trim((string) $request->request->get('email', ''));
-        $code  = trim((string) $request->request->get('code', ''));
+        try {
+            $name  = trim((string) $request->request->get('name', ''));
+            $email = trim((string) $request->request->get('email', ''));
+            $code = $this->normalizeServiceWorkflowCode((string) $request->request->get('code', ''));
 
-        if ($name === '') {
-            $this->addFlash('danger', 'Le nom du service est obligatoire.');
+            if ($name === '') {
+                $this->addFlash('danger', 'Le nom du service est obligatoire.');
+                return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
+            }
+
+            if ($code !== null) {
+                $this->ensureWorkflowStepExistsForServiceCode($code, $workflowTransitionConfigRepository, $em);
+            }
+
+            $service = new Service();
+            $service->setName($name)->setEmail($email ?: '')->setCode($code);
+            $em->persist($service);
+            $em->flush();
+        } catch (\InvalidArgumentException $e) {
+            $this->addFlash('danger', $e->getMessage());
             return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
         }
-
-        $service = new Service();
-        $service->setName($name)->setEmail($email ?: '')->setCode($code ?: null);
-        $em->persist($service);
-        $em->flush();
 
         $this->addFlash('success', sprintf('Service "%s" créé.', $name));
         return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
@@ -281,28 +458,189 @@ final class AdminController extends AbstractController
     // route pour modifier un service
     // ! la route /admin/service/{id}/edit permet de modifier les informations d'un service existant via un formulaire.
     #[Route('/service/{id}/edit', name: 'service_edit', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function serviceEdit(Service $service, Request $request, EntityManagerInterface $em): Response
-    {
+    public function serviceEdit(
+        Service $service,
+        Request $request,
+        EntityManagerInterface $em,
+        WorkflowTransitionConfigRepository $workflowTransitionConfigRepository
+    ): Response {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
+        // ! vérification du token CSRF pour éviter les attaques de type Cross-Site Request Forgery.
+        // ! cross-site request forgery (CSRF) est une attaque qui consiste à faire exécuter une action non désirée par un utilisateur authentifié sur une application web.
         if (!$this->isCsrfTokenValid('admin_service_edit_' . $service->getId(), (string) $request->request->get('_token'))) {
             $this->addFlash('danger', 'Token de sécurité invalide.');
             return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
         }
 
-        $name  = trim((string) $request->request->get('name', ''));
-        $email = trim((string) $request->request->get('email', ''));
-        $code  = trim((string) $request->request->get('code', ''));
+        try {
+            $name  = trim((string) $request->request->get('name', ''));
+            $email = trim((string) $request->request->get('email', ''));
+            $code = $this->normalizeServiceWorkflowCode((string) $request->request->get('code', ''));
+            $oldCode = $service->getCode();
 
-        if ($name === '') {
-            $this->addFlash('danger', 'Le nom du service est obligatoire.');
+            if ($name === '') {
+                $this->addFlash('danger', 'Le nom du service est obligatoire.');
+                return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
+            }
+
+            // Si le code a changé, nettoyer l'ancien
+            if ($oldCode !== $code) {
+                if ($oldCode !== null) {
+                    $this->removeWorkflowStepForServiceCode($oldCode, $workflowTransitionConfigRepository, $em);
+                }
+                // Créer le nouveau s'il existe
+                if ($code !== null) {
+                    $this->ensureWorkflowStepExistsForServiceCode($code, $workflowTransitionConfigRepository, $em);
+                }
+            }
+
+            $service->setName($name)->setEmail($email ?: $service->getEmail())->setCode($code);
+            $em->flush();
+        } catch (\InvalidArgumentException $e) {
+            $this->addFlash('danger', $e->getMessage());
             return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
         }
 
-        $service->setName($name)->setEmail($email ?: $service->getEmail())->setCode($code ?: null);
-        $em->flush();
         $this->addFlash('success', 'Service mis à jour.');
         return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
+    }
+
+    // route pour activer/désactiver un service
+    // ! la route /admin/service/{id}/toggle permet d'activer ou de désactiver un service existant.
+    private function removeWorkflowStepForServiceCode(
+        string $serviceCode,
+        WorkflowTransitionConfigRepository $workflowTransitionConfigRepository,
+        EntityManagerInterface $em
+    ): void {
+        $workflowCode = 'default_access';
+        $requiredRole = 'ROLE_' . $serviceCode;
+        $pendingStatus = 'en_attente_' . strtolower($serviceCode);
+
+        // Marquer toutes les transitions ROLE_{serviceCode} comme inactives
+        $transitions = $workflowTransitionConfigRepository->findBy([
+            'workflowCode' => $workflowCode,
+            'requiredRole' => $requiredRole,
+        ]);
+
+        foreach ($transitions as $transition) {
+            $transition->setIsActive(false);
+        }
+
+        // Restaurer la transition qui pointait vers en_attente_{serviceCode}
+        // (elle doit revenir à 'traitee'), meme si elle a ete desactivee manuellement.
+        $allTransitions = $workflowTransitionConfigRepository->findBy([
+            'workflowCode' => $workflowCode,
+            'toStatus' => $pendingStatus,
+        ]);
+
+        foreach ($allTransitions as $transition) {
+            $transition->setToStatus('traitee');
+            $transition->setIsActive(true);
+        }
+
+        // Filet de securite: si la transition coeur DSI->traitee a ete supprimee,
+        // on la recree pour conserver le parcours RH -> ST -> DSI.
+        $coreDsiValidate = $workflowTransitionConfigRepository->findOneBy([
+            'workflowCode' => $workflowCode,
+            'action' => 'validate',
+            'fromStatus' => 'en_attente_dsi',
+            'requiredRole' => 'ROLE_DSI',
+        ]);
+
+        if (!$coreDsiValidate instanceof WorkflowTransitionConfig) {
+            $coreDsiValidate = new WorkflowTransitionConfig();
+            $coreDsiValidate
+                ->setWorkflowCode($workflowCode)
+                ->setStepOrder(3)
+                ->setAction('validate')
+                ->setFromStatus('en_attente_dsi')
+                ->setToStatus('traitee')
+                ->setRequiredRole('ROLE_DSI')
+                ->setIsActive(true);
+            $em->persist($coreDsiValidate);
+        }
+    }
+
+    // Normalise et valide le code workflow d'un service, ou retourne null si aucun code n'est fourni.
+    private function normalizeServiceWorkflowCode(string $rawCode): ?string
+    {
+        $code = strtoupper(trim($rawCode));
+
+        if ($code === '') {
+            return null;
+        }
+
+        if (!preg_match('/^[A-Z0-9_-]{2,20}$/', $code)) {
+            throw new \InvalidArgumentException('Code workflow invalide (2-20, lettres/chiffres/_/-).');
+        }
+
+        return $code;
+    }
+
+    // Assure que les étapes de workflow nécessaires pour un code de service donné existent, sinon les crée.
+    private function ensureWorkflowStepExistsForServiceCode(
+        string $serviceCode,
+        WorkflowTransitionConfigRepository $workflowTransitionConfigRepository,
+        EntityManagerInterface $em
+    ): void {
+        $workflowCode = 'default_access';
+        $requiredRole = 'ROLE_' . $serviceCode;
+        $pendingStatus = 'en_attente_' . strtolower($serviceCode);
+
+        $alreadyExists = $workflowTransitionConfigRepository->findOneBy([
+            'workflowCode' => $workflowCode,
+            'requiredRole' => $requiredRole,
+            'isActive' => true,
+        ]);
+
+        if ($alreadyExists instanceof WorkflowTransitionConfig) {
+            return;
+        }
+
+        $active = $workflowTransitionConfigRepository->findBy(
+            ['workflowCode' => $workflowCode, 'isActive' => true],
+            ['stepOrder' => 'ASC', 'action' => 'ASC']
+        );
+
+        $finalValidate = null;
+        foreach ($active as $transition) {
+            if ($transition->getAction() === 'validate' && $transition->getToStatus() === 'traitee') {
+                $finalValidate = $transition;
+            }
+        }
+
+        if (!$finalValidate instanceof WorkflowTransitionConfig) {
+            return;
+        }
+
+        $previousFinalFromStatus = (string) $finalValidate->getFromStatus();
+        $newStepOrder = (int) $finalValidate->getStepOrder() + 1;
+
+        $finalValidate->setToStatus($pendingStatus);
+
+        $validate = new WorkflowTransitionConfig();
+        $validate
+            ->setWorkflowCode($workflowCode)
+            ->setStepOrder($newStepOrder)
+            ->setAction('validate')
+            ->setFromStatus($pendingStatus)
+            ->setToStatus('traitee')
+            ->setRequiredRole($requiredRole)
+            ->setIsActive(true);
+
+        $refuse = new WorkflowTransitionConfig();
+        $refuse
+            ->setWorkflowCode($workflowCode)
+            ->setStepOrder($newStepOrder)
+            ->setAction('refuse')
+            ->setFromStatus($pendingStatus)
+            ->setToStatus($previousFinalFromStatus)
+            ->setRequiredRole($requiredRole)
+            ->setIsActive(true);
+
+        $em->persist($validate);
+        $em->persist($refuse);
     }
 
     // route pour supprimer un service
@@ -394,7 +732,7 @@ final class AdminController extends AbstractController
         $em->flush();
         return $this->redirectToRoute('app_admin_index', ['tab' => 'logiciels']);
     }
-    
+
     // route pour supprimer un logiciel
     // ! la route /admin/logiciel/{id}/delete permet de supprimer un logiciel existant.
     #[Route('/logiciel/{id}/delete', name: 'logiciel_delete', methods: ['POST'], requirements: ['id' => '\d+'])]

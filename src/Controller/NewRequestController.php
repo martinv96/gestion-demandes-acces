@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Entity\WorkflowHistory;
 use App\Form\Model\NewRequestData;
 use App\Form\NewRequestType;
+use App\Repository\WorkflowTransitionConfigRepository;
 use App\Repository\RequestRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,9 +19,11 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class NewRequestController extends AbstractController
 {
+
+    private const DEFAULT_WORKFLOW_CODE = 'default_access';
     // route pour créer une nouvelle demande d'accès
     #[Route('/new/request', name: 'app_new_request', methods: ['GET', 'POST'])]
-    public function index(Request $request, EntityManagerInterface $entityManager, RequestRepository $requestRepository): Response
+    public function index(Request $request, EntityManagerInterface $entityManager, RequestRepository $requestRepository, WorkflowTransitionConfigRepository $workflowTransitionConfigRepository): Response
     {
         $formData = new NewRequestData();
         $form = $this->createForm(NewRequestType::class, $formData);
@@ -40,6 +43,22 @@ final class NewRequestController extends AbstractController
                 ->setCommentary($formData->getCommentary())
                 ->setCreationDate(new \DateTimeImmutable())
                 ->setUpdateDate(new \DateTimeImmutable());
+
+            $activeTransitions = $workflowTransitionConfigRepository->findActiveTransitionsForWorkflow(self::DEFAULT_WORKFLOW_CODE);
+
+            $workflowSnapshot = array_map(
+                static fn($transition): array => [
+                    'workflowCode' => (string) $transition->getWorkflowCode(),
+                    'stepOrder' => (int) $transition->getStepOrder(),
+                    'action' => (string) $transition->getAction(),
+                    'fromStatus' => (string) $transition->getFromStatus(),
+                    'toStatus' => (string) $transition->getToStatus(),
+                    'requiredRole' => (string) $transition->getRequiredRole(),
+                ],
+                $activeTransitions
+            );
+
+            $newRequest->setWorkflowSnapshot($workflowSnapshot !== [] ? $workflowSnapshot : null);
 
             $currentUser = $this->getUser();
 
@@ -199,4 +218,6 @@ final class NewRequestController extends AbstractController
             'form' => $form->createView(),
         ]);
     }
+
+    
 }

@@ -97,7 +97,7 @@
 													</svg>
 												</button>
 											</form>
-											<button class="btn btn-icon" title="Modifier" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}">
+											<button type="button" class="btn btn-icon" title="Modifier" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}">
 												<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16">
 													<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
 												</svg>
@@ -155,7 +155,7 @@
 											{% endif %}
 										</td>
 										<td class="text-end">
-											<button class="btn btn-icon" title="Modifier" data-bs-toggle="modal" data-bs-target="#editServiceModal{{ service.id }}">
+											<button type="button" class="btn btn-icon js-open-modal" title="Modifier" data-bs-toggle="modal" data-bs-target="#editServiceModal{{ service.id }}" data-open-modal-id="editServiceModal{{ service.id }}">
 												<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16">
 													<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
 												</svg>
@@ -214,7 +214,7 @@
 											</form>
 										</td>
 										<td class="text-end">
-											<button class="btn btn-icon" title="Modifier" data-bs-toggle="modal" data-bs-target="#editLogicielModal{{ logiciel.id }}">
+											<button type="button" class="btn btn-icon" title="Modifier" data-bs-toggle="modal" data-bs-target="#editLogicielModal{{ logiciel.id }}">
 												<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16">
 													<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
 												</svg>
@@ -342,7 +342,7 @@
 								<select class="form-select" name="role_id">
 									<option value="">Aucun rôle</option>
 									{% for role in roles %}
-                                    {% set statusMap = {
+										{% set statusMap = {
                                         'ROLE_ADMIN': 'Administrateur',
                                         'ROLE_USER': 'Utilisateur'
                                     } %}
@@ -399,201 +399,209 @@
 							<label class="form-label">Code workflow
 								<span class="text-muted">(optionnel)</span>
 							</label>
-							<select class="form-select" name="code">
-								<option value="">Aucun (service sans rôle workflow)</option>
-								<option value="RH">RH — Peut renvoyer en validation</option>
-								<option value="ST">ST — Valide l'étape 1 (DGA-ST)</option>
-								<option value="DSI">DSI — Valide l'étape 2 (DSI)</option>
-							</select>
-							<div class="form-text">Détermine les permissions du workflow de validation.</div>
-						</div>
-					</div>
-					<div class="modal-footer border-0 pt-0">
-						<button type="submit" class="btn btn-primary">Créer</button>
-						<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
-					</div>
-				</form>
-			</div>
-		</div>
-	</div>
-
-	{# ── Modifier chaque service ── #}
-	{% for service in services %}
-		<div class="modal fade" id="editServiceModal{{ service.id }}" tabindex="-1" aria-hidden="true">
-			<div class="modal-dialog modal-dialog-centered">
-				<div class="modal-content admin-modal">
-					<div class="modal-header border-0 pb-1">
-						<h5 class="modal-title">Modifier le service</h5>
-						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-					</div>
-					<form method="post" action="{{ path('app_admin_service_edit', {id: service.id}) }}">
-						<input type="hidden" name="_token" value="{{ csrf_token('admin_service_edit_' ~ service.id) }}">
-						<div class="modal-body">
-							<div class="mb-3">
-								<label class="form-label">Nom du service</label>
-								<input type="text" class="form-control" name="name" value="{{ service.name }}" required>
-							</div>
-							<div class="mb-3">
-								<label class="form-label">Email du service</label>
-								<input type="email" class="form-control" name="email" value="{{ service.email }}">
-							</div>
-							<div class="mb-3">
-								<label class="form-label">Code workflow</label>
-								<select class="form-select" name="code">
-									<option value="" {{ service.code is null ? 'selected' : '' }}>Aucun</option>
-									<option value="RH" {{ service.code == 'RH' ? 'selected' : '' }}>RH — Peut renvoyer en validation</option>
-									<option value="ST" {{ service.code == 'ST' ? 'selected' : '' }}>ST — Valide l'étape 1 (DGA-ST)</option>
-									<option value="DSI" {{ service.code == 'DSI' ? 'selected' : '' }}>DSI — Valide l'étape 2 (DSI)</option>
-								</select>
-							</div>
+							<input type="text" class="form-control" name="code" placeholder="Ex : RH, ST, DSI" maxlength="20" autocomplete="off">
+							<div class="form-text">Code acteur de validation. Exemple: EDU ajoute une étape ROLE_EDU.</div>
 						</div>
 						<div class="modal-footer border-0 pt-0">
-							<button type="submit" class="btn btn-primary">Enregistrer</button>
+							<button type="submit" class="btn btn-primary">Créer</button>
 							<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
 						</div>
 					</form>
 				</div>
 			</div>
 		</div>
-	{% endfor %}
-
-	{# ── Ajouter un logiciel ── #}
-	<div class="modal fade" id="addLogicielModal" tabindex="-1" aria-hidden="true">
-		<div class="modal-dialog modal-dialog-centered">
-			<div class="modal-content admin-modal">
-				<div class="modal-header border-0 pb-1">
-					<h5 class="modal-title">Ajouter un logiciel</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-				</div>
-				<form method="post" action="{{ path('app_admin_logiciel_add') }}">
-					<input type="hidden" name="_token" value="{{ csrf_token('admin_logiciel_add') }}">
-					<div class="modal-body">
-						<div class="mb-3">
-							<label class="form-label">Nom du logiciel</label>
-							<input type="text" class="form-control" name="name" placeholder="Ex : Ciril RH" required autocomplete="off">
-						</div>
-					</div>
-					<div class="modal-footer border-0 pt-0">
-						<button type="submit" class="btn btn-primary">Ajouter</button>
-						<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
-					</div>
-				</form>
-			</div>
-		</div>
 	</div>
 
-	{# ── Modifier chaque logiciel ── #}
-	{% for logiciel in logiciels %}
-		<div class="modal fade" id="editLogicielModal{{ logiciel.id }}" tabindex="-1" aria-hidden="true">
+		{# ── Modifier chaque service ── #}
+		{% for service in services %}
+			<div class="modal fade" id="editServiceModal{{ service.id }}" tabindex="-1" aria-hidden="true">
+				<div class="modal-dialog modal-dialog-centered">
+					<div class="modal-content admin-modal">
+						<div class="modal-header border-0 pb-1">
+							<h5 class="modal-title">Modifier le service</h5>
+							<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+						</div>
+						<form method="post" action="{{ path('app_admin_service_edit', {id: service.id}) }}">
+							<input type="hidden" name="_token" value="{{ csrf_token('admin_service_edit_' ~ service.id) }}">
+							<div class="modal-body">
+								<div class="mb-3">
+									<label class="form-label">Nom du service</label>
+									<input type="text" class="form-control" name="name" value="{{ service.name }}" required>
+								</div>
+								<div class="mb-3">
+									<label class="form-label">Email du service</label>
+									<input type="email" class="form-control" name="email" value="{{ service.email }}">
+								</div>
+								<div class="mb-3">
+									<label class="form-label">Code workflow</label>
+									<input type="text" class="form-control" name="code" value="{{ service.code }}" placeholder="Ex : RH, ST, DSI, EDU" maxlength="20" autocomplete="off">
+								</div>
+							</div>
+							<div class="modal-footer border-0 pt-0">
+								<button type="submit" class="btn btn-primary">Enregistrer</button>
+								<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		{% endfor %}
+
+		{# ── Ajouter un logiciel ── #}
+		<div class="modal fade" id="addLogicielModal" tabindex="-1" aria-hidden="true">
 			<div class="modal-dialog modal-dialog-centered">
 				<div class="modal-content admin-modal">
 					<div class="modal-header border-0 pb-1">
-						<h5 class="modal-title">Modifier le logiciel</h5>
+						<h5 class="modal-title">Ajouter un logiciel</h5>
 						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
 					</div>
-					<form method="post" action="{{ path('app_admin_logiciel_edit', {id: logiciel.id}) }}">
-						<input type="hidden" name="_token" value="{{ csrf_token('admin_logiciel_edit_' ~ logiciel.id) }}">
+					<form method="post" action="{{ path('app_admin_logiciel_add') }}">
+						<input type="hidden" name="_token" value="{{ csrf_token('admin_logiciel_add') }}">
 						<div class="modal-body">
 							<div class="mb-3">
 								<label class="form-label">Nom du logiciel</label>
-								<input type="text" class="form-control" name="name" value="{{ logiciel.name }}" required>
+								<input type="text" class="form-control" name="name" placeholder="Ex : Ciril RH" required autocomplete="off">
 							</div>
 						</div>
 						<div class="modal-footer border-0 pt-0">
-							<button type="submit" class="btn btn-primary">Enregistrer</button>
+							<button type="submit" class="btn btn-primary">Ajouter</button>
 							<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
 						</div>
 					</form>
 				</div>
 			</div>
 		</div>
-	{% endfor %}
 
-	{# MODAL DE CONFIRMATION DE SUPPRESSION #}
+		{# ── Modifier chaque logiciel ── #}
+		{% for logiciel in logiciels %}
+			<div class="modal fade" id="editLogicielModal{{ logiciel.id }}" tabindex="-1" aria-hidden="true">
+				<div class="modal-dialog modal-dialog-centered">
+					<div class="modal-content admin-modal">
+						<div class="modal-header border-0 pb-1">
+							<h5 class="modal-title">Modifier le logiciel</h5>
+							<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+						</div>
+						<form method="post" action="{{ path('app_admin_logiciel_edit', {id: logiciel.id}) }}">
+							<input type="hidden" name="_token" value="{{ csrf_token('admin_logiciel_edit_' ~ logiciel.id) }}">
+							<div class="modal-body">
+								<div class="mb-3">
+									<label class="form-label">Nom du logiciel</label>
+									<input type="text" class="form-control" name="name" value="{{ logiciel.name }}" required>
+								</div>
+							</div>
+							<div class="modal-footer border-0 pt-0">
+								<button type="submit" class="btn btn-primary">Enregistrer</button>
+								<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		{% endfor %}
 
-	<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true" aria-labelledby="deleteConfirmModalLabel">
-		<div class="modal-dialog modal-dialog-centered">
-			<div class="modal-content admin-modal">
-				<div class="modal-header border-0 pb-1">
-					<h5 class="modal-title" id="deleteConfirmModalLabel">Confirmer la suppression</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-				</div>
-				<div class="modal-body">
-					<p class="mb-0" id="deleteConfirmModalMessage">Cette action est irréversible.</p>
-				</div>
-				<div class="modal-footer border-0 pt-0">
-					<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
-					<button type="button" class="btn btn-danger" id="deleteConfirmSubmitBtn">Supprimer</button>
+		{# MODAL DE CONFIRMATION DE SUPPRESSION #}
+
+		<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true" aria-labelledby="deleteConfirmModalLabel">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content admin-modal">
+					<div class="modal-header border-0 pb-1">
+						<h5 class="modal-title" id="deleteConfirmModalLabel">Confirmer la suppression</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+					</div>
+					<div class="modal-body">
+						<p class="mb-0" id="deleteConfirmModalMessage">Cette action est irréversible.</p>
+					</div>
+					<div class="modal-footer border-0 pt-0">
+						<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+						<button type="button" class="btn btn-danger" id="deleteConfirmSubmitBtn">Supprimer</button>
+					</div>
 				</div>
 			</div>
 		</div>
-	</div>
 
-	{# SCRIPTS #}
+		{# SCRIPTS #}
 
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-	<script>
-		document.addEventListener('DOMContentLoaded', function () {
-            const adminTabs = document.getElementById('adminTabs');
-            const adminSubtitle = document.getElementById('adminSubtitle');
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+		<script>
+			document.addEventListener('DOMContentLoaded', function () {
+const adminTabs = document.getElementById('adminTabs');
+const adminSubtitle = document.getElementById('adminSubtitle');
 
-            const subtitles = {
-                '#tab-users': 'Gestion des utilisateurs',
-                '#tab-services': 'Gestion des services',
-                '#tab-logiciels': 'Gestion des logiciels'
-        };
+const subtitles = {
+'#tab-users': 'Gestion des utilisateurs',
+'#tab-services': 'Gestion des services',
+'#tab-logiciels': 'Gestion des logiciels'
+};
 
-            if (adminTabs && adminSubtitle) {
-                adminTabs.addEventListener('shown.bs.tab', function (event) {
-            const target = event.target.getAttribute('data-bs-target');
+if (adminTabs && adminSubtitle) {
+adminTabs.addEventListener('shown.bs.tab', function (event) {
+const target = event.target.getAttribute('data-bs-target');
 
-            if (subtitles[target]) {
-                adminSubtitle.textContent = subtitles[target];
-            }
-        });
-        }
+if (subtitles[target]) {
+adminSubtitle.textContent = subtitles[target];
+}
+});
+}
 
-            const confirmModalElement = document.getElementById('deleteConfirmModal');
-            const confirmModalTitle = document.getElementById('deleteConfirmModalLabel');
-            const confirmModalMessage = document.getElementById('deleteConfirmModalMessage');
-            const confirmSubmitButton = document.getElementById('deleteConfirmSubmitBtn');
-            const deleteTriggers = document.querySelectorAll('.js-delete-trigger');
+const confirmModalElement = document.getElementById('deleteConfirmModal');
+const confirmModalTitle = document.getElementById('deleteConfirmModalLabel');
+const confirmModalMessage = document.getElementById('deleteConfirmModalMessage');
+const confirmSubmitButton = document.getElementById('deleteConfirmSubmitBtn');
+const deleteTriggers = document.querySelectorAll('.js-delete-trigger');
 
-            if (! confirmModalElement || ! confirmSubmitButton || deleteTriggers.length === 0) {
-        return;
-        }
+if (! confirmModalElement || ! confirmSubmitButton || deleteTriggers.length === 0) {
+return;
+}
 
-            const confirmModal = new bootstrap.Modal(confirmModalElement);
-            let formToSubmit = null;
+const confirmModal = new bootstrap.Modal(confirmModalElement);
+let formToSubmit = null;
 
-            deleteTriggers.forEach(function (trigger) {
-            trigger.addEventListener('click', function () {
-            const formId = trigger.dataset.formId;
-            formToSubmit = formId ? document.getElementById(formId) : null;
+deleteTriggers.forEach(function (trigger) {
+trigger.addEventListener('click', function () {
+const formId = trigger.dataset.formId;
+formToSubmit = formId ? document.getElementById(formId) : null;
 
-            if (! formToSubmit) {
-        return;
-        }
+if (! formToSubmit) {
+return;
+}
 
-            const title = trigger.dataset.deleteTitle || 'Confirmer la suppression';
-            const message = trigger.dataset.deleteMessage || 'Cette action est irréversible.';
-            const confirmLabel = trigger.dataset.deleteConfirmLabel || 'Supprimer';
-            const btnClass = trigger.dataset.deleteBtnClass || 'btn btn-danger';
+const title = trigger.dataset.deleteTitle || 'Confirmer la suppression';
+const message = trigger.dataset.deleteMessage || 'Cette action est irréversible.';
+const confirmLabel = trigger.dataset.deleteConfirmLabel || 'Supprimer';
+const btnClass = trigger.dataset.deleteBtnClass || 'btn btn-danger';
 
-            confirmModalTitle.textContent = title;
-            confirmModalMessage.innerHTML = message;
-            confirmSubmitButton.textContent = confirmLabel;
-            confirmSubmitButton.className = btnClass;
+confirmModalTitle.textContent = title;
+confirmModalMessage.innerHTML = message;
+confirmSubmitButton.textContent = confirmLabel;
+confirmSubmitButton.className = btnClass;
 
-            confirmModal.show();
-        });
-        });
+confirmModal.show();
+});
+});
 
-            confirmSubmitButton.addEventListener('click', function () {
-            if (formToSubmit) {
-            formToSubmit.submit();
-        }
-        });
-    });
-	</script>
-{% endblock %}
+confirmSubmitButton.addEventListener('click', function () {
+if (formToSubmit) {
+formToSubmit.submit();
+}
+});
+
+		const modalTriggers = document.querySelectorAll('.js-open-modal');
+		modalTriggers.forEach(function (trigger) {
+			trigger.addEventListener('click', function () {
+				const modalId = trigger.dataset.openModalId;
+				if (!modalId) {
+					return;
+				}
+
+				const modalElement = document.getElementById(modalId);
+				if (!modalElement) {
+					return;
+				}
+
+				const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+				modal.show();
+			});
+		});
+});
+		</script>
+	{% endblock %}

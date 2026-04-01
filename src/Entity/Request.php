@@ -37,6 +37,9 @@ class Request
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $updateDate = null;
 
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $workflowSnapshot = null;
+
     #[ORM\ManyToOne(inversedBy: 'agent_id')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Agent $agent = null;
@@ -176,6 +179,18 @@ class Request
     public function setUpdateDate(\DateTimeImmutable $updateDate): static
     {
         $this->updateDate = $updateDate;
+
+        return $this;
+    }
+
+    public function getWorkflowSnapshot(): ?array
+    {
+        return $this->workflowSnapshot;
+    }
+
+    public function setWorkflowSnapshot(?array $workflowSnapshot): static
+    {
+        $this->workflowSnapshot = $workflowSnapshot;
 
         return $this;
     }
