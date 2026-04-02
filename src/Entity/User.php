@@ -19,11 +19,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?int $id;
 
-    #[ORM\Column(length: 100)]
-    private ?string $firstname;
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $firstname = null;
 
-    #[ORM\Column(length: 100)]
-    private ?string $lastname;
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $lastname = null;
 
     #[ORM\Column(length: 150, unique: true)]
     private ?string $email;
@@ -71,9 +71,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->firstname;
     }
 
-    public function setFirstname(string $firstname): static
+    public function setFirstname(?string $firstname): static
     {
-        $this->firstname = $firstname;
+        $value = $firstname !== null ? trim($firstname): null;
+        $this->firstname = $value !== '' ? $value : null;
 
         return $this;
     }
@@ -83,9 +84,24 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->lastname;
     }
 
-    public function setLastname(string $lastname): static
+    public function getDisplayName(): string
     {
-        $this->lastname = $lastname;
+        $full = trim(($this->firstname ?? '') . ' ' . ($this->lastname ?? ''));
+        if ($full !== '') {
+            return $full;
+        }
+
+        if ($this->service !== null && $this->service->getName() !== null) {
+            return 'Compte ' . $this->service->getName();
+        }
+
+        return $this->email ?? 'Compte utilisateur';
+    }
+
+    public function setLastname(?string $lastname): static
+    {
+        $value = $lastname !== null ? trim($lastname): null;
+        $this->lastname = $value !== '' ? $value : null;
 
         return $this;
     }

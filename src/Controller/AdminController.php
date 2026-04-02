@@ -11,7 +11,9 @@ use App\Repository\RessourceRepository;
 use App\Repository\RoleRepository;
 use App\Repository\ServiceRepository;
 use App\Repository\UserRepository;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -90,21 +92,28 @@ final class AdminController extends AbstractController
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
 
-        $firstname  = trim((string) $request->request->get('firstname', ''));
-        $lastname   = trim((string) $request->request->get('lastname', ''));
         $email      = trim((string) $request->request->get('email', ''));
         $roleId     = (int) $request->request->get('role_id', 0);
         $serviceId  = (int) $request->request->get('service_id', 0);
 
-
-        // ! validation des champs du formulaire : les champs prénom, nom et email sont obligatoires.
-        if ($firstname === '' || $lastname === '' || $email === '') {
-            $this->addFlash('danger', 'Tous les champs sont obligatoires.');
+        if ($email === '') {
+            $this->addFlash('danger', 'L email est obligatoire.');
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
 
-        $role    = $roleId    > 0 ? $roleRepository->find($roleId)       : null;
+        $role    = $roleId > 0 ? $roleRepository->find($roleId) : null;
         $service = $serviceId > 0 ? $serviceRepository->find($serviceId) : null;
+
+        if ($service === null) {
+            $this->addFlash('danger', 'Le service est obligatoire pour créer un compte de service.');
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
+        }
+
+        $existingForService = $userRepository->findOneBy(['service' => $service]);
+        if ($existingForService !== null) {
+            $this->addFlash('danger', sprintf('Un compte existe déjà pour le service %s.', $service->getName()));
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
+        }
         // ! Vérifier que l'email n'est pas déjà utilisé
         if ($userRepository->findOneBy(['email' => strtolower(trim($email))]) !== null) {
             $this->addFlash('danger', sprintf('L\'adresse email "%s" est déjà utilisée.', htmlspecialchars($email, ENT_QUOTES)));
@@ -115,8 +124,8 @@ final class AdminController extends AbstractController
         $tempPassword = $this->generateTemporaryPassword();
 
         $user = new User();
-        $user->setFirstname($firstname)
-            ->setLastname($lastname)
+        $user->setFirstname(null)
+            ->setLastname(null)
             ->setEmail($email)
             ->setIsActive(true)
             ->setMustChangePassword(true)
@@ -128,12 +137,11 @@ final class AdminController extends AbstractController
         $em->flush();
 
         $this->addFlash('success', sprintf(
-            'Utilisateur "%s %s" créé. Mot de passe provisoire : '
+            ' Compte "%s" créé. Mot de passe provisoire : '
                 . '<strong class="font-monospace user-select-all">%s</strong> '
                 . '<button type="button" class="btn btn-sm btn-outline-light ms-2 py-0" '
                 . 'onclick="navigator.clipboard.writeText(\'%s\').then(()=>this.textContent=\'Copié !\')">Copier</button>',
-            htmlspecialchars($firstname, ENT_QUOTES),
-            htmlspecialchars($lastname, ENT_QUOTES),
+            htmlspecialchars('Compte ' . ($service->getName() ?? 'Service'), ENT_QUOTES),
             $tempPassword,
             $tempPassword
         ));
@@ -157,22 +165,31 @@ final class AdminController extends AbstractController
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
 
-        $firstname  = trim((string) $request->request->get('firstname', ''));
-        $lastname   = trim((string) $request->request->get('lastname', ''));
         $email      = trim((string) $request->request->get('email', ''));
         $roleId     = (int) $request->request->get('role_id', 0);
         $serviceId  = (int) $request->request->get('service_id', 0);
 
-        if ($firstname === '' || $lastname === '' || $email === '') {
-            $this->addFlash('danger', 'Nom, prénom et email sont obligatoires.');
+        if ($email === '') {
+            $this->addFlash('danger', 'L email est obligatoire.');
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
 
-        $role    = $roleId    > 0 ? $roleRepository->find($roleId)       : null;
+        $role    = $roleId > 0 ? $roleRepository->find($roleId) : null;
         $service = $serviceId > 0 ? $serviceRepository->find($serviceId) : null;
 
-        $user->setFirstname($firstname)
-            ->setLastname($lastname)
+        if ($service === null) {
+            $this->addFlash('danger', 'Le service est obligatoire pour un compte de service.');
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
+        }
+
+        $existingForService = $em->getRepository(User::class)->findOneBy(['service' => $service]);
+        if ($existingForService !== null && $existingForService->getId() !== $user->getId()) {
+            $this->addFlash('danger', sprintf('Un autre compte existe déjà pour le service %s.', $service->getName()));
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
+        }
+
+        $user->setFirstname(null)
+            ->setLastname(null)
             ->setEmail($email)
             ->setRole($role)
             ->setService($service);
@@ -215,10 +232,13 @@ final class AdminController extends AbstractController
             $this->addFlash('danger', 'Token de sécurité invalide.');
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
-
+    try {
         $em->remove($user);
         $em->flush();
         $this->addFlash('success', 'Utilisateur supprimé.');
+    } catch (ForeignKeyConstraintViolationException $e) {
+        $this->addFlash('danger', 'Impossible de supprimer ce compte car il est référencé dans l\'historique des validations. Désactivez-le à la place.');
+    }
         return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
     }
 
@@ -246,12 +266,11 @@ final class AdminController extends AbstractController
         $em->flush();
 
         $this->addFlash('success', sprintf(
-            'Mot de passe de %s %s réinitialisé. Nouveau mot de passe provisoire : '
+            'Mot de passe de %s réinitialisé. Nouveau mot de passe provisoire : '
                 . '<strong class="font-monospace user-select-all">%s</strong> '
                 . '<button type="button" class="btn btn-sm btn-outline-light ms-2 py-0" '
                 . 'onclick="navigator.clipboard.writeText(\'%s\').then(()=>this.textContent=\'Copié !\')">Copier</button>',
-            htmlspecialchars($user->getFirstname() ?? '', ENT_QUOTES),
-            htmlspecialchars($user->getLastname() ?? '', ENT_QUOTES),
+            htmlspecialchars($user->getDisplayName(), ENT_QUOTES),
             $tempPassword,
             $tempPassword
         ));
@@ -449,6 +468,9 @@ final class AdminController extends AbstractController
         } catch (\InvalidArgumentException $e) {
             $this->addFlash('danger', $e->getMessage());
             return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
+        } catch (UniqueConstraintViolationException $e) {
+            $this->addFlash('danger', sprintf('Le code "%s" est déjà utilisé par un autre service.', htmlspecialchars($code, ENT_QUOTES)));
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
         }
 
         $this->addFlash('success', sprintf('Service "%s" créé.', $name));
@@ -499,6 +521,9 @@ final class AdminController extends AbstractController
             $em->flush();
         } catch (\InvalidArgumentException $e) {
             $this->addFlash('danger', $e->getMessage());
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
+        } catch (UniqueConstraintViolationException $e) {
+            $this->addFlash('danger', sprintf('Un service nommé "%s" existe déjà.', $name));
             return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
         }
 
@@ -655,8 +680,14 @@ final class AdminController extends AbstractController
             return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
         }
 
-        $em->remove($service);
-        $em->flush();
+        try {
+            $em->remove($service);
+            $em->flush();
+        } catch (ForeignKeyConstraintViolationException $e) {
+            $this->addFlash('danger', sprintf('Impossible de supprimer le service "%s" car des agents y sont encore rattachés.', $service->getName()));
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
+        }
+
         $this->addFlash('success', 'Service supprimé.');
         return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
     }

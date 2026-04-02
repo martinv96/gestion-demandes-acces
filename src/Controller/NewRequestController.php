@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Entity\WorkflowHistory;
 use App\Form\Model\NewRequestData;
 use App\Form\NewRequestType;
+use App\Repository\AgentRepository;
 use App\Repository\WorkflowTransitionConfigRepository;
 use App\Repository\RequestRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,7 +24,7 @@ final class NewRequestController extends AbstractController
     private const DEFAULT_WORKFLOW_CODE = 'default_access';
     // route pour créer une nouvelle demande d'accès
     #[Route('/new/request', name: 'app_new_request', methods: ['GET', 'POST'])]
-    public function index(Request $request, EntityManagerInterface $entityManager, RequestRepository $requestRepository, WorkflowTransitionConfigRepository $workflowTransitionConfigRepository): Response
+    public function index(Request $request, EntityManagerInterface $entityManager, RequestRepository $requestRepository, WorkflowTransitionConfigRepository $workflowTransitionConfigRepository, AgentRepository $agentRepository): Response
     {
         $formData = new NewRequestData();
         $form = $this->createForm(NewRequestType::class, $formData);
@@ -69,7 +70,28 @@ final class NewRequestController extends AbstractController
 
             $newRequest->setAuthor($currentUser);
 
-            $agent = new Agent();
+            $parentRequest = $formData->getParentRequest();
+            if ($parentRequest instanceof AccessRequest) {
+                $newRequest->setParentRequest($parentRequest);
+            }
+
+            $effectiveParentRequest = $parentRequest;
+
+            $agent = $effectiveParentRequest?->getAgent();
+
+            if (!$agent instanceof Agent) {
+                $agent = $agentRepository->findOneByIdentity(
+                    (string) $formData->getFirstname(),
+                    (string) $formData->getLastname(),
+                    $formData->getEmail()
+                );
+            }
+
+            if (!$agent instanceof Agent) {
+                $agent = new Agent();
+                $entityManager->persist($agent);
+            }
+
             $agent
                 ->setCivility($formData->getCivility() ?? 'N/A')
                 ->setFirstname($formData->getFirstname() ?? '')
@@ -78,15 +100,7 @@ final class NewRequestController extends AbstractController
                 ->setEmail($formData->getEmail())
                 ->setService($formData->getService());
 
-            $entityManager->persist($agent);
             $newRequest->setAgent($agent);
-
-            $parentRequest = $formData->getParentRequest();
-            if ($parentRequest instanceof AccessRequest) {
-                $newRequest->setParentRequest($parentRequest);
-            }
-
-            $effectiveParentRequest = $parentRequest;
 
             // Verrou métier : empêcher une nouvelle ouverture concurrente pour le même agent
             if ($requestType === 'ouverture') {
@@ -100,7 +114,7 @@ final class NewRequestController extends AbstractController
                     $this->addFlash(
                         'warning',
                         sprintf(
-                            'Une chaîne active existe déjà pour cet agent (%s). Fermez-la ou modifiez-la avant de créer une nouvelle ouverture.',
+                            'Une Demande active existe déjà pour cet agent (%s). Fermez-la ou modifiez-la avant de créer une nouvelle ouverture.',
                             $activeCurrent->getReference()
                         )
                     );
@@ -121,7 +135,7 @@ final class NewRequestController extends AbstractController
                     $this->addFlash(
                         'warning',
                         sprintf(
-                            'Modification impossible : la chaîne est déjà clôturée (%s).',
+                            'Modification impossible : la Demande est déjà clôturée (%s).',
                             $currentInChain->getReference()
                         )
                     );
@@ -134,7 +148,7 @@ final class NewRequestController extends AbstractController
                     $this->addFlash(
                         'warning',
                         sprintf(
-                            'Fermeture impossible : la chaîne est déjà clôturée (%s).',
+                            'Fermeture impossible : la Demande est déjà clôturée (%s).',
                             $currentInChain->getReference()
                         )
                     );

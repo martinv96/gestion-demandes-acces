@@ -40,7 +40,7 @@
 		{# Historique des changements #}
 		{% set history = requestEntity.requestId|sort((a, b) => a.date <=> b.date) %}
 		{% set createdAt = requestEntity.creationDate %}
-		{% set createdBy = requestEntity.author ? requestEntity.author.firstname ~ ' ' ~ requestEntity.author.lastname : 'Service RH' %}
+		{% set createdBy = requestEntity.author ? requestEntity.author.displayName : 'Service RH' %}
 		{% set rhStepDone = requestEntity.status in ['en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'] %}
 		{% set stStepDone = requestEntity.status in ['en_attente_dsi', 'traitee', 'refusee_st', 'refusee_dsi'] %}
 		{% set dsiStepDone = requestEntity.status in ['traitee', 'refusee_dsi'] %}
@@ -125,6 +125,9 @@
 
 										<dt class="col-sm-4">Service</dt>
 										<dd class="col-sm-8">{{ requestEntity.agent.service ? requestEntity.agent.service.name : '-' }}</dd>
+
+										<dt class="col-sm-4">Email</dt>
+										<dd class="col-sm-8">{{ requestEntity.agent.email ?: '-' }}</dd>
 									</dl>
 								{% else %}
 									<p class="text-muted mb-0">Aucun agent associé.</p>

@@ -67,4 +67,52 @@ final class UserTest extends TestCase
 
         self::assertSame(array_values(array_unique($roles)), $roles);
     }
+
+    public function testGetDisplayNameWithFirstnameAndLastname(): void
+    {
+        $user = (new User())
+            ->setFirstname('James')
+            ->setLastname('Bond')
+            ->setEmail('james.bond@mi6.co.uk');
+
+        self::assertSame('James Bond', $user->getDisplayName());
+    }
+
+    public function testGetDisplayNameFallbackToServiceName(): void
+    {
+        $service = (new Service())
+            ->setName('DSI')
+            ->setEmail('dsi@mairie.fr')
+            ->setCode('dsi');
+        
+        $user = (new User())
+            ->setEmail('dsi@mairie.fr')
+            ->setService($service);
+
+        self::assertSame('Compte DSI', $user->getDisplayName());
+    }
+
+    public function testGetDisplayNameFallbackToEmail(): void
+    {
+        $user = (new User())
+            ->setEmail('fallback@mairie.fr');
+
+        self::assertSame('fallback@mairie.fr', $user->getDisplayName());
+    }
+
+    public function testGetDisplayNameIgnoresBlankFirstnameAndLastname(): void
+    {
+        $service = (new Service())
+            ->setName('ST')
+            ->setEmail('st@mairie.fr')
+            ->setCode('st');
+
+        $user = (new User())
+            ->setFirstname('')
+            ->setLastname('')
+            ->setEmail('st@mairie.fr')
+            ->setService($service);
+
+        self::assertSame('Compte ST', $user->getDisplayName());
+    }
 }

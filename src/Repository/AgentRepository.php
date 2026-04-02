@@ -16,6 +16,28 @@ class AgentRepository extends ServiceEntityRepository
         parent::__construct($registry, Agent::class);
     }
 
+    public function findOneByIdentity(string $firstname, string $lastname, ?string $email): ?Agent
+    {
+        $qb = $this->createQueryBuilder('a')
+            ->andWhere('LOWER(a.firstname) = :firstname')
+            ->andWhere('LOWER(a.lastname) = :lastname')
+            ->setParameter('firstname', mb_strtolower(trim($firstname)))
+            ->setParameter('lastname', mb_strtolower(trim($lastname)))
+            ->setMaxResults(1);
+
+        $normalizedEmail = $email !== null ? trim($email) : null;
+
+        if ($normalizedEmail === null || $normalizedEmail === '') {
+            $qb->andWhere('a.email IS NULL OR a.email = :emptyEmail')
+                ->setParameter('emptyEmail', '');
+        } else {
+            $qb->andWhere('LOWER(a.email) = :email')
+                ->setParameter('email', mb_strtolower($normalizedEmail));
+        }
+
+        return $qb->getQuery()->getOneOrNullResult();
+    }
+
     //    /**
     //     * @return Agent[] Returns an array of Agent objects
     //     */

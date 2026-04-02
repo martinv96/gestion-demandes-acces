@@ -137,8 +137,9 @@
 										<td class="fw-semibold">{{ request.reference }}</td>
 										<td>
 											{% if request.agent %}
-												{{ request.agent.firstname }}
-												{{ request.agent.lastname }}
+												{{ request.agent.firstname }} {{ request.agent.lastname }}
+												{% elseif request.author %}
+												{{ request.author.displayName}}
 											{% else %}
 												<span class="text-muted">-</span>
 											{% endif %}
