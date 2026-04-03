@@ -9,6 +9,7 @@ use App\Entity\Role;
 use App\Entity\User;
 use App\Entity\WorkflowHistory;
 use App\Service\WorkflowService;
+use App\Repository\WorkflowTransitionConfigRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -27,7 +28,7 @@ final class WorkflowServiceTest extends TestCase
     // ! une demande est en statut en_attente_RH, l'user est RH, alors canValidate doit retourner true (il peut valider).
     public function testCanValidateReturnsTrueForMatchingRoleAndStatus(): void
     {
-        $service = new WorkflowService($this->createMock(EntityManagerInterface::class));
+        $service = $this->createWorkflowService();
         $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_EN_ATTENTE_RH);
         $user = $this->createUserWithRoleLabel('RH');
 
@@ -40,7 +41,7 @@ final class WorkflowServiceTest extends TestCase
     // ! une demande est en statut en_attente_RH, l'user est DSI, alors canValidate doit retourner false (il ne peut pas valider).
     public function testCanValidateReturnsFalseForWrongRole(): void
     {
-        $service = new WorkflowService($this->createMock(EntityManagerInterface::class));
+        $service = $this->createWorkflowService();
         $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_EN_ATTENTE_RH);
         $user = $this->createUserWithRoleLabel('DSI');
 
@@ -59,7 +60,7 @@ final class WorkflowServiceTest extends TestCase
         $em->expects(self::once())->method('persist')->with(self::isInstanceOf(WorkflowHistory::class));
         $em->expects(self::once())->method('flush');
 
-        $service = new WorkflowService($em);
+        $service = $this->createWorkflowService($em);
         $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_EN_ATTENTE_RH);
         $user = $this->createUserWithRoleLabel('RH');
 
@@ -76,7 +77,7 @@ final class WorkflowServiceTest extends TestCase
     */
     public function testValidateThrowsWhenCommentIsEmpty(): void
     {
-        $service = new WorkflowService($this->createMock(EntityManagerInterface::class));
+        $service = $this->createWorkflowService();
         $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_EN_ATTENTE_RH);
         $user = $this->createUserWithRoleLabel('RH');
 
@@ -91,7 +92,7 @@ final class WorkflowServiceTest extends TestCase
     */
     public function testCanEditAfterRefusalReturnsTrueForRhWhenRefusedByRh(): void
     {
-        $service = new WorkflowService($this->createMock(EntityManagerInterface::class));
+        $service = $this->createWorkflowService();
         $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_REFUSEE_RH);
         $user = $this->createUserWithRoleLabel('RH');
 
@@ -106,7 +107,7 @@ final class WorkflowServiceTest extends TestCase
 
     public function testCanEditAfterRefusalReturnsTrueAfterRefusalFromStHistory(): void
     {
-        $service = new WorkflowService($this->createMock(EntityManagerInterface::class));
+        $service = $this->createWorkflowService();
         $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_EN_ATTENTE_RH);
         $user = $this->createUserWithRoleLabel('RH');
 
@@ -129,11 +130,20 @@ final class WorkflowServiceTest extends TestCase
     */
     public function testCanEditAfterRefusalReturnsFalseForNonRhUser(): void
     {
-        $service = new WorkflowService($this->createMock(EntityManagerInterface::class));
+        $service = $this->createWorkflowService();
         $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_REFUSEE_RH);
         $user = $this->createUserWithRoleLabel('DSI');
 
         self::assertFalse($service->canEditAfterRefusal($request, $user));
+    }
+
+
+    private function createWorkflowService(?EntityManagerInterface $em = null): WorkflowService
+    {
+        $entityManager = $em ?? $this->createMock(EntityManagerInterface::class);
+        $workflowRepo = $this->createMock(WorkflowTransitionConfigRepository::class);
+
+        return new WorkflowService($entityManager, $workflowRepo);
     }
 
     /* 

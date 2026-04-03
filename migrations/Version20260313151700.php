@@ -43,7 +43,7 @@ final class Version20260313151700 extends AbstractMigration
         $this->addSql('ALTER TABLE workflow_history DROP FOREIGN KEY FK_25F6E6FBA76ED395');
 
         $this->addSql('ALTER TABLE request CHANGE commentary commentary LONGTEXT DEFAULT NULL, CHANGE agent_id agent_id INT NOT NULL, CHANGE author_id author_id INT NOT NULL');
-        $this->addSql('ALTER TABLE role RENAME INDEX uniq_57698a6a33b92f39 TO UNIQ_57698A6AEA750E8');
+        // $this->addSql('ALTER TABLE role RENAME INDEX uniq_57698a6a33b92f39 TO UNIQ_57698A6AEA750E8');
         $this->addSql('CREATE UNIQUE INDEX UNIQ_E19D9AD25E237E06 ON service (name)');
         $this->addSql('ALTER TABLE workflow_history CHANGE commentary commentary LONGTEXT NOT NULL, CHANGE request_id request_id INT NOT NULL, CHANGE user_id user_id INT NOT NULL');
 
@@ -61,7 +61,7 @@ final class Version20260313151700 extends AbstractMigration
         $this->addSql('ALTER TABLE workflow_history DROP FOREIGN KEY FK_25F6E6FBA76ED395');
 
         $this->addSql('ALTER TABLE request CHANGE commentary commentary VARCHAR(255) NOT NULL, CHANGE agent_id agent_id INT DEFAULT NULL, CHANGE author_id author_id INT DEFAULT NULL');
-        $this->addSql('ALTER TABLE role RENAME INDEX uniq_57698a6aea750e8 TO UNIQ_57698A6A33B92F39');
+        // $this->addSql('ALTER TABLE role RENAME INDEX uniq_57698a6aea750e8 TO UNIQ_57698A6A33B92F39');
         $this->addSql('DROP INDEX UNIQ_E19D9AD25E237E06 ON service');
         $this->addSql('ALTER TABLE workflow_history CHANGE commentary commentary VARCHAR(255) NOT NULL, CHANGE request_id request_id INT DEFAULT NULL, CHANGE user_id user_id INT DEFAULT NULL');
 

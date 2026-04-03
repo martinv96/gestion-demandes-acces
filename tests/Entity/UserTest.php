@@ -68,6 +68,7 @@ final class UserTest extends TestCase
         self::assertSame(array_values(array_unique($roles)), $roles);
     }
 
+    // Teste la construction du nom d'affichage en fonction des données disponibles.
     public function testGetDisplayNameWithFirstnameAndLastname(): void
     {
         $user = (new User())
@@ -78,6 +79,7 @@ final class UserTest extends TestCase
         self::assertSame('James Bond', $user->getDisplayName());
     }
 
+    // Teste la construction du nom d'affichage en fonction des données disponibles.
     public function testGetDisplayNameFallbackToServiceName(): void
     {
         $service = (new Service())
@@ -92,6 +94,7 @@ final class UserTest extends TestCase
         self::assertSame('Compte DSI', $user->getDisplayName());
     }
 
+    // Teste la construction du nom d'affichage en fonction des données disponibles.
     public function testGetDisplayNameFallbackToEmail(): void
     {
         $user = (new User())
@@ -100,6 +103,8 @@ final class UserTest extends TestCase
         self::assertSame('fallback@mairie.fr', $user->getDisplayName());
     }
 
+
+    // Teste la construction du nom d'affichage en fonction des données disponibles.
     public function testGetDisplayNameIgnoresBlankFirstnameAndLastname(): void
     {
         $service = (new Service())
