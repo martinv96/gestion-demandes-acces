@@ -36,8 +36,8 @@ final class ListRequestController extends AbstractController
     public function index(RequestRepository $requestRepository, ServiceRepository $serviceRepository, Request $httpRequest): Response
     {
         // ! gestion des filtres de recherche : status, service, type et date d'arrivée
-        $allowedStatuses = ['en_attente_rh', 'en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'];
-        $allowedTypes = ['ouverture', 'modification', 'fermeture'];
+        $allowedStatuses = AccessRequest::WORKFLOW_STATUSES;
+        $allowedTypes = AccessRequest::TYPES;
 
         $status        = (string) $httpRequest->query->get('status', '');
         $serviceId     = (string) $httpRequest->query->get('serviceId', '');
@@ -229,8 +229,8 @@ final class ListRequestController extends AbstractController
 
         // ! récupération et validation des données du formulaire de mise à jour des informations de la demande
         try {
-            $type = (string) $httpRequest->request->get('type', $requestEntity->getType() ?? 'ouverture');
-            if (!in_array($type, ['ouverture', 'modification', 'fermeture'], true)) {
+            $type = (string) $httpRequest->request->get('type', $requestEntity->getType() ?? AccessRequest::TYPE_OUVERTURE);
+            if (!in_array($type, AccessRequest::TYPES, true)) {
                 throw new \InvalidArgumentException('Type de demande invalide.');
             }
 
@@ -279,7 +279,7 @@ final class ListRequestController extends AbstractController
                 $requestEntity->removeRessource($existingResource);
             }
 
-            if ($type !== 'fermeture') {
+            if ($type !== AccessRequest::TYPE_FERMETURE) {
                 /** @var array<string> $logiciels */
                 $logiciels = $httpRequest->request->all('logiciels');
                 foreach ($this->normalizeResourceNames($logiciels) as $logicielName) {
@@ -298,8 +298,8 @@ final class ListRequestController extends AbstractController
             }
 
             // ! Si la demande était refusée par RH, la repasser à "en_attente_rh" après modification
-            if ($requestEntity->getStatus() === 'refusee_rh') {
-                $requestEntity->setStatus('en_attente_rh');
+            if ($requestEntity->getStatus() === AccessRequest::STATUS_REFUSEE_RH) {
+                $requestEntity->setStatus(AccessRequest::STATUS_EN_ATTENTE_RH);
             }
 
             $requestEntity->setUpdateDate(new \DateTimeImmutable());
@@ -375,8 +375,8 @@ final class ListRequestController extends AbstractController
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
         // Reprend la logique de filtres de ta liste
-        $allowedStatuses = ['en_attente_rh', 'en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'];
-        $allowedTypes = ['ouverture', 'modification', 'fermeture'];
+        $allowedStatuses = AccessRequest::WORKFLOW_STATUSES;
+        $allowedTypes = AccessRequest::TYPES;
 
         $status = (string) $httpRequest->query->get('status', '');
         $serviceId = (string) $httpRequest->query->get('serviceId', '');
@@ -425,19 +425,19 @@ final class ListRequestController extends AbstractController
 
         // ! définition des labels lisibles pour les statuts et types de demandes, qui seront utilisés dans l'export Excel
         $statusLabels = [
-            'en_attente_rh' => 'En attente RH',
-            'en_attente_st' => 'En attente DGA-ST',
-            'en_attente_dsi' => 'En attente DSI',
-            'traitee' => 'Traitée',
-            'refusee_rh' => 'Refusée RH',
-            'refusee_st' => 'Refusée DGA-ST',
-            'refusee_dsi' => 'Refusée DSI',
+            AccessRequest::STATUS_EN_ATTENTE_RH => 'En attente RH',
+            AccessRequest::STATUS_EN_ATTENTE_ST => 'En attente DGA-ST',
+            AccessRequest::STATUS_EN_ATTENTE_DSI => 'En attente DSI',
+            AccessRequest::STATUS_TRAITEE => 'Traitée',
+            AccessRequest::STATUS_REFUSEE_RH => 'Refusée RH',
+            AccessRequest::STATUS_REFUSEE_ST => 'Refusée DGA-ST',
+            AccessRequest::STATUS_REFUSEE_DSI => 'Refusée DSI',
         ];
 
         $typeLabels = [
-            'ouverture' => 'Ouverture',
-            'modification' => 'Modification',
-            'fermeture' => 'Fermeture',
+            AccessRequest::TYPE_OUVERTURE => 'Ouverture',
+            AccessRequest::TYPE_MODIFICATION => 'Modification',
+            AccessRequest::TYPE_FERMETURE => 'Fermeture',
         ];
 
         // ! création d'un nouveau classeur Excel et configuration de la feuille de calcul pour l'export des demandes
@@ -448,19 +448,19 @@ final class ListRequestController extends AbstractController
         // ! définition de styles de couleurs pour les différentes valeurs de statut et de type de demandes,
         // ! qui seront appliqués aux cellules correspondantes dans l'export Excel pour une meilleure lisibilité
         $statusStyleMap = [
-            'en_attente_rh' => ['font' => 'FF9A6700', 'border' => 'FFF59E0B'],
-            'en_attente_st' => ['font' => 'FF9A6700', 'border' => 'FFF59E0B'],
-            'en_attente_dsi' => ['font' => 'FF1D4ED8', 'border' => 'FF60A5FA'],
-            'traitee' => ['font' => 'FF15803D', 'border' => 'FF4ADE80'],
-            'refusee_rh' => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
-            'refusee_st' => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
-            'refusee_dsi' => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
+            AccessRequest::STATUS_EN_ATTENTE_RH => ['font' => 'FF9A6700', 'border' => 'FFF59E0B'],
+            AccessRequest::STATUS_EN_ATTENTE_ST => ['font' => 'FF9A6700', 'border' => 'FFF59E0B'],
+            AccessRequest::STATUS_EN_ATTENTE_DSI => ['font' => 'FF1D4ED8', 'border' => 'FF60A5FA'],
+            AccessRequest::STATUS_TRAITEE => ['font' => 'FF15803D', 'border' => 'FF4ADE80'],
+            AccessRequest::STATUS_REFUSEE_RH => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
+            AccessRequest::STATUS_REFUSEE_ST => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
+            AccessRequest::STATUS_REFUSEE_DSI => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
         ];
 
         $typeStyleMap = [
-            'ouverture' => ['font' => 'FF0F766E', 'border' => 'FF2DD4BF'],
-            'modification' => ['font' => 'FF1D4ED8', 'border' => 'FF60A5FA'],
-            'fermeture' => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
+            AccessRequest::TYPE_OUVERTURE => ['font' => 'FF0F766E', 'border' => 'FF2DD4BF'],
+            AccessRequest::TYPE_MODIFICATION => ['font' => 'FF1D4ED8', 'border' => 'FF60A5FA'],
+            AccessRequest::TYPE_FERMETURE => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
         ];
 
         // En-tetes

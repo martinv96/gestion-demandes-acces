@@ -11,6 +11,40 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: RequestRepository::class)]
 class Request
 {
+    public const TYPE_OUVERTURE = 'ouverture';
+    public const TYPE_MODIFICATION = 'modification';
+    public const TYPE_FERMETURE = 'fermeture';
+
+    public const STATUS_EN_ATTENTE_RH = 'en_attente_rh';
+    public const STATUS_EN_ATTENTE_ST = 'en_attente_st';
+    public const STATUS_EN_ATTENTE_DSI = 'en_attente_dsi';
+    public const STATUS_TRAITEE = 'traitee';
+    public const STATUS_REFUSEE_RH = 'refusee_rh';
+    public const STATUS_REFUSEE_ST = 'refusee_st';
+    public const STATUS_REFUSEE_DSI = 'refusee_dsi';
+
+    public const TYPES = [
+        self::TYPE_OUVERTURE,
+        self::TYPE_MODIFICATION,
+        self::TYPE_FERMETURE,
+    ];
+
+    public const WORKFLOW_STATUSES = [
+        self::STATUS_EN_ATTENTE_RH,
+        self::STATUS_EN_ATTENTE_ST,
+        self::STATUS_EN_ATTENTE_DSI,
+        self::STATUS_TRAITEE,
+        self::STATUS_REFUSEE_RH,
+        self::STATUS_REFUSEE_ST,
+        self::STATUS_REFUSEE_DSI,
+    ];
+
+    public const TYPE_LABELS = [
+        self::TYPE_OUVERTURE => 'Ouverture',
+        self::TYPE_MODIFICATION => 'Modification',
+        self::TYPE_FERMETURE => 'Fermeture',
+    ];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -90,9 +124,9 @@ class Request
     public function getReference(): string
     {
         $prefix = match ($this->type) {
-            'ouverture' => 'OUV',
-            'modification' => 'MOD',
-            'fermeture' => 'FER',
+            self::TYPE_OUVERTURE => 'OUV',
+            self::TYPE_MODIFICATION => 'MOD',
+            self::TYPE_FERMETURE => 'FER',
             default => 'REQ',
         };
 
@@ -317,8 +351,8 @@ class Request
     public function hasProcessedReplacementChild(): bool
     {
         foreach ($this->getChildRequests() as $child) {
-            $isReplacementType = in_array($child->getType(), ['modification', 'fermeture'], true);
-            $isProcessed = $child->getStatus() === 'traitee';
+            $isReplacementType = in_array($child->getType(), [self::TYPE_MODIFICATION, self::TYPE_FERMETURE], true);
+            $isProcessed = $child->getStatus() === self::STATUS_TRAITEE;
 
             if ($isReplacementType && $isProcessed) {
                 return true;
@@ -336,18 +370,13 @@ class Request
 
     public function getCurrentStateLabel(): string
     {
-        $typeLabel = match ($this->getType()) {
-            'ouverture' => 'Ouverture',
-            'modification' => 'Modification',
-            'fermeture' => 'Fermeture',
-            default => 'Demande',
-        };
+        $typeLabel = self::TYPE_LABELS[$this->getType() ?? ''] ?? 'Demande';
 
         if (!$this->isCurrentState()) {
             return 'Remplacée - ' . $typeLabel;
         }
 
-        if ($this->getType() === 'fermeture' && $this->getStatus() === 'traitee') {
+        if ($this->getType() === self::TYPE_FERMETURE && $this->getStatus() === self::STATUS_TRAITEE) {
             return 'Clôturée - Fermeture';
         }
 

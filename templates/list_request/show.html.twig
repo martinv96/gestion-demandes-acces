@@ -423,7 +423,7 @@
 										{% set isCurrent = false %}
 										{% set isRefused = false %}
 										
-										{% if requestEntity.status == toStatus or (toStatus == 'traitee' and requestEntity.status == 'traitee') %}
+										{% if stepDate or requestEntity.status == 'traitee' or requestEntity.status == toStatus or (toStatus == 'traitee' and requestEntity.status == 'traitee') %}
 											{% set isComplete = true %}
 										{% elseif requestEntity.status == fromStatus %}
 											{% set isCurrent = true %}
@@ -459,6 +459,21 @@
 										{% set uniqueFromStatuses = uniqueFromStatuses|merge([fromStatus]) %}
 									{% endif %}
 								{% endfor %}
+
+								<li class="validation-step {{ treatedStepDone ? 'is-complete' : 'is-pending' }}">
+									<span class="validation-step-marker"></span>
+									<div class="validation-step-content">
+										<p class="validation-step-title mb-1">Demande traitée</p>
+										<p class="validation-step-meta mb-0">
+											{% if treatedStepDone and requestEntity.updateDate %}
+												Finalisée le
+												{{ requestEntity.updateDate|date('d/m/Y') }}
+											{% else %}
+												En attente de la validation finale
+											{% endif %}
+										</p>
+									</div>
+								</li>
 							{% else %}
 								{# Fallback : parcours ancien (si snapshot n'existe pas) #}
 								<li class="validation-step {{ requestEntity.status == 'refusee_rh' ? 'is-refused' : (rhStepDone ? 'is-complete' : 'is-current') }}">
@@ -634,9 +649,7 @@ panel.classList.remove('d-none');
 }
 
 actionButtons.forEach(function (actionBlock) {
-if (actionBlock.getAttribute('data-workflow-action') !== target) {
 actionBlock.classList.add('d-none');
-}
 });
 }
 

@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Request as AccessRequest;
 use App\Repository\RequestRepository;
 use App\Repository\ServiceRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,8 +18,8 @@ final class HistoryController extends AbstractController
         ServiceRepository $serviceRepository,
         Request $httpRequest
     ): Response {
-        $allowedStatuses = ['en_attente_rh', 'en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'];
-        $allowedTypes = ['ouverture', 'modification', 'fermeture'];
+        $allowedStatuses = AccessRequest::WORKFLOW_STATUSES;
+        $allowedTypes = AccessRequest::TYPES;
 
         $status        = (string) $httpRequest->query->get('status', '');
         $serviceId     = (string) $httpRequest->query->get('serviceId', '');

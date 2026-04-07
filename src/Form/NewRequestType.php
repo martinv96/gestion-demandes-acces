@@ -73,9 +73,9 @@ final class NewRequestType extends AbstractType
                 'multiple' => false,
                 'required' => true,
                 'choices' => [
-                    'Ouverture - Nouveau collaborateur' => 'ouverture',
-                    'Modification - Changement de service ou fonction' => 'modification',
-                    'Fermeture - Départ du collaborateur' => 'fermeture',
+                    'Ouverture - Nouveau collaborateur' => AccessRequest::TYPE_OUVERTURE,
+                    'Modification - Changement de service ou fonction' => AccessRequest::TYPE_MODIFICATION,
+                    'Fermeture - Départ du collaborateur' => AccessRequest::TYPE_FERMETURE,
                 ]
             ])
             ->add('parentRequest', EntityType::class, [
@@ -147,7 +147,7 @@ final class NewRequestType extends AbstractType
                     ->leftJoin('a.service', 's')->addSelect('s')
                     ->leftJoin('r.ressources', 're')->addSelect('re')
                     ->where('r.status = :status')
-                    ->setParameter('status', 'traitee')
+                    ->setParameter('status', AccessRequest::STATUS_TRAITEE)
                     ->orderBy('r.updateDate', 'DESC'),
                 'help' => 'Obligatoire pour une modification ou une fermeture.',
             ])

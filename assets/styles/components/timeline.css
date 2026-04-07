@@ -44,6 +44,9 @@
 .validation-step-marker {
     position: relative;
     z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex: 0 0 1.25rem;
     width: 1.25rem;
     height: 1.25rem;
@@ -52,11 +55,11 @@
     border: 2px solid #ced4da;
     background: #ffffff;
     box-shadow: 0 0 0 4px #f8fafc;
-    top: 0.5rem;
 }
 
 .validation-step-content {
     min-width: 0;
+    padding-top: 0.05rem;
 }
 
 .validation-step-title {
@@ -79,13 +82,13 @@
 .validation-step.is-complete .validation-step-marker::after {
     content: "";
     position: absolute;
-    left: 0.35rem;
-    top: 0.15rem;
+    left: 50%;
+    top: 50%;
     width: 0.3rem;
     height: 0.55rem;
     border: solid #ffffff;
     border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
+    transform: translate(-45%, -58%) rotate(45deg);
 }
 
 .validation-step.is-current .validation-step-marker {
@@ -93,14 +96,50 @@
     background: #dbeafe;
 }
 
+.validation-step.is-current .validation-step-marker::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #0d6efd;
+    transform: translate(-50%, -50%);
+}
+
 .validation-step.is-refused .validation-step-marker {
     border-color: #f59f00;
     background: #f59f00;
 }
 
-.validation-step.is-pending .validation-step-marker {
+.validation-step.is-refused .validation-step-marker::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0.5rem;
+    height: 0.125rem;
+    border-radius: 999px;
     background: #ffffff;
-    border-color: #d0d7de;
+    transform: translate(-50%, -50%);
+}
+
+.validation-step.is-pending .validation-step-marker {
+    background: #f8fafc;
+    border-color: #94a3b8;
+}
+
+.validation-step.is-pending .validation-step-marker::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 50%;
+    background: #94a3b8;
+    transform: translate(-50%, -50%);
 }
 
 @media (max-width: 1199.98px) {

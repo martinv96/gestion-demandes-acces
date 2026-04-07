@@ -160,7 +160,7 @@ class RequestRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('r')
             ->select('COUNT(r.id)')
             ->andWhere('r.status IN (:statuses)')
-            ->setParameter('statuses', ['traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi']);
+            ->setParameter('statuses', [Request::STATUS_TRAITEE, Request::STATUS_REFUSEE_RH, Request::STATUS_REFUSEE_ST, Request::STATUS_REFUSEE_DSI]);
 
         $this->applyCurrentScope($qb);
 
@@ -177,7 +177,8 @@ class RequestRepository extends ServiceEntityRepository
             ->leftJoin('r.agent', 'a')->addSelect('a')
             ->leftJoin('a.service', 's')->addSelect('s')
             ->setMaxResults($limit)
-            ->orderBy('r.creationDate', 'ASC');
+            ->orderBy('r.creationDate', 'DESC')
+            ->addOrderBy('r.id', 'DESC');
 
         $this->applyCurrentScope($qb);
 
@@ -253,8 +254,8 @@ class RequestRepository extends ServiceEntityRepository
                   AND child.type IN (:currentReplacementTypes)
             )'
         )
-            ->setParameter('currentProcessedStatus', 'traitee')
-            ->setParameter('currentReplacementTypes', ['modification', 'fermeture']);
+            ->setParameter('currentProcessedStatus', Request::STATUS_TRAITEE)
+            ->setParameter('currentReplacementTypes', [Request::TYPE_MODIFICATION, Request::TYPE_FERMETURE]);
     }
 
     public function findLatestProcessedReplacementChild(Request $parent): ?Request
@@ -264,8 +265,8 @@ class RequestRepository extends ServiceEntityRepository
             ->andWhere('r.status = :status')
             ->andWhere('r.type IN (:types)')
             ->setParameter('parent', $parent)
-            ->setParameter('status', 'traitee')
-            ->setParameter('types', ['modification', 'fermeture'])
+            ->setParameter('status', Request::STATUS_TRAITEE)
+            ->setParameter('types', [Request::TYPE_MODIFICATION, Request::TYPE_FERMETURE])
             ->orderBy('r.creationDate', 'DESC')
             ->addOrderBy('r.id', 'DESC')
             ->setMaxResults(1)
@@ -309,8 +310,8 @@ class RequestRepository extends ServiceEntityRepository
 
         // "Chaîne active" = pas une fermeture traitée finale
         $qb->andWhere('NOT (r.type = :closedType AND r.status = :closedStatus)')
-            ->setParameter('closedType', 'fermeture')
-            ->setParameter('closedStatus', 'traitee');
+            ->setParameter('closedType', Request::TYPE_FERMETURE)
+            ->setParameter('closedStatus', Request::STATUS_TRAITEE);
 
         return $qb->getQuery()->getOneOrNullResult();
     }

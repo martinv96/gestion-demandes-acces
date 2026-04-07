@@ -7,7 +7,7 @@
 	<div class="container-fluid">
 
 		{% set adminSubtitleMap = {
-        'users': 'Gestion des utilisateurs',
+        'users': 'Gestion des comptes',
         'services': 'Gestion des services',
         'logiciels': 'Gestion des logiciels'
     } %}
@@ -15,14 +15,14 @@
 		{# En-tête #}
 		<div class="mb-4">
 			<h1 class="h3 mb-1">Administrateur</h1>
-			<p class="text-muted mb-0" id="adminSubtitle">{{ adminSubtitleMap[tab] ?? 'Gestion des utilisateurs' }}</p>
+			<p class="text-muted mb-0" id="adminSubtitle">{{ adminSubtitleMap[tab] ?? 'Gestion des comptes' }}</p>
 		</div>
 
 		{# Onglets - navigation entre les différentes sections #}
 		<ul class="nav admin-tabs mb-4" id="adminTabs" role="tablist">
 			<li class="nav-item" role="presentation">
 				<button class="admin-tab-btn {{ tab == 'users' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#tab-users" type="button" role="tab">
-					Utilisateurs
+					Comptes
 				</button>
 			</li>
 			<li class="nav-item" role="presentation">
@@ -40,12 +40,12 @@
 		<div
 			class="tab-content">
 
-			{# UTILISATEURS - fenetre utilisateurs (voir, modifier, supprimer) #}
+			{# compteS - fenetre comptes (voir, modifier, supprimer) #}
 			<div class="tab-pane fade {{ tab == 'users' ? 'show active' : '' }}" id="tab-users" role="tabpanel">
 
 				<div class="d-flex justify-content-end mb-3">
 					<button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
-						+ Ajouter un utilisateur
+						+ Ajouter un compte
 					</button>
 				</div>
 
@@ -70,7 +70,7 @@
 										<td>
 											{% set statusMap = {
                                         'ROLE_ADMIN': 'Administrateur',
-                                        'ROLE_USER': 'Utilisateur'
+                                        'ROLE_USER': 'Compte'
                                     } %}
 											{{ statusMap[user.role ? user.role.label : ''] ?? '-' }}
 										</td>
@@ -102,7 +102,7 @@
 											</button>
 											<form method="post" action="{{ path('app_admin_user_delete', {id: user.id}) }}" class="d-inline" id="deleteUserForm{{ user.id }}">
 												<input type="hidden" name="_token" value="{{ csrf_token('admin_user_delete_' ~ user.id) }}">
-												<button type="button" class="btn btn-icon text-danger js-delete-trigger" title="Supprimer" data-form-id="deleteUserForm{{ user.id }}" data-delete-title="Supprimer cet utilisateur ?" data-delete-message="L'utilisateur <strong>{{ user.displayName|trim|e('html') }}</strong> sera supprimé définitivement." data-delete-confirm-label="Supprimer l'utilisateur">
+												<button type="button" class="btn btn-icon text-danger js-delete-trigger" title="Supprimer" data-form-id="deleteUserForm{{ user.id }}" data-delete-title="Supprimer ce compte ?" data-delete-message="Le compte <strong>{{ user.displayName|trim|e('html') }}</strong> sera supprimé définitivement." data-delete-confirm-label="Supprimer le compte">
 													<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16">
 														<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
 														<path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
@@ -113,7 +113,7 @@
 									</tr>
 								{% else %}
 									<tr>
-										<td colspan="6" class="text-center text-muted py-5">Aucun utilisateur enregistré.</td>
+										<td colspan="6" class="text-center text-muted py-5">Aucun compte enregistré.</td>
 									</tr>
 								{% endfor %}
 							</tbody>
@@ -246,14 +246,14 @@
 
 	{#  TOUTES LES MODALS #}
 
-	{# ── Ajouter un utilisateur ── #}
+	{# ── Ajouter un compte ── #}
 	<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
 		<div class="modal-dialog modal-dialog-centered">
 			<div class="modal-content admin-modal">
 				<div class="modal-header border-0 pb-1">
 					<div>
-						<h5 class="modal-title mb-0" id="addUserModalLabel">Ajouter un utilisateur</h5>
-						<p class="text-primary small mb-0">Créer un nouveau compte utilisateur pour accéder à l'application</p>
+						<h5 class="modal-title mb-0" id="addUserModalLabel">Ajouter un compte</h5>
+						<p class="text-primary small mb-0">Créer un nouveau compte pour accéder à l'application</p>
 					</div>
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
 				</div>
@@ -270,7 +270,7 @@
 								<option value="">Sélectionner un rôle</option>
 								{% set statusMap = {
                                 'ROLE_ADMIN': 'Administrateur',
-                                'ROLE_USER': 'Utilisateur'
+                                'ROLE_USER': 'Compte'
                             } %}
 								{% for role in roles %}
 									<option value="{{ role.id }}">{{ statusMap[role.label] ?? '-' }}</option>
@@ -299,13 +299,13 @@
 		</div>
 	</div>
 
-	{# ── Modifier chaque utilisateur ── #}
+	{# ── Modifier chaque compte ── #}
 	{% for user in users %}
 		<div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1" aria-hidden="true">
 			<div class="modal-dialog modal-dialog-centered">
 				<div class="modal-content admin-modal">
 					<div class="modal-header border-0 pb-1">
-						<h5 class="modal-title">Modifier l'utilisateur</h5>
+						<h5 class="modal-title">Modifier le compte</h5>
 						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
 					</div>
 					<form method="post" action="{{ path('app_admin_user_edit', {id: user.id}) }}">
@@ -328,7 +328,7 @@
 									{% for role in roles %}
 										{% set statusMap = {
                                         'ROLE_ADMIN': 'Administrateur',
-                                        'ROLE_USER': 'Utilisateur'
+                                        'ROLE_USER': 'Compte'
                                     } %}
 										<option value="{{ role.id }}" {{ user.role and user.role.id == role.id ? 'selected' : '' }}>
 											{{ statusMap[role.label] ?? '-' }}
@@ -512,7 +512,7 @@ const adminTabs = document.getElementById('adminTabs');
 const adminSubtitle = document.getElementById('adminSubtitle');
 
 const subtitles = {
-'#tab-users': 'Gestion des utilisateurs',
+'#tab-users': 'Gestion des comptes',
 '#tab-services': 'Gestion des services',
 '#tab-logiciels': 'Gestion des logiciels'
 };

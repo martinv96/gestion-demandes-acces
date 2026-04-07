@@ -33,8 +33,10 @@ final class NewRequestController extends AbstractController
 
         // Si le formulaire est soumis et valide, créer la demande d'accès
         if ($form->isSubmitted() && $form->isValid()) {
-            $requestType = $formData->getType() ?? 'ouverture';
-            $initialStatus = ($requestType === 'modification' || $requestType === 'fermeture') ? 'traitee' : 'en_attente_rh';
+            $requestType = $formData->getType() ?? AccessRequest::TYPE_OUVERTURE;
+            $initialStatus = ($requestType === AccessRequest::TYPE_MODIFICATION || $requestType === AccessRequest::TYPE_FERMETURE)
+                ? AccessRequest::STATUS_TRAITEE
+                : AccessRequest::STATUS_EN_ATTENTE_RH;
 
             $newRequest = new AccessRequest();
 
@@ -103,7 +105,7 @@ final class NewRequestController extends AbstractController
             $newRequest->setAgent($agent);
 
             // Verrou métier : empêcher une nouvelle ouverture concurrente pour le même agent
-            if ($requestType === 'ouverture') {
+            if ($requestType === AccessRequest::TYPE_OUVERTURE) {
                 $activeCurrent = $requestRepository->findActiveCurrentRequestForAgentIdentity(
                     (string) $formData->getFirstname(),
                     (string) $formData->getLastname(),
@@ -124,14 +126,14 @@ final class NewRequestController extends AbstractController
             }
 
             // Verrous métier sur modification / fermeture
-            if (in_array($requestType, ['modification', 'fermeture'], true) && $parentRequest instanceof AccessRequest) {
+            if (in_array($requestType, [AccessRequest::TYPE_MODIFICATION, AccessRequest::TYPE_FERMETURE], true) && $parentRequest instanceof AccessRequest) {
                 $currentInChain = $requestRepository->findCurrentInChain($parentRequest);
 
-                $isClosedChain = $currentInChain->getType() === 'fermeture'
-                    && $currentInChain->getStatus() === 'traitee';
+                $isClosedChain = $currentInChain->getType() === AccessRequest::TYPE_FERMETURE
+                    && $currentInChain->getStatus() === AccessRequest::STATUS_TRAITEE;
 
                 // Empêcher une modification sur chaîne clôturée
-                if ($requestType === 'modification' && $isClosedChain) {
+                if ($requestType === AccessRequest::TYPE_MODIFICATION && $isClosedChain) {
                     $this->addFlash(
                         'warning',
                         sprintf(
@@ -144,7 +146,7 @@ final class NewRequestController extends AbstractController
                 }
 
                 // Empêcher une fermeture en double
-                if ($requestType === 'fermeture' && $isClosedChain) {
+                if ($requestType === AccessRequest::TYPE_FERMETURE && $isClosedChain) {
                     $this->addFlash(
                         'warning',
                         sprintf(
@@ -175,7 +177,7 @@ final class NewRequestController extends AbstractController
             }
 
             // Si c'est une fermeture, on copie les ressources de la demande d'origine, sinon on prend celles du formulaire
-            if ($requestType === 'fermeture') {
+            if ($requestType === AccessRequest::TYPE_FERMETURE) {
                 if ($effectiveParentRequest instanceof AccessRequest) {
                     foreach ($effectiveParentRequest->getRessources() as $ressource) {
                         $newRequest->addRessource($ressource);
@@ -196,7 +198,7 @@ final class NewRequestController extends AbstractController
             $entityManager->persist($newRequest);
 
             // Si c'est une modification ou une fermeture, on copie l'historique de la demande d'origine
-            if (($requestType === 'modification' || $requestType === 'fermeture') && $effectiveParentRequest instanceof AccessRequest) {
+            if (($requestType === AccessRequest::TYPE_MODIFICATION || $requestType === AccessRequest::TYPE_FERMETURE) && $effectiveParentRequest instanceof AccessRequest) {
                 foreach ($effectiveParentRequest->getRequestId() as $parentHistory) {
                     $historyCopy = new WorkflowHistory();
                     $historyCopy

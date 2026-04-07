@@ -83,9 +83,9 @@
 								<td>{{ request.type|capitalize }}</td>
 								<td>
 									{% set statusMap = {
-										'en_attente_rh':  {'label': 'En attente RH', 'color': 'warning'},
+										'en_attente_rh':  {'label': 'En attente RH', 'color': 'info'},
 										'en_attente_st':  {'label': 'En attente DGA-ST', 'color': 'warning'},
-										'en_attente_dsi': {'label': 'En attente DSI', 'color': 'warning'},
+										'en_attente_dsi': {'label': 'En attente DSI', 'color': 'primary'},
 										'traitee':        {'label': 'Traitée', 'color': 'success'},
 										'refusee_rh':     {'label': 'Refusée RH', 'color': 'danger'},
 										'refusee_st':     {'label': 'Refusée DGA-ST', 'color': 'danger'},
