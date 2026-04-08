@@ -25,7 +25,7 @@ final class UserLoginSecurityTest extends WebTestCase
         $plainPassword = 'TestPassword123!';
 
         // Crée et persiste l'utilisateur inactif
-        $user = (new User())->setFirstname('Inactive')->setLastname('User')->setEmail($email)->setIsActive(false)->setMustChangePassword(false);
+        $user = (new User())->setEmail($email)->setIsActive(false)->setMustChangePassword(false);
         $user->setPassword($hasher->hashPassword($user, $plainPassword));
         $em->persist($user);
         $em->flush();
@@ -85,8 +85,6 @@ final class UserLoginSecurityTest extends WebTestCase
 
         // Crée et persiste l'utilisateur actif
         $user = (new User())
-            ->setFirstname('Active')
-            ->setLastname('User')
             ->setEmail($email)
             ->setIsActive(true)
             ->setMustChangePassword(false);
@@ -138,8 +136,6 @@ final class UserLoginSecurityTest extends WebTestCase
         $wrongPassword = 'WrongPassword123!';
 
         $user = (new User())
-            ->setFirstname('Wrong')
-            ->setLastname('Password')
             ->setEmail($email)
             ->setIsActive(true)
             ->setMustChangePassword(false);
@@ -199,8 +195,6 @@ final class UserLoginSecurityTest extends WebTestCase
         $plainPassword = 'TempPassword123!';
 
         $user = (new User())
-            ->setFirstname('Must')
-            ->setLastname('Change')
             ->setEmail($email)
             ->setIsActive(true)
             ->setMustChangePassword(true);
@@ -255,8 +249,6 @@ final class UserLoginSecurityTest extends WebTestCase
         $email = 'alreadylogged_' . uniqid() . '@example.com';
         $plainPassword = 'TestPassword123!';
         $user = (new User())
-            ->setFirstname('Already')
-            ->setLastname('Logged')
             ->setEmail($email)
             ->setIsActive(true)
             ->setMustChangePassword(false);

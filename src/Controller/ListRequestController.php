@@ -14,6 +14,8 @@ use App\Repository\WorkflowHistoryRepository;
 use App\Service\WorkflowService;
 use App\Security\Voter\RequestVoter;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +26,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+
 
 
 
@@ -142,7 +145,7 @@ final class ListRequestController extends AbstractController
     // route pour valider une demande
     // ! route qui permet de valider une demande d'accès spécifique
     #[Route('/request/{id}/validate', name: 'app_request_validate', methods: ['POST'], requirements: ['id' => '\\d+'])]
-    public function validate(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService): Response
+    public function validate(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -151,11 +154,32 @@ final class ListRequestController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $this->denyAccessUnlessGranted(RequestVoter::VALIDATE, $requestEntity);
+        if (!$this->isGranted(RequestVoter::VALIDATE, $requestEntity)) {
+            // Revalide après refresh pour éviter un faux 403 sur état intermédiaire.
+            $entityManager->refresh($requestEntity);
+            if (!$this->isGranted(RequestVoter::VALIDATE, $requestEntity)) {
+                $this->addFlash('warning', 'Action non autorisée dans l\'état actuel de la demande. Recharge la page.');
+
+                return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+            }
+        }
 
         if (!$this->isCsrfTokenValid('workflow_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
             $this->addFlash('danger', 'Token de sécurité invalide.');
 
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        $submittedVersion = (int) $httpRequest->request->get('version', 0);
+        if ($submittedVersion <= 0) {
+            $this->addFlash('danger', 'Version de la demande invalide.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        try {
+            $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
+        } catch (OptimisticLockException) {
+            $this->addFlash('warning', 'Cette demande a été modifiée entre-temps. Recharge la page puis réessaie.');
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
@@ -174,7 +198,7 @@ final class ListRequestController extends AbstractController
     // route pour refuser une demande
     // ! route qui permet de refuser une demande d'accès spécifique
     #[Route('/request/{id}/refuse', name: 'app_request_refuse', methods: ['POST'], requirements: ['id' => '\\d+'])]
-    public function refuse(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService): Response
+    public function refuse(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -183,11 +207,32 @@ final class ListRequestController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $this->denyAccessUnlessGranted(RequestVoter::REFUSE, $requestEntity);
+        if (!$this->isGranted(RequestVoter::REFUSE, $requestEntity)) {
+            // Revalide après refresh pour éviter un faux 403 sur état intermédiaire.
+            $entityManager->refresh($requestEntity);
+            if (!$this->isGranted(RequestVoter::REFUSE, $requestEntity)) {
+                $this->addFlash('warning', 'Action non autorisée dans l\'état actuel de la demande. Recharge la page.');
+
+                return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+            }
+        }
 
         if (!$this->isCsrfTokenValid('workflow_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
             $this->addFlash('danger', 'Token de sécurité invalide.');
 
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        $submittedVersion = (int) $httpRequest->request->get('version', 0);
+        if ($submittedVersion <= 0) {
+            $this->addFlash('danger', 'Version de la demande invalide.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        try {
+            $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
+        } catch (OptimisticLockException) {
+            $this->addFlash('warning', 'Cette demande a été modifiée entre-temps. Recharge la page puis réessaie.');
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
@@ -218,7 +263,15 @@ final class ListRequestController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $this->denyAccessUnlessGranted(RequestVoter::EDIT_INFO, $requestEntity);
+        if (!$this->isGranted(RequestVoter::EDIT_INFO, $requestEntity)) {
+            // Revalide après refresh pour éviter un faux 403 sur état intermédiaire.
+            $entityManager->refresh($requestEntity);
+            if (!$this->isGranted(RequestVoter::EDIT_INFO, $requestEntity)) {
+                $this->addFlash('warning', 'Action non autorisée dans l\'état actuel de la demande. Recharge la page.');
+
+                return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+            }
+        }
 
         // ! vérification du token CSRF pour sécuriser la requête de mise à jour des informations de la demande
         if (!$this->isCsrfTokenValid('request_edit_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
@@ -270,7 +323,19 @@ final class ListRequestController extends AbstractController
             $departureDate = (string) $httpRequest->request->get('date_depart', '');
             $requestEntity->setDepartureDate($departureDate !== '' ? new \DateTime($departureDate) : null);
 
-            $requestEntity->setCommentary((string) $httpRequest->request->get('commentaire', ''));
+            // Conserve le commentaire existant et ajoute uniquement la nouvelle saisie RH.
+            $newCommentary = trim((string) $httpRequest->request->get('commentaire', ''));
+            if ($newCommentary !== '') {
+                $existingCommentary = trim((string) ($requestEntity->getCommentary() ?? ''));
+                $timestamp = (new \DateTimeImmutable())->format('d/m/Y H:i');
+                $newEntry = sprintf('[%s] RH: %s', $timestamp, $newCommentary);
+
+                $requestEntity->setCommentary(
+                    $existingCommentary === ''
+                        ? $newEntry
+                        : $existingCommentary . "\n" . $newEntry
+                );
+            }
 
             // ! mise à jour des ressources associées à la demande : 
             // ! on supprime d'abord toutes les ressources existantes, 
@@ -295,11 +360,6 @@ final class ListRequestController extends AbstractController
                     $ressource->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
                     $requestEntity->addRessource($ressource);
                 }
-            }
-
-            // ! Si la demande était refusée par RH, la repasser à "en_attente_rh" après modification
-            if ($requestEntity->getStatus() === AccessRequest::STATUS_REFUSEE_RH) {
-                $requestEntity->setStatus(AccessRequest::STATUS_EN_ATTENTE_RH);
             }
 
             $requestEntity->setUpdateDate(new \DateTimeImmutable());

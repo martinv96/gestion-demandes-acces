@@ -35,8 +35,6 @@ final class RequestTest extends TestCase
     {
         $request = new Request();
         $user = (new User())
-            ->setFirstname('Test')
-            ->setLastname('User')
             ->setEmail('test@example.com')
             ->setPassword('x')
             ->setIsActive(true);

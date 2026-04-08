@@ -28,7 +28,7 @@ class Service
      * @var Collection<int, User>
      */
     #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'service')]
-    private Collection $service_id;
+    private Collection $users;
 
     /**
      * @var Collection<int, Agent>
@@ -38,7 +38,7 @@ class Service
 
     public function __construct()
     {
-        $this->service_id = new ArrayCollection();
+        $this->users = new ArrayCollection();
         $this->serviceId = new ArrayCollection();
     }
 
@@ -86,30 +86,56 @@ class Service
     /**
      * @return Collection<int, User>
      */
-    public function getServiceId(): Collection
+    public function getUsers(): Collection
     {
-        return $this->service_id;
+        return $this->users;
     }
 
-    public function addServiceId(User $serviceId): static
+    public function addUser(User $user): static
     {
-        if (!$this->service_id->contains($serviceId)) {
-            $this->service_id->add($serviceId);
-            $serviceId->setService($this);
+        if (!$this->users->contains($user)) {
+            $this->users->add($user);
+            $user->setService($this);
         }
 
         return $this;
     }
 
-    public function removeServiceId(User $serviceId): static
+    public function removeUser(User $user): static
     {
-        if ($this->service_id->removeElement($serviceId)) {
+        if ($this->users->removeElement($user)) {
             // set the owning side to null (unless already changed)
-            if ($serviceId->getService() === $this) {
-                $serviceId->setService(null);
+            if ($user->getService() === $this) {
+                $user->setService(null);
             }
         }
 
         return $this;
+    }
+
+    /**
+     * @deprecated use getUsers()
+     *
+     * @return Collection<int, User>
+     */
+    public function getServiceId(): Collection
+    {
+        return $this->getUsers();
+    }
+
+    /**
+     * @deprecated use addUser()
+     */
+    public function addServiceId(User $serviceId): static
+    {
+        return $this->addUser($serviceId);
+    }
+
+    /**
+     * @deprecated use removeUser()
+     */
+    public function removeServiceId(User $serviceId): static
+    {
+        return $this->removeUser($serviceId);
     }
 }

@@ -30,8 +30,6 @@ final class RequestVoterTest extends TestCase
     {
         $request = new AccessRequest();
         $user = (new User())
-            ->setFirstname('A')
-            ->setLastname('B')
             ->setEmail('user@example.com')
             ->setPassword('x')
             ->setIsActive(true);
@@ -62,8 +60,6 @@ final class RequestVoterTest extends TestCase
     {
         $request = new AccessRequest();
         $user = (new User())
-            ->setFirstname('A')
-            ->setLastname('B')
             ->setEmail('user@example.com')
             ->setPassword('x')
             ->setIsActive(true);

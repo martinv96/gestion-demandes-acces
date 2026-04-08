@@ -41,13 +41,84 @@ class WorkflowService
         ],
         self::STATUS_EN_ATTENTE_ST => [
             'validate' => ['role' => 'ROLE_ST',  'next' => self::STATUS_EN_ATTENTE_DSI],
-            'refuse'   => ['role' => 'ROLE_ST',  'next' => self::STATUS_EN_ATTENTE_RH],
+            'refuse'   => ['role' => 'ROLE_ST',  'next' => self::STATUS_REFUSEE_ST],
         ],
         self::STATUS_EN_ATTENTE_DSI => [
             'validate' => ['role' => 'ROLE_DSI', 'next' => self::STATUS_TRAITEE],
-            'refuse'   => ['role' => 'ROLE_DSI', 'next' => self::STATUS_EN_ATTENTE_ST],
+            'refuse'   => ['role' => 'ROLE_DSI', 'next' => self::STATUS_REFUSEE_DSI],
         ],
     ];
+
+    private function resolveRhResumeNextStatus(AccessRequest $request, User $user): ?string
+    {
+        $snapshotTransition = $this->findTransitionInSnapshot($request, $user, 'validate', self::STATUS_EN_ATTENTE_RH);
+        if ($snapshotTransition !== null) {
+            return (string) $snapshotTransition['next'];
+        }
+
+        $rows = $this->workflowTransitionConfigRepository->findActiveTransitionsForWorkflow(self::DEFAULT_WORKFLOW_CODE);
+        foreach ($rows as $row) {
+            if (
+                $row->getAction() === 'validate'
+                && $row->getFromStatus() === self::STATUS_EN_ATTENTE_RH
+                && in_array($row->getRequiredRole(), $user->getRoles(), true)
+            ) {
+                return $row->getToStatus();
+            }
+        }
+
+        return self::TRANSITIONS[self::STATUS_EN_ATTENTE_RH]['validate']['next'] ?? null;
+    }
+
+    private function resolveRefusalCycleTransition(AccessRequest $request, User $user, string $action, string $status): ?array
+    {
+        if ($action === 'refuse' && str_starts_with($status, 'en_attente_')) {
+            $code = substr($status, strlen('en_attente_'));
+            if ($code === '') {
+                return null;
+            }
+
+            $requiredRole = sprintf('ROLE_%s', strtoupper($code));
+            if (!in_array($requiredRole, $user->getRoles(), true)) {
+                return null;
+            }
+
+            return [
+                'role' => $requiredRole,
+                'next' => sprintf('refusee_%s', $code),
+            ];
+        }
+
+        if ($action === 'validate' && str_starts_with($status, 'refusee_')) {
+            if (!in_array('ROLE_RH', $user->getRoles(), true)) {
+                return null;
+            }
+
+            $code = substr($status, strlen('refusee_'));
+            if ($code === '') {
+                return null;
+            }
+
+            if ($code === 'rh') {
+                $next = $this->resolveRhResumeNextStatus($request, $user);
+                if ($next === null || $next === '') {
+                    return null;
+                }
+
+                return [
+                    'role' => 'ROLE_RH',
+                    'next' => $next,
+                ];
+            }
+
+            return [
+                'role' => 'ROLE_RH',
+                'next' => sprintf('en_attente_%s', $code),
+            ];
+        }
+
+        return null;
+    }
 
     private function findTransitionInSnapshot(AccessRequest $request, User $user, string $action, string $status): ?array
     {
@@ -167,6 +238,13 @@ class WorkflowService
     private function resolveTransition(AccessRequest $request, User $user, string $action): ?array
     {
         $status = $request->getStatus() ?? '';
+
+        // Règle métier prioritaire: en cas de refus, reprise RH puis retour direct à l'étape qui a refusé.
+        $refusalCycleTransition = $this->resolveRefusalCycleTransition($request, $user, $action, $status);
+        if ($refusalCycleTransition !== null) {
+            return $refusalCycleTransition;
+        }
+
         // priorité au snapshot de la demande
 
         $snapshotTransitions = $this->findTransitionInSnapshot($request, $user, $action, $status);
@@ -199,35 +277,6 @@ class WorkflowService
 
         $status = $request->getStatus() ?? '';
 
-        // RH peut éditer si la demande est refusée par RH
-        if ($status === self::STATUS_REFUSEE_RH) {
-            return true;
-        }
-
-        // RH ne peut pas éditer si demande traitée ou refusée par ST/DSI
-        if (in_array($status, [
-            self::STATUS_TRAITEE,
-            self::STATUS_REFUSEE_ST,
-            self::STATUS_REFUSEE_DSI,
-        ], true)) {
-            return false;
-        }
-
-        // RH peut éditer si en attente RH après refus de ST ou DSI
-        foreach ($request->getRequestId() as $historyEntry) {
-            $oldStatus = $historyEntry->getOldStatus() ?? '';
-            $newStatus = $historyEntry->getNewStatus() ?? '';
-
-            $isRefusalFromSt = $oldStatus === self::STATUS_EN_ATTENTE_ST
-                && $newStatus === self::STATUS_EN_ATTENTE_RH;
-            $isRefusalFromDsi = $oldStatus === self::STATUS_EN_ATTENTE_DSI
-                && $newStatus === self::STATUS_EN_ATTENTE_ST;
-
-            if ($isRefusalFromSt || $isRefusalFromDsi) {
-                return true;
-            }
-        }
-
-        return false;
+        return str_starts_with($status, 'refusee_');
     }
 }

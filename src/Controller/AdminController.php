@@ -64,7 +64,7 @@ final class AdminController extends AbstractController
 
         return $this->render('admin/index.html.twig', [
             'tab'       => $request->query->getString('tab', 'users'),
-            'users'     => $userRepository->findBy([], ['lastname' => 'ASC']),
+            'users'     => $userRepository->findBy([], ['email' => 'ASC']),
             'services'  => $serviceRepository->findBy([], ['name' => 'ASC']),
             'logiciels' => $ressourceRepository->findBy(['category' => 'logiciel'], ['name' => 'ASC']),
             'roles'     => $roleRepository->findBy([], ['label' => 'ASC']),
@@ -124,9 +124,7 @@ final class AdminController extends AbstractController
         $tempPassword = $this->generateTemporaryPassword();
 
         $user = new User();
-        $user->setFirstname(null)
-            ->setLastname(null)
-            ->setEmail($email)
+        $user->setEmail($email)
             ->setIsActive(true)
             ->setMustChangePassword(true)
             ->setRole($role)
@@ -188,9 +186,7 @@ final class AdminController extends AbstractController
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
 
-        $user->setFirstname(null)
-            ->setLastname(null)
-            ->setEmail($email)
+        $user->setEmail($email)
             ->setRole($role)
             ->setService($service);
 

@@ -71,6 +71,10 @@ class Request
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $updateDate = null;
 
+    #[ORM\Version]
+    #[ORM\Column(type:'integer')]
+    private int $version = 1;
+
     #[ORM\Column(type: Types::JSON, nullable: true)]
     private ?array $workflowSnapshot = null;
 
@@ -78,7 +82,7 @@ class Request
     #[ORM\JoinColumn(nullable: false)]
     private ?Agent $agent = null;
 
-    #[ORM\ManyToOne(inversedBy: 'author_id')]
+    #[ORM\ManyToOne(inversedBy: 'requests')]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $author = null;
 
@@ -215,6 +219,11 @@ class Request
         $this->updateDate = $updateDate;
 
         return $this;
+    }
+
+    public function getVersion(): int
+    {
+        return $this->version;
     }
 
     public function getWorkflowSnapshot(): ?array

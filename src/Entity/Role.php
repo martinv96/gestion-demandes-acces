@@ -22,11 +22,11 @@ class Role
      * @var Collection<int, User>
      */
     #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'role')]
-    private Collection $role_id;
+    private Collection $users;
 
     public function __construct()
     {
-        $this->role_id = new ArrayCollection();
+        $this->users = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -49,30 +49,56 @@ class Role
     /**
      * @return Collection<int, User>
      */
-    public function getRoleId(): Collection
+    public function getUsers(): Collection
     {
-        return $this->role_id;
+        return $this->users;
     }
 
-    public function addRoleId(User $roleId): static
+    public function addUser(User $user): static
     {
-        if (!$this->role_id->contains($roleId)) {
-            $this->role_id->add($roleId);
-            $roleId->setRole($this);
+        if (!$this->users->contains($user)) {
+            $this->users->add($user);
+            $user->setRole($this);
         }
 
         return $this;
     }
 
-    public function removeRoleId(User $roleId): static
+    public function removeUser(User $user): static
     {
-        if ($this->role_id->removeElement($roleId)) {
+        if ($this->users->removeElement($user)) {
             // set the owning side to null (unless already changed)
-            if ($roleId->getRole() === $this) {
-                $roleId->setRole(null);
+            if ($user->getRole() === $this) {
+                $user->setRole(null);
             }
         }
 
         return $this;
+    }
+
+    /**
+     * @deprecated use getUsers()
+     *
+     * @return Collection<int, User>
+     */
+    public function getRoleId(): Collection
+    {
+        return $this->getUsers();
+    }
+
+    /**
+     * @deprecated use addUser()
+     */
+    public function addRoleId(User $roleId): static
+    {
+        return $this->addUser($roleId);
+    }
+
+    /**
+     * @deprecated use removeUser()
+     */
+    public function removeRoleId(User $roleId): static
+    {
+        return $this->removeUser($roleId);
     }
 }

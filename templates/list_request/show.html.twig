@@ -170,7 +170,19 @@
 						<div class="card">
 							<div class="card-header">Commentaire</div>
 							<div class="card-body">
-								<p class="mb-0">{{ requestEntity.commentary ?: 'Aucun commentaire.' }}</p>
+								{% if requestEntity.commentary %}
+									{% set commentaryLines = requestEntity.commentary|replace({'\r\n': '\n', '\r': '\n'})|split('\n') %}
+									<div class="mb-0 small lh-base d-flex flex-column gap-1">
+										{% for line in commentaryLines %}
+											{% set trimmedLine = line|trim %}
+											{% if trimmedLine != '' and trimmedLine != '---' %}
+												<div>{{ line }}</div>
+											{% endif %}
+										{% endfor %}
+									</div>
+								{% else %}
+									<p class="mb-0">Aucun commentaire.</p>
+								{% endif %}
 							</div>
 						</div>
 					</div>
@@ -183,6 +195,7 @@
 								<div class="card-body">
 									<form method="post" action="{{ path('app_request_update_info', {id: requestEntity.id}) }}">
 										<input type="hidden" name="_token" value="{{ csrf_token('request_edit_' ~ requestEntity.id) }}">
+										<input type="hidden" name="version" value="{{ requestEntity.version}}" >
 
 										<div class="row g-3">
 											<div class="col-md-4">
@@ -286,7 +299,8 @@
 
 											<div class="col-12">
 												<label for="rh_edit_commentaire" class="form-label">Commentaire demande</label>
-												<textarea class="form-control" id="rh_edit_commentaire" name="commentaire" rows="3">{{ requestEntity.commentary ?: '' }}</textarea>
+												<textarea class="form-control" id="rh_edit_commentaire" name="commentaire" rows="3" placeholder="Ajouter un nouveau commentaire RH (il sera ajouté à la suite de l'historique)"></textarea>
+												<div class="form-text">Le commentaire existant est conservé automatiquement.</div>
 											</div>
 										</div>
 
@@ -324,8 +338,7 @@
 														</span>
 														<span class="history-actor fw-semibold">
 															{% if entry.user %}
-																{{ entry.user.firstname }}
-																{{ entry.user.lastname }}
+																	{{ entry.user.displayName }}
 															{% else %}
 																Système
 															{% endif %}
@@ -582,6 +595,7 @@
 								<div class="mt-3 d-none" data-workflow-panel="validate">
 									<form method="post" action="{{ path('app_request_validate', {id: requestEntity.id}) }}">
 										<input type="hidden" name="_token" value="{{ csrf_token('workflow_' ~ requestEntity.id) }}">
+										<input type="hidden" name="version" value="{{requestEntity.version}}" >
 										<div class="mb-2">
 											<label class="form-label fw-semibold">Commentaire obligatoire *</label>
 											<textarea name="comment" class="form-control" rows="3" placeholder="Indiquer un commentaire de validation..." required></textarea>
@@ -598,6 +612,7 @@
 								<div class="mt-3 d-none" data-workflow-panel="refuse">
 									<form method="post" action="{{ path('app_request_refuse', {id: requestEntity.id}) }}">
 										<input type="hidden" name="_token" value="{{ csrf_token('workflow_' ~ requestEntity.id) }}">
+										<input type="hidden" name="version" value="{{requestEntity.version}}">
 										<div class="mb-2">
 											<label class="form-label fw-semibold">Commentaire obligatoire *</label>
 											<textarea name="comment" class="form-control" rows="3" placeholder="Indiquer la raison du refus..." required></textarea>

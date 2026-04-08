@@ -30,7 +30,7 @@ class WorkflowHistory
     #[ORM\JoinColumn(nullable: false)]
     private ?Request $request = null;
 
-    #[ORM\ManyToOne(inversedBy: 'userId')]
+    #[ORM\ManyToOne(inversedBy: 'workflowHistories')]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 

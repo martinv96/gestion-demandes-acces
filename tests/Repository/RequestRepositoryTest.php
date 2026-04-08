@@ -99,8 +99,6 @@ final class RequestRepositoryTest extends KernelTestCase
 			->setEmail('service-' . $uniq . '@example.local');
 
 		$author = (new User())
-			->setFirstname('Author')
-			->setLastname('Test')
 			->setEmail('author-' . $uniq . '@example.local')
 			->setPassword('hashed-password')
 			->setIsActive(true)

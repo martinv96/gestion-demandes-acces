@@ -105,22 +105,43 @@ final class WorkflowServiceTest extends TestCase
     ! dans ce cas le RH doit pouvoir éditer pour corriger et resoumettre,
     */
 
-    public function testCanEditAfterRefusalReturnsTrueAfterRefusalFromStHistory(): void
+    public function testCanEditAfterRefusalReturnsTrueForRhWhenRefusedBySt(): void
     {
         $service = $this->createWorkflowService();
-        $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_EN_ATTENTE_RH);
+        $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_REFUSEE_ST);
         $user = $this->createUserWithRoleLabel('RH');
 
-        $history = (new WorkflowHistory())
-            ->setOldStatus(WorkflowService::STATUS_EN_ATTENTE_ST)
-            ->setNewStatus(WorkflowService::STATUS_EN_ATTENTE_RH)
-            ->setCommentary('Retour')
-            ->setDate(new \DateTimeImmutable())
-            ->setUser($user)
-            ->setRequest($request);
-        $request->addRequestId($history);
-
         self::assertTrue($service->canEditAfterRefusal($request, $user));
+    }
+
+    public function testRefuseFromDsiSetsRefusedDsiStatus(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())->method('persist')->with(self::isInstanceOf(WorkflowHistory::class));
+        $em->expects(self::once())->method('flush');
+
+        $service = $this->createWorkflowService($em);
+        $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_EN_ATTENTE_DSI);
+        $user = $this->createUserWithRoleLabel('DSI');
+
+        $service->refuse($request, $user, 'Refus DSI');
+
+        self::assertSame(WorkflowService::STATUS_REFUSEE_DSI, $request->getStatus());
+    }
+
+    public function testRhValidateAfterDsiRefusalReturnsToDsiStep(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())->method('persist')->with(self::isInstanceOf(WorkflowHistory::class));
+        $em->expects(self::once())->method('flush');
+
+        $service = $this->createWorkflowService($em);
+        $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_REFUSEE_DSI);
+        $user = $this->createUserWithRoleLabel('RH');
+
+        $service->validate($request, $user, 'Reprise RH');
+
+        self::assertSame(WorkflowService::STATUS_EN_ATTENTE_DSI, $request->getStatus());
     }
 
     /* 
@@ -156,8 +177,6 @@ final class WorkflowServiceTest extends TestCase
         $role = (new Role())->setLabel($label);
 
         return (new User())
-            ->setFirstname('Test')
-            ->setLastname('User')
             ->setEmail('test@example.com')
             ->setPassword('x')
             ->setIsActive(true)

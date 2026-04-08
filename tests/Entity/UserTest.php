@@ -35,8 +35,6 @@ final class UserTest extends TestCase
             ->setCode('rh');
 
         $user = (new User())
-            ->setFirstname('Jane')
-            ->setLastname('Doe')
             ->setEmail('jane@mairie.fr')
             ->setPassword('x')
             ->setIsActive(true)
@@ -56,8 +54,6 @@ final class UserTest extends TestCase
         $role = (new Role())->setLabel('ROLE_USER');
 
         $user = (new User())
-            ->setFirstname('Jane')
-            ->setLastname('Doe')
             ->setEmail('jane@mairie.fr')
             ->setPassword('x')
             ->setIsActive(true)
@@ -69,14 +65,12 @@ final class UserTest extends TestCase
     }
 
     // Teste la construction du nom d'affichage en fonction des données disponibles.
-    public function testGetDisplayNameWithFirstnameAndLastname(): void
+    public function testGetDisplayNameFallsBackToEmailWhenNoService(): void
     {
         $user = (new User())
-            ->setFirstname('James')
-            ->setLastname('Bond')
             ->setEmail('james.bond@mi6.co.uk');
 
-        self::assertSame('James Bond', $user->getDisplayName());
+        self::assertSame('james.bond@mi6.co.uk', $user->getDisplayName());
     }
 
     // Teste la construction du nom d'affichage en fonction des données disponibles.
@@ -105,7 +99,7 @@ final class UserTest extends TestCase
 
 
     // Teste la construction du nom d'affichage en fonction des données disponibles.
-    public function testGetDisplayNameIgnoresBlankFirstnameAndLastname(): void
+    public function testGetDisplayNameWithServiceIsCompteService(): void
     {
         $service = (new Service())
             ->setName('ST')
@@ -113,8 +107,6 @@ final class UserTest extends TestCase
             ->setCode('st');
 
         $user = (new User())
-            ->setFirstname('')
-            ->setLastname('')
             ->setEmail('st@mairie.fr')
             ->setService($service);
 

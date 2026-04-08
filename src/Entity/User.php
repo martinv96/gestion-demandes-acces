@@ -19,12 +19,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?int $id;
 
-    #[ORM\Column(length: 100, nullable: true)]
-    private ?string $firstname = null;
-
-    #[ORM\Column(length: 100, nullable: true)]
-    private ?string $lastname = null;
-
     #[ORM\Column(length: 150, unique: true)]
     private ?string $email;
 
@@ -37,28 +31,28 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private bool $mustChangePassword = false;
 
-    #[ORM\ManyToOne(inversedBy: 'role_id')]
+    #[ORM\ManyToOne(inversedBy: 'users')]
     private ?Role $role = null;
 
-    #[ORM\ManyToOne(inversedBy: 'service_id')]
+    #[ORM\ManyToOne(inversedBy: 'users')]
     private ?Service $service = null;
 
     /**
      * @var Collection<int, Request>
      */
     #[ORM\OneToMany(targetEntity: Request::class, mappedBy: 'author')]
-    private Collection $author_id;
+    private Collection $requests;
 
     /**
      * @var Collection<int, WorkflowHistory>
      */
     #[ORM\OneToMany(targetEntity: WorkflowHistory::class, mappedBy: 'user')]
-    private Collection $userId;
+    private Collection $workflowHistories;
 
     public function __construct()
     {
-        $this->author_id = new ArrayCollection();
-        $this->userId = new ArrayCollection();
+        $this->requests = new ArrayCollection();
+        $this->workflowHistories = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -66,44 +60,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->id;
     }
 
-    public function getFirstname(): ?string
-    {
-        return $this->firstname;
-    }
-
-    public function setFirstname(?string $firstname): static
-    {
-        $value = $firstname !== null ? trim($firstname): null;
-        $this->firstname = $value !== '' ? $value : null;
-
-        return $this;
-    }
-
-    public function getLastname(): ?string
-    {
-        return $this->lastname;
-    }
-
     public function getDisplayName(): string
     {
-        $full = trim(($this->firstname ?? '') . ' ' . ($this->lastname ?? ''));
-        if ($full !== '') {
-            return $full;
-        }
-
         if ($this->service !== null && $this->service->getName() !== null) {
             return 'Compte ' . $this->service->getName();
         }
 
         return $this->email ?? 'Compte utilisateur';
-    }
-
-    public function setLastname(?string $lastname): static
-    {
-        $value = $lastname !== null ? trim($lastname): null;
-        $this->lastname = $value !== '' ? $value : null;
-
-        return $this;
     }
 
     public function getEmail(): ?string
@@ -217,27 +180,27 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @return Collection<int, Request>
      */
-    public function getAuthorId(): Collection
+    public function getRequests(): Collection
     {
-        return $this->author_id;
+        return $this->requests;
     }
 
-    public function addAuthorId(Request $authorId): static
+    public function addRequest(Request $request): static
     {
-        if (!$this->author_id->contains($authorId)) {
-            $this->author_id->add($authorId);
-            $authorId->setAuthor($this);
+        if (!$this->requests->contains($request)) {
+            $this->requests->add($request);
+            $request->setAuthor($this);
         }
 
         return $this;
     }
 
-    public function removeAuthorId(Request $authorId): static
+    public function removeRequest(Request $request): static
     {
-        if ($this->author_id->removeElement($authorId)) {
+        if ($this->requests->removeElement($request)) {
             // set the owning side to null (unless already changed)
-            if ($authorId->getAuthor() === $this) {
-                $authorId->setAuthor(null);
+            if ($request->getAuthor() === $this) {
+                $request->setAuthor(null);
             }
         }
 
@@ -247,30 +210,82 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @return Collection<int, WorkflowHistory>
      */
-    public function getUserId(): Collection
+    public function getWorkflowHistories(): Collection
     {
-        return $this->userId;
+        return $this->workflowHistories;
     }
 
-    public function addUserId(WorkflowHistory $userId): static
+    public function addWorkflowHistory(WorkflowHistory $workflowHistory): static
     {
-        if (!$this->userId->contains($userId)) {
-            $this->userId->add($userId);
-            $userId->setUser($this);
+        if (!$this->workflowHistories->contains($workflowHistory)) {
+            $this->workflowHistories->add($workflowHistory);
+            $workflowHistory->setUser($this);
         }
 
         return $this;
     }
 
-    public function removeUserId(WorkflowHistory $userId): static
+    public function removeWorkflowHistory(WorkflowHistory $workflowHistory): static
     {
-        if ($this->userId->removeElement($userId)) {
+        if ($this->workflowHistories->removeElement($workflowHistory)) {
             // set the owning side to null (unless already changed)
-            if ($userId->getUser() === $this) {
-                $userId->setUser(null);
+            if ($workflowHistory->getUser() === $this) {
+                $workflowHistory->setUser(null);
             }
         }
 
         return $this;
+    }
+
+    /**
+     * @deprecated use getRequests()
+     *
+     * @return Collection<int, Request>
+     */
+    public function getAuthorId(): Collection
+    {
+        return $this->getRequests();
+    }
+
+    /**
+     * @deprecated use addRequest()
+     */
+    public function addAuthorId(Request $authorId): static
+    {
+        return $this->addRequest($authorId);
+    }
+
+    /**
+     * @deprecated use removeRequest()
+     */
+    public function removeAuthorId(Request $authorId): static
+    {
+        return $this->removeRequest($authorId);
+    }
+
+    /**
+     * @deprecated use getWorkflowHistories()
+     *
+     * @return Collection<int, WorkflowHistory>
+     */
+    public function getUserId(): Collection
+    {
+        return $this->getWorkflowHistories();
+    }
+
+    /**
+     * @deprecated use addWorkflowHistory()
+     */
+    public function addUserId(WorkflowHistory $userId): static
+    {
+        return $this->addWorkflowHistory($userId);
+    }
+
+    /**
+     * @deprecated use removeWorkflowHistory()
+     */
+    public function removeUserId(WorkflowHistory $userId): static
+    {
+        return $this->removeWorkflowHistory($userId);
     }
 }
