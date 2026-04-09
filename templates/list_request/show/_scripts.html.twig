@@ -70,5 +70,111 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         toggleRhResourcesByType();
     }
+
+    var closureToggleForms = Array.from(document.querySelectorAll('form[data-closure-toggle-form="true"]'));
+    var pendingList = document.getElementById('closure-pending-list');
+    var returnedList = document.getElementById('closure-returned-list');
+    var pendingEmpty = document.getElementById('closure-pending-empty');
+    var returnedEmpty = document.getElementById('closure-returned-empty');
+    var finalizeForm = document.getElementById('closure-finalize-form');
+    var finalizeHint = document.getElementById('closure-finalize-hint');
+
+    function refreshEmptyStates() {
+        if (pendingEmpty && pendingList) {
+            pendingEmpty.classList.toggle('d-none', pendingList.children.length > 0);
+        }
+
+        if (returnedEmpty && returnedList) {
+            returnedEmpty.classList.toggle('d-none', returnedList.children.length > 0);
+        }
+    }
+
+    function setAllVersionInputs(version) {
+        if (!version) {
+            return;
+        }
+
+        Array.from(document.querySelectorAll('input[name="version"]')).forEach(function (input) {
+            input.value = String(version);
+        });
+    }
+
+    function updateFinalizeBlock(canFinalize) {
+        if (finalizeForm) {
+            finalizeForm.classList.toggle('d-none', !canFinalize);
+        }
+
+        if (finalizeHint) {
+            finalizeHint.classList.toggle('d-none', canFinalize);
+        }
+    }
+
+    function applyRowStatus(row, newStatus) {
+        var button = row.querySelector('button[type="submit"]');
+        if (!button) {
+            return;
+        }
+
+        if (newStatus === 'remis') {
+            button.classList.remove('btn-outline-warning');
+            button.classList.add('btn-outline-success');
+            button.textContent = 'Statut: remis';
+            button.title = 'Cliquer pour repasser ce matériel en non remis';
+            if (returnedList) {
+                returnedList.appendChild(row);
+            }
+        } else {
+            button.classList.remove('btn-outline-success');
+            button.classList.add('btn-outline-warning');
+            button.textContent = 'Statut: non remis';
+            button.title = 'Cliquer pour passer ce matériel en remis';
+            if (pendingList) {
+                pendingList.appendChild(row);
+            }
+        }
+    }
+
+    closureToggleForms.forEach(function (form) {
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            var submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
+
+            try {
+                var response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                var payload = await response.json();
+                if (!response.ok || !payload.ok) {
+                    throw new Error(payload.message || 'Erreur lors du changement de statut.');
+                }
+
+                var row = form.closest('[data-closure-row]');
+                if (row) {
+                    applyRowStatus(row, payload.newStatus);
+                }
+
+                setAllVersionInputs(payload.version);
+                updateFinalizeBlock(Boolean(payload.canFinalizeClosure));
+                refreshEmptyStates();
+            } catch (error) {
+                alert(error.message || 'Erreur lors du changement de statut.');
+            } finally {
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+            }
+        });
+    });
+
+    refreshEmptyStates();
 });
 </script>

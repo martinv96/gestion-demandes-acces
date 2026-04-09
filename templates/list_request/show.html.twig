@@ -163,6 +163,111 @@
 						</div>
 					</div>
 
+					{% if requestEntity.type == 'fermeture' %}
+					<div class="col-12">
+						<div class="card border-warning-subtle">
+							<div class="card-header">Restitution du matériel (fermeture)</div>
+							<div class="card-body">
+								<p class="text-muted mb-3">
+									Cliquer sur le bouton pour changer le statut :
+								</p>
+								<h6 class="mb-2">Matériel à remettre</h6>
+								{% if closurePendingMateriels is not empty %}
+									<div class="d-flex flex-column gap-2 mb-3" id="closure-pending-list">
+										{% for materiel in closurePendingMateriels %}
+											<div class="d-flex justify-content-between align-items-center border rounded p-2" data-closure-row="{{ materiel.id }}" data-closure-name="{{ materiel.name }}">
+												<span>{{ materiel.name }}</span>
+												{% if canMarkReturned %}
+													<form method="post" action="{{ path('app_request_mark_returned', {id: requestEntity.id, ressourceId: materiel.id}) }}" data-closure-toggle-form="true">
+														<input type="hidden" name="_token" value="{{ csrf_token('mark_returned_' ~ requestEntity.id ~ '_' ~ materiel.id) }}">
+														<input type="hidden" name="version" value="{{ requestEntity.version }}">
+														<button type="submit" class="btn btn-sm btn-outline-warning" title="Cliquer pour passer ce matériel en remis">
+															Statut: non remis
+														</button>
+													</form>
+												{% else %}
+													<span class="badge text-bg-secondary">Statut: non remis</span>
+												{% endif %}
+											</div>
+										{% endfor %}
+									</div>
+								{% else %}
+									<div id="closure-pending-list" class="d-flex flex-column gap-2 mb-3"></div>
+									<p class="text-muted mb-3" id="closure-pending-empty">Aucun matériel en attente de remise.</p>
+								{% endif %}
+								{% if closurePendingMateriels is not empty %}
+									<p class="text-muted mb-3 d-none" id="closure-pending-empty">Aucun matériel en attente de remise.</p>
+								{% endif %}
+
+								<h6 class="mb-2">Déjà remis</h6>
+								{% if closureReturnedMateriels is not empty %}
+									<div class="d-flex flex-column gap-2 mb-3" id="closure-returned-list">
+										{% for materiel in closureReturnedMateriels %}
+											<div class="d-flex justify-content-between align-items-center border rounded p-2" data-closure-row="{{ materiel.id }}" data-closure-name="{{ materiel.name }}">
+												<span>{{ materiel.name }}</span>
+												{% if canMarkReturned %}
+													<form method="post" action="{{ path('app_request_mark_returned', {id: requestEntity.id, ressourceId: materiel.id}) }}" data-closure-toggle-form="true">
+														<input type="hidden" name="_token" value="{{ csrf_token('mark_returned_' ~ requestEntity.id ~ '_' ~ materiel.id) }}">
+														<input type="hidden" name="version" value="{{ requestEntity.version }}">
+														<button type="submit" class="btn btn-sm btn-outline-success" title="Cliquer pour repasser ce matériel en non remis">
+															Statut: remis
+														</button>
+													</form>
+												{% else %}
+													<span class="badge text-bg-success">Statut: remis</span>
+												{% endif %}
+											</div>
+										{% endfor %}
+									</div>
+								{% else %}
+									<div id="closure-returned-list" class="d-flex flex-column gap-2 mb-3"></div>
+									<p class="text-muted mb-3" id="closure-returned-empty">Aucun matériel remis pour l’instant.</p>
+								{% endif %}
+								{% if closureReturnedMateriels is not empty %}
+									<p class="text-muted mb-3 d-none" id="closure-returned-empty">Aucun matériel remis pour l’instant.</p>
+								{% endif %}
+
+								{% if closureUntrackedMateriels is not empty %}
+									<h6 class="mb-2">Matériel non concerné</h6>
+									<ul class="text-muted mb-0">
+										{% for materiel in closureUntrackedMateriels %}
+											<li>{{ materiel.name }}</li>
+										{% endfor %}
+									</ul>
+								{% endif %}
+
+								<hr class="my-4">
+								<h6 class="mb-2">Validation de la fermeture</h6>
+								{% if canFinalizeClosure %}
+									<form method="post" action="{{ path('app_request_validate', {id: requestEntity.id}) }}" class="d-flex flex-column gap-2" id="closure-finalize-form">
+										<input type="hidden" name="_token" value="{{ csrf_token('workflow_' ~ requestEntity.id) }}">
+										<input type="hidden" name="version" value="{{ requestEntity.version }}">
+										<label class="form-label fw-semibold mb-0">Commentaire obligatoire *</label>
+										<textarea name="comment" class="form-control" rows="3" placeholder="Indiquer un commentaire de validation..." required></textarea>
+										<div>
+											<button type="submit" class="btn btn-success">Valider la demande</button>
+										</div>
+									</form>
+								{% else %}
+									<form method="post" action="{{ path('app_request_validate', {id: requestEntity.id}) }}" class="d-flex flex-column gap-2 d-none" id="closure-finalize-form">
+										<input type="hidden" name="_token" value="{{ csrf_token('workflow_' ~ requestEntity.id) }}">
+										<input type="hidden" name="version" value="{{ requestEntity.version }}">
+										<label class="form-label fw-semibold mb-0">Commentaire obligatoire *</label>
+										<textarea name="comment" class="form-control" rows="3" placeholder="Indiquer un commentaire de validation..." required></textarea>
+										<div>
+											<button type="submit" class="btn btn-success">Valider la demande</button>
+										</div>
+									</form>
+									<p class="text-muted mb-0" id="closure-finalize-hint">Le bouton de validation sera disponible une fois le matériel remis.</p>
+								{% endif %}
+								{% if canFinalizeClosure %}
+									<p class="text-muted mb-0 d-none" id="closure-finalize-hint">Le bouton de validation sera disponible une fois le matériel remis.</p>
+								{% endif %}
+							</div>
+						</div>
+					</div>
+				{% endif %}
+					
 					{# Commentaire de la demande #}
 					<div class="col-12">
 						<div class="card">

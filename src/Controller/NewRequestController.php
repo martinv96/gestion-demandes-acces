@@ -34,8 +34,8 @@ final class NewRequestController extends AbstractController
         // Si le formulaire est soumis et valide, créer la demande d'accès
         if ($form->isSubmitted() && $form->isValid()) {
             $requestType = $formData->getType() ?? AccessRequest::TYPE_OUVERTURE;
-            $initialStatus = ($requestType === AccessRequest::TYPE_MODIFICATION || $requestType === AccessRequest::TYPE_FERMETURE)
-                ? AccessRequest::STATUS_TRAITEE
+            $initialStatus = $requestType === AccessRequest::TYPE_FERMETURE
+                ? AccessRequest::STATUS_EN_ATTENTE_VALIDATION
                 : AccessRequest::STATUS_EN_ATTENTE_RH;
 
             $newRequest = new AccessRequest();

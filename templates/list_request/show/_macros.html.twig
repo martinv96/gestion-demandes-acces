@@ -1,6 +1,7 @@
 {% macro statusBadge(status) %}
 	{% set map = {
         'en_attente_rh':  ['info',     'En attente RH'],
+	'en_attente_validation': ['secondary', 'En attente validation'],
         'en_attente_st':  ['warning',  'En attente DGA-ST'],
         'en_attente_dsi': ['primary',  'En attente DSI'],
         'traitee':        ['success',  'Traitée'],

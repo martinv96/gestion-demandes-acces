@@ -216,6 +216,10 @@ class WorkflowService
             return false;
         }
 
+        if ($this->isClosureRequest($request)) {
+            return $currentStatus === AccessRequest::STATUS_TRAITEE;
+        }
+
         $latestUser = $latestHistory->getUser();
         if (!$latestUser instanceof User) {
             return false;
@@ -231,6 +235,12 @@ class WorkflowService
             throw new \InvalidArgumentException('Un commentaire est obligatoire en cas de validation.');
         }
 
+        if (
+            $this->isClosureRequest($request) && $this->hasPendingMaterialReturns($request)
+        ) {
+            throw new \InvalidArgumentException('Impossible de valider cette fermeture tant que tout le matériel n\'est pas marqué comme remis');
+        }
+
         $transition = $this->resolveTransition($request, $user, 'validate');
 
         if ($transition === null || !in_array($transition['role'], $user->getRoles(), true)) {
@@ -238,6 +248,35 @@ class WorkflowService
         }
 
         $this->applyTransition($request, $user, $transition['next'], $comment);
+    }
+
+    public function canFinalizeClosureByAnyUser(AccessRequest $request): bool
+    {
+        return $this->isClosureRequest($request)
+            && ($request->getStatus() ?? '') !== AccessRequest::STATUS_TRAITEE
+            && !$this->hasPendingMaterialReturns($request);
+    }
+
+    public function finalizeClosureByAnyUser(AccessRequest $request, User $user, string $comment): void
+    {
+        if (trim($comment) === '') {
+            throw new \InvalidArgumentException('Un commentaire est obligatoire en cas de validation.');
+        }
+
+        if (!$this->canFinalizeClosureByAnyUser($request)) {
+            throw new \LogicException('Cette demande de fermeture ne peut pas être validée pour le moment.');
+        }
+
+        $this->applyTransition($request, $user, AccessRequest::STATUS_TRAITEE, $comment);
+    }
+
+    private function isClosureRequest(AccessRequest $request): bool
+    {
+        try {
+            return $request->getType() === AccessRequest::TYPE_FERMETURE;
+        } catch (\Error) {
+            return false;
+        }
     }
 
     // Méthode pour refuser une demande avec un commentaire obligatoire
@@ -334,6 +373,16 @@ class WorkflowService
 
         // fallback en dur
         return self::TRANSITIONS[$status][$action] ?? null;
+    }
+
+    private function hasPendingMaterialReturns(AccessRequest $request): bool
+    {
+        foreach ($request->getRessources() as $ressource) {
+            if ($ressource->getCategory() === 'materiel') {
+                return true;
+            }
+        }
+        return false;
     }
 
 

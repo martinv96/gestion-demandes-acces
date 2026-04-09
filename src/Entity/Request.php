@@ -16,6 +16,7 @@ class Request
     public const TYPE_FERMETURE = 'fermeture';
 
     public const STATUS_EN_ATTENTE_RH = 'en_attente_rh';
+    public const STATUS_EN_ATTENTE_VALIDATION = 'en_attente_validation';
     public const STATUS_EN_ATTENTE_ST = 'en_attente_st';
     public const STATUS_EN_ATTENTE_DSI = 'en_attente_dsi';
     public const STATUS_TRAITEE = 'traitee';
@@ -31,6 +32,7 @@ class Request
 
     public const WORKFLOW_STATUSES = [
         self::STATUS_EN_ATTENTE_RH,
+        self::STATUS_EN_ATTENTE_VALIDATION,
         self::STATUS_EN_ATTENTE_ST,
         self::STATUS_EN_ATTENTE_DSI,
         self::STATUS_TRAITEE,

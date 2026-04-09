@@ -8,6 +8,10 @@ use App\Repository\WorkflowTransitionConfigRepository;
 
 class WorkflowBlockageHelper
 {
+    private const NEUTRAL_WAITING_STATUSES = [
+        AccessRequest::STATUS_EN_ATTENTE_VALIDATION,
+    ];
+
     /**
      * @param array<string, array<string, array{role: string, next: string}>> $fallbackTransitions
      * @param array<string, string> $statusLabels
@@ -28,6 +32,10 @@ class WorkflowBlockageHelper
         }
 
         $status = (string) ($request->getStatus() ?? '');
+        if (in_array($status, self::NEUTRAL_WAITING_STATUSES, true)) {
+            return false;
+        }
+
         if (!str_starts_with($status, 'en_attente_')) {
             return false;
         }
@@ -92,6 +100,10 @@ class WorkflowBlockageHelper
     public function isBlockedByMissingValidator(AccessRequest $request): bool
     {
         $status = (string) ($request->getStatus() ?? '');
+        if (in_array($status, self::NEUTRAL_WAITING_STATUSES, true)) {
+            return false;
+        }
+
         if (!str_starts_with($status, 'en_attente_')) {
             return false;
         }

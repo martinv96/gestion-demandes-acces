@@ -3,7 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Request as AccessRequest;
-use App\Entity\Service;
+use App\Entity\Ressource;
 use App\Entity\User;
 use App\Repository\RessourceRepository;
 use App\Repository\RequestRepository;
@@ -16,6 +16,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
@@ -124,6 +125,45 @@ final class ListRequestController extends AbstractController
         $missingValidatorLabel = $workflowService->getMissingValidatorLabel($requestEntity);
         $allLogiciels = $ressourceRepository->findBy(['category' => 'logiciel', 'isActive' => true], ['name' => 'ASC']);
         $allMateriels = $ressourceRepository->findBy(['category' => 'materiel', 'isActive' => true], ['name' => 'ASC']);
+        $closureTrackedMateriels = [];
+        $closurePendingMateriels = [];
+        $closureReturnedMateriels = [];
+        $closureUntrackedMateriels = [];
+
+        if ($requestEntity->getType() === AccessRequest::TYPE_FERMETURE && $requestEntity->getParentRequest() instanceof AccessRequest) {
+            $parentMateriels = array_values(array_filter(
+                $requestEntity->getParentRequest()->getRessources()->toArray(),
+                static fn($r) => $r instanceof Ressource && $r->getCategory() === 'materiel'
+            ));
+
+            $pendingIds = [];
+            foreach ($requestEntity->getRessources() as $r) {
+                if ($r->getCategory() === 'materiel' && $r->getId() !== null) {
+                    $pendingIds[] = $r->getId();
+                }
+            }
+
+            foreach ($parentMateriels as $materiel) {
+                $closureTrackedMateriels[] = $materiel;
+                if ($materiel->getId() !== null && in_array($materiel->getId(), $pendingIds, true)) {
+                    $closurePendingMateriels[] = $materiel;
+                } else {
+                    $closureReturnedMateriels[] = $materiel;
+                }
+            }
+
+            $trackedIds = array_values(array_filter(array_map(static fn($m) => $m->getId(), $closureTrackedMateriels)));
+            foreach ($allMateriels as $materiel) {
+                if (!in_array($materiel->getId(), $trackedIds, true)) {
+                    $closureUntrackedMateriels[] = $materiel;
+                }
+            }
+        }
+
+        $canMarkReturned = $requestEntity->getType() === AccessRequest::TYPE_FERMETURE
+            && $requestEntity->getStatus() !== AccessRequest::STATUS_TRAITEE;
+        $canFinalizeClosure = $workflowService->canFinalizeClosureByAnyUser($requestEntity);
+
 
         return $this->render('list_request/show.html.twig', [
             'requestEntity' => $requestEntity,
@@ -147,6 +187,12 @@ final class ListRequestController extends AbstractController
                 : [],
             'allLogiciels' => $allLogiciels,
             'allMateriels' => $allMateriels,
+            'canMarkReturned' => $canMarkReturned,
+            'canFinalizeClosure' => $canFinalizeClosure,
+            'closurePendingMateriels' => $closurePendingMateriels,
+            'closureReturnedMateriels' => $closureReturnedMateriels,
+            'closureUntrackedMateriels' => $closureUntrackedMateriels,
+
         ]);
     }
 
@@ -162,10 +208,13 @@ final class ListRequestController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        if (!$this->isGranted(RequestVoter::VALIDATE, $requestEntity)) {
+        $canFinalizeClosure = $workflowService->canFinalizeClosureByAnyUser($requestEntity);
+
+        if (!$this->isGranted(RequestVoter::VALIDATE, $requestEntity) && !$canFinalizeClosure) {
             // Revalide après refresh pour éviter un faux 403 sur état intermédiaire.
             $entityManager->refresh($requestEntity);
-            if (!$this->isGranted(RequestVoter::VALIDATE, $requestEntity)) {
+            $canFinalizeClosure = $workflowService->canFinalizeClosureByAnyUser($requestEntity);
+            if (!$this->isGranted(RequestVoter::VALIDATE, $requestEntity) && !$canFinalizeClosure) {
                 $this->addRequestFlash($httpRequest, 'warning', 'Une action est déjà en cours. Recharger la page.');
 
                 return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
@@ -192,7 +241,12 @@ final class ListRequestController extends AbstractController
         }
 
         try {
-            $workflowService->validate($requestEntity, $user, (string) $httpRequest->request->get('comment', ''));
+            $comment = (string) $httpRequest->request->get('comment', '');
+            if ($this->isGranted(RequestVoter::VALIDATE, $requestEntity)) {
+                $workflowService->validate($requestEntity, $user, $comment);
+            } else {
+                $workflowService->finalizeClosureByAnyUser($requestEntity, $user, $comment);
+            }
             $this->addRequestFlash($httpRequest, 'success', 'La demande a été validée.');
         } catch (\InvalidArgumentException $e) {
             $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
@@ -342,7 +396,7 @@ final class ListRequestController extends AbstractController
         $submittedVersion = (int) $httpRequest->request->get('version', 0);
         if ($submittedVersion <= 0) {
             $this->addRequestFlash($httpRequest, 'danger', 'Version de la demande invalide.');
-            return $this->redirectToRoute('app_request_show',['id' => $requestEntity->getId()]);
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
         try {
@@ -394,6 +448,112 @@ final class ListRequestController extends AbstractController
         $session->getFlashBag()->add($type, $message);
     }
 
+    #[Route('/request/{id}/mark-returned/{ressourceId}', name: 'app_request_mark_returned', methods: ['POST'], requirements: ['id' => '\\d+', 'ressourceId' => '\\d+'])]
+    public function markReturned(
+        AccessRequest $requestEntity,
+        int $ressourceId,
+        Request $httpRequest,
+        EntityManagerInterface $entityManager,
+        WorkflowService $workflowService
+    ): Response {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+        $isAjax = $httpRequest->isXmlHttpRequest();
+
+        if ($requestEntity->getType() !== AccessRequest::TYPE_FERMETURE) {
+            if ($isAjax) {
+                return new JsonResponse(['ok' => false, 'message' => 'Action disponible uniquement pour une demande de fermeture.'], Response::HTTP_BAD_REQUEST);
+            }
+            $this->addRequestFlash($httpRequest, 'warning', 'Action disponible uniquement pour une demande de fermeture.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        if ($requestEntity->getStatus() === AccessRequest::STATUS_TRAITEE) {
+            if ($isAjax) {
+                return new JsonResponse(['ok' => false, 'message' => 'Cette demande est déjà traitée.'], Response::HTTP_CONFLICT);
+            }
+            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande est déjà traitée.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        if (!$this->isCsrfTokenValid('mark_returned_' . $requestEntity->getId() . '_' . $ressourceId, (string) $httpRequest->request->get('_token'))) {
+            if ($isAjax) {
+                return new JsonResponse(['ok' => false, 'message' => 'Token de sécurité invalide.'], Response::HTTP_FORBIDDEN);
+            }
+            $this->addRequestFlash($httpRequest, 'danger', 'Token de sécurité invalide.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        $submittedVersion = (int) $httpRequest->request->get('version', 0);
+        if ($submittedVersion <= 0) {
+            if ($isAjax) {
+                return new JsonResponse(['ok' => false, 'message' => 'Version de la demande invalide.'], Response::HTTP_BAD_REQUEST);
+            }
+            $this->addRequestFlash($httpRequest, 'danger', 'Version de la demande invalide.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        try {
+            $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
+        } catch (OptimisticLockException) {
+            if ($isAjax) {
+                return new JsonResponse(['ok' => false, 'message' => 'Cette demande a été modifiée entre-temps. Rechargez la page puis réessayez.'], Response::HTTP_CONFLICT);
+            }
+            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a été modifiée entre-temps. Rechargez la page puis réessayez.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        /** @var Ressource|null $ressource */
+        $ressource = $entityManager->getRepository(Ressource::class)->find($ressourceId);
+        if (!$ressource instanceof Ressource || $ressource->getCategory() !== 'materiel') {
+            if ($isAjax) {
+                return new JsonResponse(['ok' => false, 'message' => 'Matériel introuvable.'], Response::HTTP_NOT_FOUND);
+            }
+            $this->addRequestFlash($httpRequest, 'danger', 'Matériel introuvable.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        $parentRequest = $requestEntity->getParentRequest();
+        $isTrackedByClosure = $parentRequest instanceof AccessRequest
+            && $parentRequest->getRessources()->contains($ressource);
+
+        if (!$isTrackedByClosure) {
+            if ($isAjax) {
+                return new JsonResponse(['ok' => false, 'message' => 'Ce matériel n\'est pas lié à la demande d\'origine.'], Response::HTTP_BAD_REQUEST);
+            }
+            $this->addRequestFlash($httpRequest, 'danger', 'Ce matériel n\'est pas lié à la demande d\'origine.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        if ($requestEntity->getRessources()->contains($ressource)) {
+            $requestEntity->removeRessource($ressource);
+            $message = 'Matériel marqué comme remis.';
+            $newStatus = 'remis';
+        } else {
+            $requestEntity->addRessource($ressource);
+            $message = 'Matériel repassé en non remis.';
+            $newStatus = 'non_remis';
+        }
+
+        $requestEntity->setUpdateDate(new \DateTimeImmutable());
+
+        $entityManager->flush();
+
+        if ($isAjax) {
+            return new JsonResponse([
+                'ok' => true,
+                'message' => $message,
+                'ressourceId' => $ressourceId,
+                'newStatus' => $newStatus,
+                'version' => $requestEntity->getVersion(),
+                'canFinalizeClosure' => $workflowService->canFinalizeClosureByAnyUser($requestEntity),
+            ]);
+        }
+
+        $this->addRequestFlash($httpRequest, 'success', $message);
+
+        return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+    }
 
     // ! route pour exporter la liste des demandes au format CSV
     #[Route('/request/exportCsv', name: 'app_request_export_csv', methods: ['GET'])]
@@ -467,44 +627,44 @@ final class ListRequestController extends AbstractController
     }
 
     #[Route('/request/{id}/unblock', name: 'app_request_unblock', methods: ['POST'], requirements: ['id' => '\\d+'])]
-public function unblock(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
-{
-    $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+    public function unblock(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
-    $user = $this->getUser();
-    if (!$user instanceof User) {
-        throw $this->createAccessDeniedException();
-    }
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
 
-    if (!$this->isGranted(RequestVoter::UNBLOCK, $requestEntity)) {
-        $entityManager->refresh($requestEntity);
         if (!$this->isGranted(RequestVoter::UNBLOCK, $requestEntity)) {
-            $this->addRequestFlash($httpRequest, 'warning', 'Deblocage impossible. La demande n est pas bloquee.');
+            $entityManager->refresh($requestEntity);
+            if (!$this->isGranted(RequestVoter::UNBLOCK, $requestEntity)) {
+                $this->addRequestFlash($httpRequest, 'warning', 'Deblocage impossible. La demande n est pas bloquee.');
+                return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+            }
+        }
+
+        if (!$this->isCsrfTokenValid('workflow_unblock_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
+            $this->addRequestFlash($httpRequest, 'danger', 'Token de securite invalide.');
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
-    }
 
-    if (!$this->isCsrfTokenValid('workflow_unblock_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
-        $this->addRequestFlash($httpRequest, 'danger', 'Token de securite invalide.');
+        $submittedVersion = (int) $httpRequest->request->get('version', 0);
+        if ($submittedVersion <= 0) {
+            $this->addRequestFlash($httpRequest, 'danger', 'Version de la demande invalide.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        try {
+            $entityManager->lock($requestEntity, \Doctrine\DBAL\LockMode::OPTIMISTIC, $submittedVersion);
+            $workflowService->unblockByRh($requestEntity, $user, (string) $httpRequest->request->get('comment', ''));
+            $this->addRequestFlash($httpRequest, 'info', 'La demande a ete debloquee par RH.');
+        } catch (\Doctrine\ORM\OptimisticLockException) {
+            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a ete modifiee entre-temps. Rechargez la page puis reessayez.');
+        } catch (\InvalidArgumentException | \LogicException $e) {
+            $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
+        }
+
         return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
     }
-
-    $submittedVersion = (int) $httpRequest->request->get('version', 0);
-    if ($submittedVersion <= 0) {
-        $this->addRequestFlash($httpRequest, 'danger', 'Version de la demande invalide.');
-        return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-    }
-
-    try {
-        $entityManager->lock($requestEntity, \Doctrine\DBAL\LockMode::OPTIMISTIC, $submittedVersion);
-        $workflowService->unblockByRh($requestEntity, $user, (string) $httpRequest->request->get('comment', ''));
-        $this->addRequestFlash($httpRequest, 'info', 'La demande a ete debloquee par RH.');
-    } catch (\Doctrine\ORM\OptimisticLockException) {
-        $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a ete modifiee entre-temps. Rechargez la page puis reessayez.');
-    } catch (\InvalidArgumentException | \LogicException $e) {
-        $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
-    }
-
-    return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-}
 }
