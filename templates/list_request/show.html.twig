@@ -100,11 +100,11 @@
 								{% if requestEntity.agent %}
 									<dl class="row mb-0">
 										<dt class="col-sm-4">Agent</dt>
-										<dd class="col-sm-8">{{ requestEntity.agent.firstname }}
-											{{ requestEntity.agent.lastname }}</dd>
+										<dd class="col-sm-8">{{ requestEntity.agent.firstname|capitalize }}
+											{{ requestEntity.agent.lastname|capitalize }}</dd>
 
 										<dt class="col-sm-4">Fonction</dt>
-										<dd class="col-sm-8">{{ requestEntity.agent.jobTitle ?: '-' }}</dd>
+										<dd class="col-sm-8">{{ requestEntity.agent.jobTitle ? requestEntity.agent.jobTitle|capitalize : '-' }}</dd>
 
 										<dt class="col-sm-4">Service</dt>
 										<dd class="col-sm-8">{{ requestEntity.agent.service ? requestEntity.agent.service.name : '-' }}</dd>

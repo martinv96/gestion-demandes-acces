@@ -139,7 +139,7 @@
 										<td class="fw-semibold">{{ request.reference }}</td>
 										<td>
 											{% if request.agent %}
-												{{ request.agent.firstname }} {{ request.agent.lastname }}
+												{{ request.agent.firstname|capitalize }} {{ request.agent.lastname|capitalize }}
 												{% elseif request.author %}
 												{{ request.author.displayName}}
 											{% else %}

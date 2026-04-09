@@ -20,12 +20,12 @@
 
                         <div class="col-md-4">
                             <label for="rh_edit_prenom" class="form-label">Prenom agent</label>
-                            <input type="text" class="form-control" id="rh_edit_prenom" name="prenom" value="{{ requestEntity.agent ? requestEntity.agent.firstname : '' }}" required>
+                            <input type="text" class="form-control" id="rh_edit_prenom" name="prenom" value="{{ requestEntity.agent ? requestEntity.agent.firstname|capitalize : '' }}" required>
                         </div>
 
                         <div class="col-md-4">
                             <label for="rh_edit_nom" class="form-label">Nom agent</label>
-                            <input type="text" class="form-control" id="rh_edit_nom" name="nom" value="{{ requestEntity.agent ? requestEntity.agent.lastname : '' }}" required>
+                            <input type="text" class="form-control" id="rh_edit_nom" name="nom" value="{{ requestEntity.agent ? requestEntity.agent.lastname|capitalize : '' }}" required>
                         </div>
 
                         <div class="col-md-4">
@@ -40,7 +40,7 @@
 
                         <div class="col-md-4">
                             <label for="rh_edit_fonction" class="form-label">Fonction</label>
-                            <input type="text" class="form-control" id="rh_edit_fonction" name="fonction" value="{{ requestEntity.agent ? requestEntity.agent.jobTitle : '' }}" required>
+                            <input type="text" class="form-control" id="rh_edit_fonction" name="fonction" value="{{ requestEntity.agent ? requestEntity.agent.jobTitle|capitalize : '' }}" required>
                         </div>
 
                         <div class="col-md-4">

@@ -449,7 +449,7 @@ final class ListRequestController extends AbstractController
 
         $spreadsheet = $requestExportSpreadsheetService->buildSpreadsheet($filters, $scope);
 
-        $filename = sprintf('demandes_acces_%s.xlsx', (new \DateTimeImmutable())->format('Y-m-d_His'));
+        $filename = sprintf('demandes_acces_%s.xlsx', (new \DateTimeImmutable())->format('Y-m-d_H\hi'));
 
         $response = new StreamedResponse(function () use ($spreadsheet): void {
             $writer = new Xlsx($spreadsheet);

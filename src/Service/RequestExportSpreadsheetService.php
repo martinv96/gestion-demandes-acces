@@ -105,10 +105,10 @@ class RequestExportSpreadsheetService
             $requestType = $requestEntity->getType() ?? '';
             $history = ($requestId !== null && isset($latestHistoryByRequestId[$requestId])) ? $latestHistoryByRequestId[$requestId] : null;
 
-            $agentFullName = trim((string) $agentEntity?->getFirstname() . ' ' . (string) $agentEntity?->getLastname());
-            if ($agentFullName === '') {
-                $agentFullName = '-';
-            }
+            $agentFullName = $this->formatAgentFullName(
+                $agentEntity?->getFirstname(),
+                $agentEntity?->getLastname(),
+            );
 
             $summaryRows[] = [
                 $requestEntity->getReference(),
@@ -121,7 +121,6 @@ class RequestExportSpreadsheetService
                 $history?->getCommentary() ?? '-',
                 $history?->getDate()?->format('d/m/Y H:i') ?? '-',
             ];
-
             $summaryStyleMetaByRow[$row] = [
                 'type' => $requestType,
                 'status' => $requestStatus,
@@ -204,10 +203,10 @@ class RequestExportSpreadsheetService
             $serviceEntity = $agentEntity?->getService();
             $requestStatus = $requestEntity->getStatus() ?? '';
             $requestType = $requestEntity->getType() ?? '';
-            $agentFullName = trim((string) $agentEntity?->getFirstname() . ' ' . (string) $agentEntity?->getLastname());
-            if ($agentFullName === '') {
-                $agentFullName = '-';
-            }
+            $agentFullName = $this->formatAgentFullName(
+                $agentEntity?->getFirstname(),
+                $agentEntity?->getLastname(),
+            );
 
             $logiciels = [];
             $materiels = [];
@@ -347,5 +346,22 @@ class RequestExportSpreadsheetService
         $sheet->getStyle($cell)->getBorders()->getLeft()
             ->setBorderStyle(Border::BORDER_MEDIUM)
             ->getColor()->setARGB($borderColor);
+    }
+
+    private function formatAgentFullName(?string $firstname, ?string $lastname): string
+    {
+        $fullName = trim($this->toTitleCase($firstname) . ' ' . $this->toTitleCase($lastname));
+
+        return $fullName === '' ? '-' : $fullName;
+    }
+
+    private function toTitleCase(?string $value): string
+    {
+        $normalized = trim((string) $value);
+        if ($normalized === '') {
+            return '';
+        }
+
+        return mb_convert_case(mb_strtolower($normalized), MB_CASE_TITLE, 'UTF-8');
     }
 }

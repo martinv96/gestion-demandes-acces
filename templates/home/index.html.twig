@@ -67,8 +67,8 @@
 								<td>{{ request.reference }}</td>
 								<td>
 									{% if request.agent %}
-										{{ request.agent.firstname }}
-										{{ request.agent.lastname }}
+										{{ request.agent.firstname|capitalize }}
+										{{ request.agent.lastname|capitalize }}
 									{% else %}
 										-
 									{% endif %}
