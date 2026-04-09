@@ -7,13 +7,15 @@
 
 	{# Contenu principal #}
 	<div class="container-fluid">
+	{% block page_title %}
 		<div class="d-flex justify-content-between align-items-center mb-4">
 			<div>
-				<h1 class="h3 mb-1">Demandes d'accès</h1>
-				<p class="text-muted mb-0">Suivi des demandes et des ressources associées</p>
+				<h1 class="h3 mb-1">Dernières demandes</h1>
+				<p class="text-muted mb-0">Retrouvez ici les dernières demandes d'accès</p>
 			</div>
 			<a href="{{ path('app_new_request') }}" class="btn btn-primary">Nouvelle demande</a>
 		</div>
+		{% endblock %}
 
 		{% if totalCount == 0 %}
 			<div class="alert alert-info" role="alert">
@@ -162,7 +164,17 @@
                                         'refusee_st':     ['danger',  'Refusée DGA-ST'],
                                         'refusee_dsi':    ['danger',  'Refusée DSI'],
                                     } %}
-											{% set cfg = statusMap[request.status] ?? ['secondary', request.status|replace({'_': ' '})] %}
+											{% if request.status in statusMap|keys %}
+												{% set cfg = statusMap[request.status] %}
+											{% elseif request.status starts with 'en_attente_' %}
+												{% set roleLabel = request.status|replace({'en_attente_': ''})|upper %}
+												{% set cfg = ['secondary', 'En attente ' ~ roleLabel] %}
+											{% elseif request.status starts with 'refusee_' %}
+												{% set roleLabel = request.status|replace({'refusee_': ''})|upper %}
+												{% set cfg = ['danger', 'Refusée ' ~ roleLabel] %}
+											{% else %}
+												{% set cfg = ['secondary', request.status|replace({'_': ' '})] %}
+											{% endif %}
 											<span class="badge text-bg-{{ cfg[0] }}">{{ cfg[1] }}</span>
 										</td>
 										<td>{{ request.arrivalDate ? request.arrivalDate|date('d/m/Y') : '-' }}</td>

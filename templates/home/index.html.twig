@@ -91,8 +91,18 @@
 										'refusee_st':     {'label': 'Refusée DGA-ST', 'color': 'danger'},
 										'refusee_dsi':    {'label': 'Refusée DSI', 'color': 'danger'}
 									} %}
-									{% set statusConfig = statusMap[request.status] ?? {'label': request.status|replace({'_': ' '}), 'color': 'secondary'} %}
-									<span class="badge text-bg-{{ statusConfig.color }}">{{ statusConfig.label }}</span>
+									{% if request.status in statusMap|keys %}
+												{% set cfg = statusMap[request.status] %}
+											{% elseif request.status starts with 'en_attente_' %}
+												{% set roleLabel = request.status|replace({'en_attente_': ''})|upper %}
+											{% set cfg = {'label': 'En attente ' ~ roleLabel, 'color': 'secondary'} %}
+											{% elseif request.status starts with 'refusee_' %}
+												{% set roleLabel = request.status|replace({'refusee_': ''})|upper %}
+											{% set cfg = {'label': 'Refusée ' ~ roleLabel, 'color': 'danger'} %}
+											{% else %}
+											{% set cfg = {'label': request.status|replace({'_': ' '})|capitalize, 'color': 'secondary'} %}
+											{% endif %}
+										<span class="badge text-bg-{{ cfg.color }}">{{ cfg.label }}</span>
 								</td>
 								<td>{{ request.creationDate ? request.creationDate|date('d/m/Y') : '-' }}</td>
 

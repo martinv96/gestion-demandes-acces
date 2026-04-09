@@ -119,6 +119,9 @@ final class ListRequestController extends AbstractController
     ): Response {
         $canEditRequestInfo = $this->isGranted(RequestVoter::EDIT_INFO, $requestEntity);
         $canUndo = $this->isGranted(RequestVoter::UNDO, $requestEntity);
+        $canUnblock = $this->isGranted(RequestVoter::UNBLOCK, $requestEntity);
+        $isBlockedByMissingValidator = $workflowService->isBlockedByMissingValidator($requestEntity);
+        $missingValidatorLabel = $workflowService->getMissingValidatorLabel($requestEntity);
         $allLogiciels = $ressourceRepository->findBy(['category' => 'logiciel', 'isActive' => true], ['name' => 'ASC']);
         $allMateriels = $ressourceRepository->findBy(['category' => 'materiel', 'isActive' => true], ['name' => 'ASC']);
 
@@ -128,7 +131,10 @@ final class ListRequestController extends AbstractController
             'canValidate'   => $this->isGranted(RequestVoter::VALIDATE, $requestEntity),
             'canRefuse'     => $this->isGranted(RequestVoter::REFUSE, $requestEntity),
             'canUndo'       => $canUndo,
+            'canUnblock'    => $canUnblock,
             'canEditRequestInfo' => $canEditRequestInfo,
+            'isBlockedByMissingValidator' => $isBlockedByMissingValidator,
+            'missingValidatorLabel' => $missingValidatorLabel,
             'selectedServiceId' => $requestEntity->getAgent()?->getService()?->getId(),
             'availableServices' => $canEditRequestInfo
                 ? $serviceRepository->findBy([], ['name' => 'ASC'])
@@ -459,4 +465,46 @@ final class ListRequestController extends AbstractController
 
         return $response;
     }
+
+    #[Route('/request/{id}/unblock', name: 'app_request_unblock', methods: ['POST'], requirements: ['id' => '\\d+'])]
+public function unblock(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
+{
+    $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+    $user = $this->getUser();
+    if (!$user instanceof User) {
+        throw $this->createAccessDeniedException();
+    }
+
+    if (!$this->isGranted(RequestVoter::UNBLOCK, $requestEntity)) {
+        $entityManager->refresh($requestEntity);
+        if (!$this->isGranted(RequestVoter::UNBLOCK, $requestEntity)) {
+            $this->addRequestFlash($httpRequest, 'warning', 'Deblocage impossible. La demande n est pas bloquee.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+    }
+
+    if (!$this->isCsrfTokenValid('workflow_unblock_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
+        $this->addRequestFlash($httpRequest, 'danger', 'Token de securite invalide.');
+        return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+    }
+
+    $submittedVersion = (int) $httpRequest->request->get('version', 0);
+    if ($submittedVersion <= 0) {
+        $this->addRequestFlash($httpRequest, 'danger', 'Version de la demande invalide.');
+        return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+    }
+
+    try {
+        $entityManager->lock($requestEntity, \Doctrine\DBAL\LockMode::OPTIMISTIC, $submittedVersion);
+        $workflowService->unblockByRh($requestEntity, $user, (string) $httpRequest->request->get('comment', ''));
+        $this->addRequestFlash($httpRequest, 'info', 'La demande a ete debloquee par RH.');
+    } catch (\Doctrine\ORM\OptimisticLockException) {
+        $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a ete modifiee entre-temps. Rechargez la page puis reessayez.');
+    } catch (\InvalidArgumentException | \LogicException $e) {
+        $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
+    }
+
+    return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+}
 }

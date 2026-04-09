@@ -16,28 +16,26 @@ class UserRepository extends ServiceEntityRepository
         parent::__construct($registry, User::class);
     }
 
-    //    /**
-    //     * @return User[] Returns an array of User objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('u')
-    //            ->andWhere('u.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('u.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    // ajout d'une méthode de controle des comptes actifs par role workflow
+    public function hasActiveUserForWorkflowRole(string $workflowRole): bool
+    {
+        if(!str_starts_with($workflowRole, 'ROLE_')) {
+            return false;
+        }
 
-    //    public function findOneBySomeField($value): ?User
-    //    {
-    //        return $this->createQueryBuilder('u')
-    //            ->andWhere('u.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        $serviceCode = strtolower(substr($workflowRole, strlen('ROLE_')));
+        if ($serviceCode ==='') {
+            return false;
+        }
+
+        return (int) $this->createQueryBuilder('u')
+            ->select('COUNT(u.id)')
+            ->leftJoin('u.service', 's')
+            ->andWhere('u.isActive = :isActive')
+            ->andWhere('LOWER(s.code) = :serviceCode')
+            ->setParameter('isActive', true)
+            ->setParameter('serviceCode', $serviceCode)
+            ->getQuery()
+            ->getSingleScalarResult() > 0;
+    }
 }

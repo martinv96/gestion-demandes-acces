@@ -1,2 +1,15 @@
 {% extends 'list_request/index.html.twig' %}
 
+{# Le titre de l'onglet du navigateur #}
+{% block title %}Historique des demandes{% endblock %}
+
+{# block titre history #}
+{% block page_title %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Historique</h1>
+            <p class="text-muted mb-0">Retrouvez toutes les demandes d'accès</p>
+        </div>
+        <a href="{{ path('app_new_request') }}" class="btn btn-primary">Nouvelle demande</a>
+    </div>
+{% endblock %}

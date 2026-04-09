@@ -5,12 +5,18 @@ namespace App\Service;
 use App\Entity\Request as AccessRequest;
 use App\Entity\User;
 use App\Entity\WorkflowHistory;
+use App\Repository\UserRepository;
 use App\Repository\WorkflowTransitionConfigRepository;
+use App\Service\Workflow\WorkflowBlockageHelper;
 use Doctrine\ORM\EntityManagerInterface;
+use LogicException;
 
 
 class WorkflowService
 {
+    private WorkflowBlockageHelper $workflowBlockageHelper;
+    private mixed $userRepository;
+
     // Statuts possibles
     public const STATUS_EN_ATTENTE_RH  = 'en_attente_rh';
     public const STATUS_EN_ATTENTE_ST  = 'en_attente_st';
@@ -161,7 +167,25 @@ class WorkflowService
     private const DEFAULT_WORKFLOW_CODE = 'default_access';
 
     // Constructeur pour injecter l'EntityManager et le repository
-    public function __construct(private EntityManagerInterface $em, private WorkflowTransitionConfigRepository $workflowTransitionConfigRepository) {}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private WorkflowTransitionConfigRepository $workflowTransitionConfigRepository,
+        ?UserRepository $userRepository = null
+    ) {
+        if ($userRepository instanceof UserRepository) {
+            $this->userRepository = $userRepository;
+        } else {
+            $this->userRepository = $this->em->getRepository(User::class);
+        }
+
+        $this->workflowBlockageHelper = new WorkflowBlockageHelper(
+            $this->workflowTransitionConfigRepository,
+            $this->userRepository,
+            self::DEFAULT_WORKFLOW_CODE,
+            self::TRANSITIONS,
+            self::LABELS,
+        );
+    }
 
     public function canValidate(AccessRequest $request, User $user): bool
     {
@@ -361,7 +385,7 @@ class WorkflowService
     {
         $roles = array_filter(
             $user->getRoles(),
-            static fn (string $role): bool => str_starts_with($role, 'ROLE_') && !in_array($role, ['ROLE_USER', 'ROLE_ADMIN'], true)
+            static fn(string $role): bool => str_starts_with($role, 'ROLE_') && !in_array($role, ['ROLE_USER', 'ROLE_ADMIN'], true)
         );
 
         return array_values(array_unique($roles));
@@ -378,5 +402,46 @@ class WorkflowService
 
         return $currentUser->getUserIdentifier() !== ''
             && $currentUser->getUserIdentifier() === $latestUser->getUserIdentifier();
+    }
+
+
+    public function canUnblockByRh(AccessRequest $request, User $user): bool
+    {
+        return $this->workflowBlockageHelper->canUnblockByRh($request, $user);
+    }
+
+    public function unblockByRh(AccessRequest $request, User $user, string $comment): void
+    {
+        if (trim($comment) === '') {
+            throw new \InvalidArgumentException('Un commentaire est obligatoire pour débloquer.');
+        }
+
+        if (!$this->canUnblockByRh($request, $user)) {
+            throw new LogicException('Deblocage non autorisé pour cette demande.');
+        }
+
+        $currentStatus = (string) ($request->getStatus() ?? '');
+        $nextStatus = $this->workflowBlockageHelper->resolveNextValidationStatus($request, $currentStatus);
+
+        if ($nextStatus === null || $nextStatus === '') {
+            throw new \LogicException('Transition de déblocage introuvable.');
+        }
+
+        $this->applyTransition(
+            $request,
+            $user,
+            $nextStatus,
+            'Deblocage RH (compte valideur inactif/supprime) : ' . trim($comment)
+        );
+    }
+
+    public function isBlockedByMissingValidator(AccessRequest $request): bool
+    {
+        return $this->workflowBlockageHelper->isBlockedByMissingValidator($request);
+    }
+
+    public function getMissingValidatorLabel(AccessRequest $request): string
+    {
+        return $this->workflowBlockageHelper->getMissingValidatorLabel($request);
     }
 }
