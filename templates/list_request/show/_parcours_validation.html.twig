@@ -1,0 +1,182 @@
+{% import 'list_request/show/_macros.html.twig' as macros %}
+
+<div class="col-xl-4 col-xxl-3 order-1 order-xl-2">
+    <aside class="validation-journey-card card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <p class="validation-journey-eyebrow mb-1">Suivi</p>
+                    <h2 class="h5 mb-0">Parcours de validation</h2>
+                </div>
+                {{ macros.statusBadge(requestEntity.status) }}
+            </div>
+
+            <ol class="validation-timeline list-unstyled mb-0">
+                <li class="validation-step is-complete">
+                    <span class="validation-step-marker"></span>
+                    <div class="validation-step-content">
+                        <p class="validation-step-title mb-1">Demande créée</p>
+                        <p class="validation-step-meta mb-0">
+                            Par {{ createdBy }}
+                            {% if createdAt %}
+                                le {{ createdAt|date('d/m/Y') }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </li>
+
+                {% if requestEntity.workflowSnapshot %}
+                    {% set transitions = requestEntity.workflowSnapshot %}
+                    {% set uniqueFromStatuses = [] %}
+                    {% set statusLabels = {
+                        'en_attente_rh': 'Validation RH',
+                        'en_attente_st': 'Validation DGA-ST',
+                        'en_attente_dsi': 'Validation DSI',
+                        'en_attente_edu': 'Validation EDU',
+                        'traitee': 'Demande traitee'
+                    } %}
+
+                    {% for transition in transitions %}
+                        {% if transition.action == 'validate' and transition.fromStatus not in uniqueFromStatuses %}
+                            {% set validation_dates = {
+                                'en_attente_rh': rhValidatedAt,
+                                'en_attente_st': stValidatedAt,
+                                'en_attente_dsi': dsiValidatedAt,
+                                'en_attente_edu': null
+                            } %}
+
+                            {% set fromStatus = transition.fromStatus %}
+                            {% set toStatus = transition.toStatus %}
+                            {% if fromStatus in statusLabels|keys %}
+                                {% set stepTitle = statusLabels[fromStatus] %}
+                            {% elseif fromStatus starts with 'en_attente_' %}
+                                {% set stepTitle = 'Validation ' ~ (fromStatus|replace({'en_attente_': ''})|upper) %}
+                            {% else %}
+                                {% set stepTitle = fromStatus %}
+                            {% endif %}
+                            {% set stepDate = validation_dates[fromStatus] ?? null %}
+
+                            {% set isComplete = false %}
+                            {% set isCurrent = false %}
+                            {% set isRefused = false %}
+
+                            {% if stepDate or requestEntity.status == 'traitee' or requestEntity.status == toStatus or (toStatus == 'traitee' and requestEntity.status == 'traitee') %}
+                                {% set isComplete = true %}
+                            {% elseif requestEntity.status == fromStatus %}
+                                {% set isCurrent = true %}
+                            {% elseif requestEntity.status starts with 'refusee_' %}
+                                {% if (fromStatus == 'en_attente_rh' and requestEntity.status == 'refusee_rh') or
+                                    (fromStatus == 'en_attente_st' and requestEntity.status == 'refusee_st') or
+                                    (fromStatus == 'en_attente_dsi' and requestEntity.status == 'refusee_dsi') or
+                                    (fromStatus == 'en_attente_edu' and requestEntity.status == 'refusee_edu') %}
+                                    {% set isRefused = true %}
+                                    {% set isCurrent = true %}
+                                {% endif %}
+                            {% endif %}
+
+                            <li class="validation-step {{ isRefused ? 'is-refused' : (isComplete ? 'is-complete' : (isCurrent ? 'is-current' : 'is-pending')) }}">
+                                <span class="validation-step-marker"></span>
+                                <div class="validation-step-content">
+                                    <p class="validation-step-title mb-1">{{ stepTitle }}</p>
+                                    <p class="validation-step-meta mb-0">
+                                        {% if isRefused %}
+                                            Refusée
+                                        {% elseif stepDate %}
+                                            Validée le {{ stepDate|date('d/m/Y') }}
+                                        {% elseif not isComplete and not isCurrent %}
+                                            En attente
+                                        {% elseif isCurrent %}
+                                            Etape en cours
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </li>
+
+                            {% set uniqueFromStatuses = uniqueFromStatuses|merge([fromStatus]) %}
+                        {% endif %}
+                    {% endfor %}
+
+                    <li class="validation-step {{ treatedStepDone ? 'is-complete' : 'is-pending' }}">
+                        <span class="validation-step-marker"></span>
+                        <div class="validation-step-content">
+                            <p class="validation-step-title mb-1">Demande traitée</p>
+                            <p class="validation-step-meta mb-0">
+                                {% if treatedStepDone and requestEntity.updateDate %}
+                                    Finalisée le {{ requestEntity.updateDate|date('d/m/Y') }}
+                                {% else %}
+                                    En attente de la validation finale
+                                {% endif %}
+                            </p>
+                        </div>
+                    </li>
+                {% else %}
+                    <li class="validation-step {{ requestEntity.status == 'refusee_rh' ? 'is-refused' : (rhStepDone ? 'is-complete' : 'is-current') }}">
+                        <span class="validation-step-marker"></span>
+                        <div class="validation-step-content">
+                            <p class="validation-step-title mb-1">Validation RH</p>
+                            <p class="validation-step-meta mb-0">
+                                {% if rhValidatedAt %}
+                                    Validée le {{ rhValidatedAt|date('d/m/Y') }}
+                                {% elseif requestEntity.status == 'refusee_rh' %}
+                                    Refusée par le service RH
+                                {% else %}
+                                    Etape en cours
+                                {% endif %}
+                            </p>
+                        </div>
+                    </li>
+
+                    <li class="validation-step {{ requestEntity.status == 'refusee_st' ? 'is-refused' : (stStepDone ? 'is-complete' : (rhStepDone ? 'is-current' : 'is-pending')) }}">
+                        <span class="validation-step-marker"></span>
+                        <div class="validation-step-content">
+                            <p class="validation-step-title mb-1">Validation DGA-ST</p>
+                            <p class="validation-step-meta mb-0">
+                                {% if stValidatedAt %}
+                                    Validée le {{ stValidatedAt|date('d/m/Y') }}
+                                {% elseif requestEntity.status == 'refusee_st' %}
+                                    Refusée, en attente de reprise RH
+                                {% elseif not rhStepDone %}
+                                    En attente de la validation RH
+                                {% else %}
+                                    Etape en cours
+                                {% endif %}
+                            </p>
+                        </div>
+                    </li>
+
+                    <li class="validation-step {{ requestEntity.status == 'refusee_dsi' ? 'is-refused' : (dsiStepDone ? 'is-complete' : (stStepDone ? 'is-current' : 'is-pending')) }}">
+                        <span class="validation-step-marker"></span>
+                        <div class="validation-step-content">
+                            <p class="validation-step-title mb-1">Validation DSI</p>
+                            <p class="validation-step-meta mb-0">
+                                {% if dsiValidatedAt %}
+                                    Validée le {{ dsiValidatedAt|date('d/m/Y') }}
+                                {% elseif requestEntity.status == 'refusee_dsi' %}
+                                    Refusée, retour demande au DGA-ST
+                                {% elseif stStepDone %}
+                                    Etape en cours
+                                {% else %}
+                                    En attente de la validation DGA-ST
+                                {% endif %}
+                            </p>
+                        </div>
+                    </li>
+
+                    <li class="validation-step {{ treatedStepDone ? 'is-complete' : 'is-pending' }}">
+                        <span class="validation-step-marker"></span>
+                        <div class="validation-step-content">
+                            <p class="validation-step-title mb-1">Demande traitée</p>
+                            <p class="validation-step-meta mb-0">
+                                {% if treatedStepDone and requestEntity.updateDate %}
+                                    Finalisée le {{ requestEntity.updateDate|date('d/m/Y') }}
+                                {% else %}
+                                    En attente de la validation finale
+                                {% endif %}
+                            </p>
+                        </div>
+                    </li>
+                {% endif %}
+            </ol>
+        </div>
+    </aside>
+</div>

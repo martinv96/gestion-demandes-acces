@@ -1,0 +1,23 @@
+{% macro statusBadge(status) %}
+	{% set map = {
+        'en_attente_rh':  ['info',     'En attente RH'],
+        'en_attente_st':  ['warning',  'En attente DGA-ST'],
+        'en_attente_dsi': ['primary',  'En attente DSI'],
+        'traitee':        ['success',  'Traitée'],
+        'refusee_rh':     ['danger',   'Refusée par RH'],
+        'refusee_st':     ['danger',   'Refusée par DGA-ST'],
+        'refusee_dsi':    ['danger',   'Refusée par DSI'],
+    } %}
+	{% if status in map|keys %}
+		{% set cfg = map[status] %}
+	{% elseif status starts with 'en_attente_' %}
+		{% set roleLabel = status|replace({'en_attente_': ''})|upper %}
+		{% set cfg = ['secondary', 'En attente ' ~ roleLabel] %}
+	{% elseif status starts with 'refusee_' %}
+		{% set roleLabel = status|replace({'refusee_': ''})|upper %}
+		{% set cfg = ['danger', 'Refusée par ' ~ roleLabel] %}
+	{% else %}
+		{% set cfg = ['secondary', status] %}
+	{% endif %}
+	<span class="badge text-bg-{{ cfg[0] }}">{{ cfg[1] }}</span>
+{% endmacro %}

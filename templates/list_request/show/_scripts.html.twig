@@ -1,0 +1,74 @@
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var actionButtons = Array.from(document.querySelectorAll('[data-workflow-action]'));
+    var panels = Array.from(document.querySelectorAll('[data-workflow-panel]'));
+    var openButtons = Array.from(document.querySelectorAll('[data-workflow-open]'));
+    var cancelButtons = Array.from(document.querySelectorAll('[data-workflow-cancel]'));
+
+    if (panels.length > 0) {
+        function closeAllPanels() {
+            panels.forEach(function (panel) {
+                panel.classList.add('d-none');
+            });
+
+            actionButtons.forEach(function (actionBlock) {
+                actionBlock.classList.remove('d-none');
+            });
+        }
+
+        function openPanel(target) {
+            closeAllPanels();
+
+            var panel = document.querySelector('[data-workflow-panel="' + target + '"]');
+            if (panel) {
+                panel.classList.remove('d-none');
+            }
+
+            actionButtons.forEach(function (actionBlock) {
+                actionBlock.classList.add('d-none');
+            });
+        }
+
+        openButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                openPanel(button.getAttribute('data-workflow-open'));
+            });
+        });
+
+        cancelButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                closeAllPanels();
+            });
+        });
+    }
+
+    var rhTypeRadios = Array.from(document.querySelectorAll('input[name="type"]'));
+    var rhLogicielsCard = document.getElementById('rh-edit-logiciels-card');
+    var rhMaterielCard = document.getElementById('rh-edit-materiel-card');
+
+    function toggleRhResourcesByType() {
+        var selectedType = null;
+        rhTypeRadios.forEach(function (radio) {
+            if (radio.checked) {
+                selectedType = radio.value;
+            }
+        });
+
+        if (!rhLogicielsCard || !rhMaterielCard) {
+            return;
+        }
+
+        var isFermeture = selectedType === 'fermeture';
+        rhLogicielsCard.style.display = isFermeture ? 'none' : 'block';
+        rhMaterielCard.style.display = isFermeture ? 'none' : 'block';
+    }
+
+    if (rhTypeRadios.length > 0) {
+        rhTypeRadios.forEach(function (radio) {
+            radio.addEventListener('change', toggleRhResourcesByType);
+        });
+        toggleRhResourcesByType();
+    }
+});
+</script>

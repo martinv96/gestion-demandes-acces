@@ -3,14 +3,13 @@
 namespace App\Controller;
 
 use App\Entity\Request as AccessRequest;
-use App\Entity\Ressource;
 use App\Entity\Service;
 use App\Entity\User;
-use App\Entity\WorkflowHistory;
 use App\Repository\RessourceRepository;
 use App\Repository\RequestRepository;
 use App\Repository\ServiceRepository;
-use App\Repository\WorkflowHistoryRepository;
+use App\Service\RequestExportSpreadsheetService;
+use App\Service\RequestUpdateInfoService;
 use App\Service\WorkflowService;
 use App\Security\Voter\RequestVoter;
 use Doctrine\ORM\EntityManagerInterface;
@@ -19,13 +18,10 @@ use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 
 
@@ -122,23 +118,29 @@ final class ListRequestController extends AbstractController
         ServiceRepository $serviceRepository
     ): Response {
         $canEditRequestInfo = $this->isGranted(RequestVoter::EDIT_INFO, $requestEntity);
+        $canUndo = $this->isGranted(RequestVoter::UNDO, $requestEntity);
+        $allLogiciels = $ressourceRepository->findBy(['category' => 'logiciel', 'isActive' => true], ['name' => 'ASC']);
+        $allMateriels = $ressourceRepository->findBy(['category' => 'materiel', 'isActive' => true], ['name' => 'ASC']);
 
         return $this->render('list_request/show.html.twig', [
             'requestEntity' => $requestEntity,
 
             'canValidate'   => $this->isGranted(RequestVoter::VALIDATE, $requestEntity),
             'canRefuse'     => $this->isGranted(RequestVoter::REFUSE, $requestEntity),
+            'canUndo'       => $canUndo,
             'canEditRequestInfo' => $canEditRequestInfo,
             'selectedServiceId' => $requestEntity->getAgent()?->getService()?->getId(),
             'availableServices' => $canEditRequestInfo
                 ? $serviceRepository->findBy([], ['name' => 'ASC'])
                 : [],
             'availableLogiciels' => $canEditRequestInfo
-                ? $ressourceRepository->findBy(['category' => 'logiciel', 'isActive' => true], ['name' => 'ASC'])
+                ? $allLogiciels
                 : [],
             'availableMateriels' => $canEditRequestInfo
-                ? $ressourceRepository->findBy(['category' => 'materiel', 'isActive' => true], ['name' => 'ASC'])
+                ? $allMateriels
                 : [],
+            'allLogiciels' => $allLogiciels,
+            'allMateriels' => $allMateriels,
         ]);
     }
 
@@ -158,38 +160,88 @@ final class ListRequestController extends AbstractController
             // Revalide après refresh pour éviter un faux 403 sur état intermédiaire.
             $entityManager->refresh($requestEntity);
             if (!$this->isGranted(RequestVoter::VALIDATE, $requestEntity)) {
-                $this->addFlash('warning', 'Action non autorisée dans l\'état actuel de la demande. Recharge la page.');
+                $this->addRequestFlash($httpRequest, 'warning', 'Une action est déjà en cours. Recharger la page.');
 
                 return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
             }
         }
 
         if (!$this->isCsrfTokenValid('workflow_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
-            $this->addFlash('danger', 'Token de sécurité invalide.');
+            $this->addRequestFlash($httpRequest, 'danger', 'Token de sécurité invalide.');
 
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
         $submittedVersion = (int) $httpRequest->request->get('version', 0);
         if ($submittedVersion <= 0) {
-            $this->addFlash('danger', 'Version de la demande invalide.');
+            $this->addRequestFlash($httpRequest, 'danger', 'Version de la demande invalide.');
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
         try {
             $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
         } catch (OptimisticLockException) {
-            $this->addFlash('warning', 'Cette demande a été modifiée entre-temps. Recharge la page puis réessaie.');
+            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a été modifiée entre-temps. Recharger la page puis réessayer.');
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
         try {
             $workflowService->validate($requestEntity, $user, (string) $httpRequest->request->get('comment', ''));
-            $this->addFlash('success', 'La demande a été validée.');
+            $this->addRequestFlash($httpRequest, 'success', 'La demande a été validée.');
         } catch (\InvalidArgumentException $e) {
-            $this->addFlash('danger', $e->getMessage());
+            $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
         } catch (\LogicException $e) {
-            $this->addFlash('danger', $e->getMessage());
+            $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+    }
+
+    #[Route('/request/{id}/undo-decision', name: 'app_request_undo_decision', methods: ['POST'], requirements: ['id' => '\\d+'])]
+    public function undoDecision(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        if (!$this->isGranted(RequestVoter::UNDO, $requestEntity)) {
+            $entityManager->refresh($requestEntity);
+            if (!$this->isGranted(RequestVoter::UNDO, $requestEntity)) {
+                $this->addRequestFlash($httpRequest, 'warning', 'Impossible d\'annuler cette décision. Recharger la page.');
+
+                return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+            }
+        }
+
+        if (!$this->isCsrfTokenValid('workflow_undo_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
+            $this->addRequestFlash($httpRequest, 'danger', 'Token de sécurité invalide.');
+
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        $submittedVersion = (int) $httpRequest->request->get('version', 0);
+        if ($submittedVersion <= 0) {
+            $this->addRequestFlash($httpRequest, 'danger', 'Version de la demande invalide.');
+
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        try {
+            $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
+        } catch (OptimisticLockException) {
+            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a été modifiée entre-temps. Recharger la page puis réessayer.');
+
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        try {
+            $workflowService->undoLastDecision($requestEntity, $user, (string) $httpRequest->request->get('comment', ''));
+            $this->addRequestFlash($httpRequest, 'info', 'La dernière décision a été annulée.');
+        } catch (\InvalidArgumentException | \LogicException $e) {
+            $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
         }
 
         return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
@@ -211,38 +263,38 @@ final class ListRequestController extends AbstractController
             // Revalide après refresh pour éviter un faux 403 sur état intermédiaire.
             $entityManager->refresh($requestEntity);
             if (!$this->isGranted(RequestVoter::REFUSE, $requestEntity)) {
-                $this->addFlash('warning', 'Action non autorisée dans l\'état actuel de la demande. Recharge la page.');
+                $this->addRequestFlash($httpRequest, 'warning', 'Une action est déjà en cours. Recharger la page.');
 
                 return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
             }
         }
 
         if (!$this->isCsrfTokenValid('workflow_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
-            $this->addFlash('danger', 'Token de sécurité invalide.');
+            $this->addRequestFlash($httpRequest, 'danger', 'Token de sécurité invalide.');
 
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
         $submittedVersion = (int) $httpRequest->request->get('version', 0);
         if ($submittedVersion <= 0) {
-            $this->addFlash('danger', 'Version de la demande invalide.');
+            $this->addRequestFlash($httpRequest, 'danger', 'Version de la demande invalide.');
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
         try {
             $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
         } catch (OptimisticLockException) {
-            $this->addFlash('warning', 'Cette demande a été modifiée entre-temps. Recharge la page puis réessaie.');
+            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a été modifiée entre-temps. Recharger la page puis réessayer.');
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
         try {
             $workflowService->refuse($requestEntity, $user, (string) $httpRequest->request->get('comment', ''));
-            $this->addFlash('warning', 'La demande a été refusée.');
+            $this->addRequestFlash($httpRequest, 'warning', 'La demande a été refusée.');
         } catch (\InvalidArgumentException $e) {
-            $this->addFlash('danger', $e->getMessage());
+            $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
         } catch (\LogicException $e) {
-            $this->addFlash('danger', $e->getMessage());
+            $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
         }
 
         return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
@@ -254,7 +306,8 @@ final class ListRequestController extends AbstractController
     public function updateInfo(
         AccessRequest $requestEntity,
         Request $httpRequest,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        RequestUpdateInfoService $requestUpdateInfoService,
     ): Response {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -267,7 +320,7 @@ final class ListRequestController extends AbstractController
             // Revalide après refresh pour éviter un faux 403 sur état intermédiaire.
             $entityManager->refresh($requestEntity);
             if (!$this->isGranted(RequestVoter::EDIT_INFO, $requestEntity)) {
-                $this->addFlash('warning', 'Action non autorisée dans l\'état actuel de la demande. Recharge la page.');
+                $this->addRequestFlash($httpRequest, 'warning', 'Une action est déjà en cours. Recharger la page.');
 
                 return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
             }
@@ -275,152 +328,64 @@ final class ListRequestController extends AbstractController
 
         // ! vérification du token CSRF pour sécuriser la requête de mise à jour des informations de la demande
         if (!$this->isCsrfTokenValid('request_edit_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
-            $this->addFlash('danger', 'Token de sécurité invalide.');
+            $this->addRequestFlash($httpRequest, 'danger', 'Token de sécurité invalide.');
 
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
-        // ! récupération et validation des données du formulaire de mise à jour des informations de la demande
+        $submittedVersion = (int) $httpRequest->request->get('version', 0);
+        if ($submittedVersion <= 0) {
+            $this->addRequestFlash($httpRequest, 'danger', 'Version de la demande invalide.');
+            return $this->redirectToRoute('app_request_show',['id' => $requestEntity->getId()]);
+        }
+
         try {
-            $type = (string) $httpRequest->request->get('type', $requestEntity->getType() ?? AccessRequest::TYPE_OUVERTURE);
-            if (!in_array($type, AccessRequest::TYPES, true)) {
-                throw new \InvalidArgumentException('Type de demande invalide.');
-            }
+            $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
+        } catch (OptimisticLockException) {
+            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a été modifiée entre-temps. Rechargez la page puis réessayez.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
 
-            $requestEntity->setType($type);
+        try {
+            /** @var array<string> $logiciels */
+            $logiciels = $httpRequest->request->all('logiciels');
+            /** @var array<string> $materiels */
+            $materiels = $httpRequest->request->all('materiel');
 
-            $agent = $requestEntity->getAgent();
-            // ! si demande n'a pas d'agent associé, on ne peut pas mettre à jour les informations de l'agent, donc on lance une exception
-            if ($agent === null) {
-                throw new \LogicException('Aucun agent associé à la demande.');
-            }
+            $requestUpdateInfoService->update($requestEntity, [
+                'type' => (string) $httpRequest->request->get('type', $requestEntity->getType() ?? AccessRequest::TYPE_OUVERTURE),
+                'civilite' => (string) $httpRequest->request->get('civilite', ''),
+                'prenom' => (string) $httpRequest->request->get('prenom', ''),
+                'nom' => (string) $httpRequest->request->get('nom', ''),
+                'fonction' => (string) $httpRequest->request->get('fonction', ''),
+                'service' => (int) $httpRequest->request->get('service', 0),
+                'date_arrivee' => (string) $httpRequest->request->get('date_arrivee', ''),
+                'date_depart' => (string) $httpRequest->request->get('date_depart', ''),
+                'commentaire' => (string) $httpRequest->request->get('commentaire', ''),
+                'logiciels' => $logiciels,
+                'materiel' => $materiels,
+            ]);
 
-            $agent
-                ->setCivility((string) $httpRequest->request->get('civilite', $agent->getCivility() ?? 'N/A'))
-                ->setFirstname((string) $httpRequest->request->get('prenom', $agent->getFirstname() ?? ''))
-                ->setLastname((string) $httpRequest->request->get('nom', $agent->getLastname() ?? ''))
-                ->setJobTitle((string) $httpRequest->request->get('fonction', $agent->getJobTitle() ?? ''));
-
-            $serviceId = (int) $httpRequest->request->get('service', 0);
-
-            // ! si un service est sélectionné (id > 0), on le récupère et on l'associe à l'agent, sinon on laisse le service actuel de l'agent
-            if ($serviceId > 0) {
-                $service = $entityManager->getRepository(Service::class)->find($serviceId);
-                if (!$service instanceof Service) {
-                    throw new \InvalidArgumentException('Service invalide.');
-                }
-                $agent->setService($service);
-            }
-
-            $arrivalDate = (string) $httpRequest->request->get('date_arrivee', '');
-
-            // ! si date arrivé fournie, on la convertit en DateTime 
-            // !et on la set sur la demande, sinon on laisse la date d'arrivée actuelle de la demande
-            if ($arrivalDate !== '') {
-                $requestEntity->setArrivalDate(new \DateTime($arrivalDate));
-            }
-
-            $departureDate = (string) $httpRequest->request->get('date_depart', '');
-            $requestEntity->setDepartureDate($departureDate !== '' ? new \DateTime($departureDate) : null);
-
-            // Conserve le commentaire existant et ajoute uniquement la nouvelle saisie RH.
-            $newCommentary = trim((string) $httpRequest->request->get('commentaire', ''));
-            if ($newCommentary !== '') {
-                $existingCommentary = trim((string) ($requestEntity->getCommentary() ?? ''));
-                $timestamp = (new \DateTimeImmutable())->format('d/m/Y H:i');
-                $newEntry = sprintf('[%s] RH: %s', $timestamp, $newCommentary);
-
-                $requestEntity->setCommentary(
-                    $existingCommentary === ''
-                        ? $newEntry
-                        : $existingCommentary . "\n" . $newEntry
-                );
-            }
-
-            // ! mise à jour des ressources associées à la demande : 
-            // ! on supprime d'abord toutes les ressources existantes, 
-            // ! puis on ajoute celles sélectionnées dans le formulaire
-            foreach ($requestEntity->getRessources()->toArray() as $existingResource) {
-                $requestEntity->removeRessource($existingResource);
-            }
-
-            if ($type !== AccessRequest::TYPE_FERMETURE) {
-                /** @var array<string> $logiciels */
-                $logiciels = $httpRequest->request->all('logiciels');
-                foreach ($this->normalizeResourceNames($logiciels) as $logicielName) {
-                    $ressource = $this->findOrCreateRessource($logicielName, 'logiciel', $entityManager);
-                    $ressource->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
-                    $requestEntity->addRessource($ressource);
-                }
-
-                /** @var array<string> $materiels */
-                $materiels = $httpRequest->request->all('materiel');
-                foreach ($this->normalizeResourceNames($materiels) as $materielName) {
-                    $ressource = $this->findOrCreateRessource($materielName, 'materiel', $entityManager);
-                    $ressource->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
-                    $requestEntity->addRessource($ressource);
-                }
-            }
-
-            $requestEntity->setUpdateDate(new \DateTimeImmutable());
-
-            $entityManager->flush();
-            $this->addFlash('success', 'Les informations de la demande ont été mises à jour.');
+            $this->addRequestFlash($httpRequest, 'success', 'Les informations de la demande ont été mises à jour.');
         } catch (\InvalidArgumentException | \LogicException $e) {
-            $this->addFlash('danger', $e->getMessage());
+            $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
         }
 
         return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
     }
 
-    // ! Méthode utilitaire pour trouver ou créer une ressource
-    private function findOrCreateRessource(
-        string $name,
-        string $category,
-        EntityManagerInterface $entityManager
-    ): Ressource {
-        /** @var Ressource|null $ressource */
-        $ressource = $entityManager->getRepository(Ressource::class)->findOneBy(['name' => $name]);
-        if ($ressource instanceof Ressource) {
-            return $ressource;
-        }
-
-        $ressource = new Ressource();
-        $ressource
-            ->setName($name)
-            ->setCategory($category)
-            ->setAssignmentStatus(Ressource::ASSIGNMENT_NON_ATTRIBUE)
-            ->setIsActive(true);
-
-        $entityManager->persist($ressource);
-
-        return $ressource;
-    }
-
-    /**
-     * @param array<string> $rawNames
-     *
-     * @return array<string>
-     */
-    // ! Méthode utilitaire pour normaliser les noms de ressources (trim, unique, etc.)
-    private function normalizeResourceNames(array $rawNames): array
+    private function addRequestFlash(Request $httpRequest, string $type, string $message): void
     {
-        $normalized = [];
-
-        foreach ($rawNames as $rawName) {
-            if (!is_string($rawName)) {
-                continue;
-            }
-
-            $name = trim($rawName);
-            if ($name === '') {
-                continue;
-            }
-
-            $normalized[] = $name;
+        if (!$httpRequest->hasSession()) {
+            return;
         }
 
-        return array_values(array_unique($normalized));
+        $session = $httpRequest->getSession();
+        if (!$session instanceof FlashBagAwareSessionInterface) {
+            return;
+        }
+
+        $session->getFlashBag()->add($type, $message);
     }
 
 
@@ -428,8 +393,7 @@ final class ListRequestController extends AbstractController
     #[Route('/request/exportCsv', name: 'app_request_export_csv', methods: ['GET'])]
     public function exportXlsx(
         Request $httpRequest,
-        RequestRepository $requestRepository,
-        WorkflowHistoryRepository $historyRepository
+        RequestExportSpreadsheetService $requestExportSpreadsheetService
     ): Response {
         // ! vérification que l'utilisateur est authentifié avant de permettre l'exportation de la liste des demandes
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
@@ -477,170 +441,16 @@ final class ListRequestController extends AbstractController
 
         $scope = (string) $httpRequest->query->get('scope', 'current');
 
-        // ! récupération des demandes filtrées à partir du repository, ainsi que de l'historique le plus récent pour chaque demande
-        $requests = $scope === 'history'
-            ? $requestRepository->findWithFilters($filters)
-            : $requestRepository->findCurrentWithFilters($filters);
-        $latestHistoryByRequestId = $historyRepository->findLatestByRequests($requests);
-
-        // ! définition des labels lisibles pour les statuts et types de demandes, qui seront utilisés dans l'export Excel
-        $statusLabels = [
-            AccessRequest::STATUS_EN_ATTENTE_RH => 'En attente RH',
-            AccessRequest::STATUS_EN_ATTENTE_ST => 'En attente DGA-ST',
-            AccessRequest::STATUS_EN_ATTENTE_DSI => 'En attente DSI',
-            AccessRequest::STATUS_TRAITEE => 'Traitée',
-            AccessRequest::STATUS_REFUSEE_RH => 'Refusée RH',
-            AccessRequest::STATUS_REFUSEE_ST => 'Refusée DGA-ST',
-            AccessRequest::STATUS_REFUSEE_DSI => 'Refusée DSI',
-        ];
-
-        $typeLabels = [
-            AccessRequest::TYPE_OUVERTURE => 'Ouverture',
-            AccessRequest::TYPE_MODIFICATION => 'Modification',
-            AccessRequest::TYPE_FERMETURE => 'Fermeture',
-        ];
-
-        // ! création d'un nouveau classeur Excel et configuration de la feuille de calcul pour l'export des demandes
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Demandes');
-
-        // ! définition de styles de couleurs pour les différentes valeurs de statut et de type de demandes,
-        // ! qui seront appliqués aux cellules correspondantes dans l'export Excel pour une meilleure lisibilité
-        $statusStyleMap = [
-            AccessRequest::STATUS_EN_ATTENTE_RH => ['font' => 'FF9A6700', 'border' => 'FFF59E0B'],
-            AccessRequest::STATUS_EN_ATTENTE_ST => ['font' => 'FF9A6700', 'border' => 'FFF59E0B'],
-            AccessRequest::STATUS_EN_ATTENTE_DSI => ['font' => 'FF1D4ED8', 'border' => 'FF60A5FA'],
-            AccessRequest::STATUS_TRAITEE => ['font' => 'FF15803D', 'border' => 'FF4ADE80'],
-            AccessRequest::STATUS_REFUSEE_RH => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
-            AccessRequest::STATUS_REFUSEE_ST => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
-            AccessRequest::STATUS_REFUSEE_DSI => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
-        ];
-
-        $typeStyleMap = [
-            AccessRequest::TYPE_OUVERTURE => ['font' => 'FF0F766E', 'border' => 'FF2DD4BF'],
-            AccessRequest::TYPE_MODIFICATION => ['font' => 'FF1D4ED8', 'border' => 'FF60A5FA'],
-            AccessRequest::TYPE_FERMETURE => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
-        ];
-
-        // En-tetes
-        $headers = [
-            'Référence',
-            'Type',
-            'Statut',
-            'Agent',
-            'Service',
-            'Date d\'arrivée',
-            'Date de départ',
-            'Dernier commentaire',
-            'Date de dernière action',
-        ];
-
-        $sheet->fromArray($headers, null, 'A1');
-
-        // Style en-tete
-        $spreadsheet->getDefaultStyle()->getFont()->setName('Aptos')->setSize(11);
-        $sheet->getStyle('A1:I1')->getFont()->setBold(true)->setSize(12)->getColor()->setARGB('FF1F2937');
-        $sheet->getStyle('A1:I1')->getAlignment()
-            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
-            ->setVertical(Alignment::VERTICAL_CENTER);
-        $sheet->getStyle('A1:I1')->getFill()
-            ->setFillType(Fill::FILL_SOLID)
-            ->getStartColor()->setARGB('FFE2E8F0');
-        $sheet->getStyle('A1:I1')->getBorders()->getAllBorders()
-            ->setBorderStyle(Border::BORDER_THIN)
-            ->getColor()->setARGB('FFCBD5E1');
-        $sheet->getRowDimension(1)->setRowHeight(24);
-
-        $row = 2;
-
-        // ! boucle pour remplir les lignes de la feuille Excel avec les données des demandes, 
-        // ! en appliquant les styles définis en fonction du statut et du type de chaque demande
-        foreach ($requests as $requestEntity) {
-            $requestId = $requestEntity->getId();
-            $agentEntity = $requestEntity->getAgent();
-            $serviceEntity = $agentEntity?->getService();
-            $requestStatus = $requestEntity->getStatus() ?? '';
-            $requestType = $requestEntity->getType() ?? '';
-            $history = ($requestId !== null && isset($latestHistoryByRequestId[$requestId])) ? $latestHistoryByRequestId[$requestId] : null;
-
-            // ! construction du nom complet de l'agent (prénom + nom), ou '-' si les informations sont manquantes
-            $agentFullName = trim((string) $agentEntity?->getFirstname() . ' ' . (string) $agentEntity?->getLastname());
-            if ($agentFullName === '') {
-                $agentFullName = '-';
-            }
-
-            // ! remplissage des cellules de la ligne avec les données de la demande, en utilisant les labels lisibles pour le statut et le type
-            $sheet->setCellValue('A' . $row, $requestEntity->getReference());
-            $sheet->setCellValue('B' . $row, $typeLabels[$requestEntity->getType() ?? ''] ?? (string) $requestEntity->getType());
-            $sheet->setCellValue('C' . $row, $statusLabels[$requestEntity->getStatus() ?? ''] ?? (string) $requestEntity->getStatus());
-            $sheet->setCellValue('D' . $row, $agentFullName);
-            $sheet->setCellValue('E' . $row, $serviceEntity?->getName() ?? '-');
-            $sheet->setCellValue('F' . $row, $requestEntity->getArrivalDate()?->format('d/m/Y') ?? '-');
-            $sheet->setCellValue('G' . $row, $requestEntity->getDepartureDate()?->format('d/m/Y') ?? '-');
-            $sheet->setCellValue('H' . $row, $history?->getCommentary() ?? '-');
-            $sheet->setCellValue('I' . $row, $history?->getDate()?->format('d/m/Y H:i') ?? '-');
-
-            // ! application de styles conditionnels pour la ligne en fonction du statut et du type de la demande,
-            // ! ainsi que pour l'amélioration de la lisibilité (bordures, couleurs de fond alternées, alignement, etc.)
-            $sheet->getStyle('A' . $row . ':I' . $row)->getBorders()->getAllBorders()
-                ->setBorderStyle(Border::BORDER_THIN)
-                ->getColor()->setARGB('FFE5E7EB');
-
-            if ($row % 2 === 0) {
-                $sheet->getStyle('A' . $row . ':I' . $row)->getFill()
-                    ->setFillType(Fill::FILL_SOLID)
-                    ->getStartColor()->setARGB('FFF8FAFC');
-            }
-
-            $sheet->getStyle('A' . $row)->getFont()->setBold(true)->getColor()->setARGB('FF0F4C81');
-            $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-            $sheet->getStyle('B' . $row . ':C' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-            if (isset($typeStyleMap[$requestType])) {
-                $sheet->getStyle('B' . $row)->getFont()->setBold(true)->getColor()->setARGB($typeStyleMap[$requestType]['font']);
-                $sheet->getStyle('B' . $row)->getBorders()->getLeft()
-                    ->setBorderStyle(Border::BORDER_MEDIUM)
-                    ->getColor()->setARGB($typeStyleMap[$requestType]['border']);
-            }
-
-            if (isset($statusStyleMap[$requestStatus])) {
-                $sheet->getStyle('C' . $row)->getFont()->setBold(true)->getColor()->setARGB($statusStyleMap[$requestStatus]['font']);
-                $sheet->getStyle('C' . $row)->getBorders()->getLeft()
-                    ->setBorderStyle(Border::BORDER_MEDIUM)
-                    ->getColor()->setARGB($statusStyleMap[$requestStatus]['border']);
-            }
-
-            $sheet->getStyle('F' . $row . ':G' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('I' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getRowDimension($row)->setRowHeight(22);
-
-            $row++;
-        }
-
-        // ! Lisibilité : ajustement des colonnes, filtre et gel de la première ligne
-        foreach (range('A', 'I') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
-        $sheet->getColumnDimension('A')->setWidth(15);
-        $sheet->getColumnDimension('B')->setWidth(18);
-        $sheet->getColumnDimension('C')->setWidth(22);
-        $sheet->getColumnDimension('D')->setWidth(24);
-        $sheet->getColumnDimension('E')->setWidth(24);
-        $sheet->getColumnDimension('F')->setWidth(16);
-        $sheet->getColumnDimension('G')->setWidth(16);
-        $sheet->getColumnDimension('H')->setWidth(42);
-        $sheet->getColumnDimension('I')->setWidth(22);
-        $sheet->setAutoFilter('A1:I1');
-        $sheet->freezePane('A2');
-        $sheet->setSelectedCell('A1');
+        $spreadsheet = $requestExportSpreadsheetService->buildSpreadsheet($filters, $scope);
 
         $filename = sprintf('demandes_acces_%s.xlsx', (new \DateTimeImmutable())->format('Y-m-d_His'));
 
         $response = new StreamedResponse(function () use ($spreadsheet): void {
             $writer = new Xlsx($spreadsheet);
+            $writer->setPreCalculateFormulas(false);
             $writer->save('php://output');
+
+            $spreadsheet->disconnectWorksheets();
         });
 
         $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

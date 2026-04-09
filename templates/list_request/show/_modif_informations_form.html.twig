@@ -1,0 +1,124 @@
+{% if canEditRequestInfo %}
+    <div class="col-12">
+        <div class="card border-warning-subtle">
+            <div class="card-header">Modification des informations (RH)</div>
+            <div class="card-body">
+                <form method="post" action="{{ path('app_request_update_info', {id: requestEntity.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('request_edit_' ~ requestEntity.id) }}">
+                    <input type="hidden" name="version" value="{{ requestEntity.version}}" >
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="rh_edit_civilite" class="form-label">Civilite *</label>
+                            <select class="form-select" id="rh_edit_civilite" name="civilite" required>
+                                <option value="">Selectionner une civilite</option>
+                                <option value="M." {{ requestEntity.agent and requestEntity.agent.civility == 'M.' ? 'selected' : '' }}>M.</option>
+                                <option value="Mme" {{ requestEntity.agent and requestEntity.agent.civility == 'Mme' ? 'selected' : '' }}>Mme</option>
+                                <option value="Mlle" {{ requestEntity.agent and requestEntity.agent.civility == 'Mlle' ? 'selected' : '' }}>Mlle</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="rh_edit_prenom" class="form-label">Prenom agent</label>
+                            <input type="text" class="form-control" id="rh_edit_prenom" name="prenom" value="{{ requestEntity.agent ? requestEntity.agent.firstname : '' }}" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="rh_edit_nom" class="form-label">Nom agent</label>
+                            <input type="text" class="form-control" id="rh_edit_nom" name="nom" value="{{ requestEntity.agent ? requestEntity.agent.lastname : '' }}" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="rh_edit_service" class="form-label">Service *</label>
+                            <select class="form-select" id="rh_edit_service" name="service" required>
+                                <option value="">Selectionner un service</option>
+                                {% for service in availableServices %}
+                                    <option value="{{ service.id }}" {{ selectedServiceId == service.id ? 'selected' : '' }}>{{ service.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="rh_edit_fonction" class="form-label">Fonction</label>
+                            <input type="text" class="form-control" id="rh_edit_fonction" name="fonction" value="{{ requestEntity.agent ? requestEntity.agent.jobTitle : '' }}" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="rh_edit_date_arrivee" class="form-label">Date d'arrivee *</label>
+                            <input type="date" class="form-control" id="rh_edit_date_arrivee" name="date_arrivee" value="{{ requestEntity.arrivalDate ? requestEntity.arrivalDate|date('Y-m-d') : '' }}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="rh_edit_date_depart" class="form-label">Date de depart</label>
+                            <input type="date" class="form-control" id="rh_edit_date_depart" name="date_depart" value="{{ requestEntity.departureDate ? requestEntity.departureDate|date('Y-m-d') : '' }}">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Type de demande</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="type" id="rh_edit_ouverture" value="ouverture" {{ requestEntity.type == 'ouverture' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="rh_edit_ouverture">
+                                    Ouverture - Nouveau collaborateur
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="type" id="rh_edit_modification" value="modification" {{ requestEntity.type == 'modification' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="rh_edit_modification">
+                                    Modification - Changement de service ou fonction
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="type" id="rh_edit_fermeture" value="fermeture" {{ requestEntity.type == 'fermeture' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="rh_edit_fermeture">
+                                    Fermeture - Depart du collaborateur
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-12" id="rh-edit-logiciels-card">
+                            <label class="form-label">Acces logiciels</label>
+                            <div class="row g-2">
+                                {% for logiciel in availableLogiciels %}
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="logiciels[]" id="rh_edit_logiciel_{{ loop.index }}" value="{{ logiciel.name }}" {{ logiciel.name in selectedSoftwareNames ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="rh_edit_logiciel_{{ loop.index }}">{{ logiciel.name }}</label>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted mb-0">Aucun logiciel actif disponible.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="col-12" id="rh-edit-materiel-card">
+                            <label class="form-label">Materiel</label>
+                            <div class="row g-2">
+                                {% for materiel in availableMateriels %}
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="materiel[]" id="rh_edit_materiel_{{ loop.index }}" value="{{ materiel.name }}" {{ materiel.name|lower in selectedMaterialNamesLower ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="rh_edit_materiel_{{ loop.index }}">{{ materiel.name }}</label>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted mb-0">Aucun materiel actif disponible.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="rh_edit_commentaire" class="form-label">Commentaire demande</label>
+                            <textarea class="form-control" id="rh_edit_commentaire" name="commentaire" rows="3" placeholder="Ajouter un nouveau commentaire RH (il sera ajoute a la suite de l'historique)"></textarea>
+                            <div class="form-text">Le commentaire existant est conserve automatiquement.</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-warning">Enregistrer les modifications RH</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endif %}

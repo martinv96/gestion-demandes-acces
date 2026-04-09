@@ -241,6 +241,61 @@ class RequestRepository extends ServiceEntityRepository
         return $results;
     }
 
+    /**
+     * Requête optimisée pour l'export XLSX:
+     * - pas de jointure childRequests (inutile pour l'export)
+     * - conservation de agent/service/ressources pour alimenter les 2 onglets
+     *
+     * @param array{status?: string, serviceId?: int, type?: string, arrivalDate?: string, departureDate?: string, agent?: string} $filters
+     *
+     * @return list<Request>
+     */
+    public function findForExportWithFilters(array $filters = [], bool $historyScope = false, int $limit = 100): array
+    {
+        $qb = $this->createQueryBuilder('r')
+            ->leftJoin('r.agent', 'a')->addSelect('a')
+            ->leftJoin('a.service', 's')->addSelect('s')
+            ->leftJoin('r.ressources', 're')->addSelect('re')
+            ->orderBy('r.creationDate', 'ASC')
+            ->setMaxResults($limit);
+
+        if (!$historyScope) {
+            $this->applyCurrentScope($qb);
+        }
+
+        if (!empty($filters['status'])) {
+            $qb->andWhere('r.status = :status')->setParameter('status', $filters['status']);
+        }
+
+        if (!empty($filters['serviceId'])) {
+            $qb->andWhere('s.id = :serviceId')->setParameter('serviceId', $filters['serviceId']);
+        }
+
+        if (!empty($filters['type'])) {
+            $qb->andWhere('r.type = :type')->setParameter('type', $filters['type']);
+        }
+
+        if (!empty($filters['arrivalDate'])) {
+            $qb->andWhere('r.arrivalDate = :arrivalDate')
+                ->setParameter('arrivalDate', new \DateTime($filters['arrivalDate']));
+        }
+
+        if (!empty($filters['departureDate'])) {
+            $qb->andWhere('r.departureDate = :departureDate')
+                ->setParameter('departureDate', new \DateTime($filters['departureDate']));
+        }
+
+        if (!empty($filters['agent'])) {
+            $qb->andWhere('LOWER(a.firstname) LIKE :agent OR LOWER(a.lastname) LIKE :agent')
+                ->setParameter('agent', '%' . mb_strtolower($filters['agent']) . '%');
+        }
+
+        /** @var list<Request> $results */
+        $results = $qb->getQuery()->getResult();
+
+        return $results;
+    }
+
     // Méthode privée pour appliquer le scope "état actuel" à une requête
     private function applyCurrentScope(QueryBuilder $qb): void
     {

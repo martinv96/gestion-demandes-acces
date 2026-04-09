@@ -158,6 +158,47 @@ final class WorkflowServiceTest extends TestCase
         self::assertFalse($service->canEditAfterRefusal($request, $user));
     }
 
+    public function testCanUndoLastDecisionReturnsTrueForSameWorkflowActor(): void
+    {
+        $service = $this->createWorkflowService();
+        $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_EN_ATTENTE_ST);
+        $user = $this->createUserWithRoleLabel('RH');
+
+        $this->attachHistory($request, $user, WorkflowService::STATUS_EN_ATTENTE_RH, WorkflowService::STATUS_EN_ATTENTE_ST, 'Validation RH');
+
+        self::assertTrue($service->canUndoLastDecision($request, $user));
+    }
+
+    public function testCanUndoLastDecisionReturnsFalseWhenStatusHasAlreadyMoved(): void
+    {
+        $service = $this->createWorkflowService();
+        $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_EN_ATTENTE_DSI);
+        $latestActor = $this->createUserWithRoleLabel('RH');
+        $currentUser = $this->createUserWithRoleLabel('RH');
+
+        $this->attachHistory($request, $latestActor, WorkflowService::STATUS_EN_ATTENTE_RH, WorkflowService::STATUS_EN_ATTENTE_ST, 'Validation RH');
+
+        self::assertFalse($service->canUndoLastDecision($request, $currentUser));
+    }
+
+    public function testUndoLastDecisionRestoresPreviousStatusAndPersistsHistory(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())->method('persist')->with(self::isInstanceOf(WorkflowHistory::class));
+        $em->expects(self::once())->method('flush');
+
+        $service = $this->createWorkflowService($em);
+        $request = (new AccessRequest())->setStatus(WorkflowService::STATUS_EN_ATTENTE_ST);
+        $user = $this->createUserWithRoleLabel('RH');
+
+        $this->attachHistory($request, $user, WorkflowService::STATUS_EN_ATTENTE_RH, WorkflowService::STATUS_EN_ATTENTE_ST, 'Validation RH');
+
+        $service->undoLastDecision($request, $user, 'Oubli détecté');
+
+        self::assertSame(WorkflowService::STATUS_EN_ATTENTE_RH, $request->getStatus());
+        self::assertNotNull($request->getUpdateDate());
+    }
+
 
     private function createWorkflowService(?EntityManagerInterface $em = null): WorkflowService
     {
@@ -181,5 +222,18 @@ final class WorkflowServiceTest extends TestCase
             ->setPassword('x')
             ->setIsActive(true)
             ->setRole($role);
+    }
+
+    private function attachHistory(AccessRequest $request, User $user, string $oldStatus, string $newStatus, string $commentary): void
+    {
+        $history = (new WorkflowHistory())
+            ->setRequest($request)
+            ->setUser($user)
+            ->setOldStatus($oldStatus)
+            ->setNewStatus($newStatus)
+            ->setCommentary($commentary)
+            ->setDate(new \DateTimeImmutable());
+
+        $request->addRequestId($history);
     }
 }

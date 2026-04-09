@@ -1,0 +1,55 @@
+{% import 'list_request/show/_macros.html.twig' as macros %}
+<div class="col-12">
+    <div class="card">
+        <div class="card-header">Historique des validations</div>
+        <div class="card-body">
+            {% set sortedHistory = history|sort((a, b) => a.date <=> b.date) %}
+            {% if sortedHistory|length > 0 %}
+                <ul class="list-group list-group-flush history-list">
+                    {% for entry in sortedHistory %}
+                        {% set isRefusal = entry.newStatus starts with 'refusee_' %}
+                        {% set isReturnAfterRefusal =
+                            (entry.oldStatus == 'en_attente_st' and entry.newStatus == 'en_attente_rh')
+                            or (entry.oldStatus == 'en_attente_dsi' and entry.newStatus == 'en_attente_st')
+                        %}
+                        {% set eventType = isRefusal ? 'refusal' : (isReturnAfterRefusal ? 'return' : 'validation') %}
+                        {% set eventLabel = isRefusal ? 'Refus' : (isReturnAfterRefusal ? 'Retour' : 'Validation') %}
+                        {% set eventIcon = isRefusal ? 'x' : (isReturnAfterRefusal ? '↺' : '✓') %}
+                        <li class="list-group-item history-item px-0">
+                            <div class="history-item-top">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="history-event-pill history-event-{{ eventType }}">
+                                        <span class="history-event-icon">{{ eventIcon }}</span>
+                                        {{ eventLabel }}
+                                    </span>
+                                    <span class="history-actor fw-semibold">
+                                        {% if entry.user %}
+                                            {{ entry.user.displayName }}
+                                        {% else %}
+                                            Systeme
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <span class="history-date">
+                                    {{ entry.date ? entry.date|date('d/m/Y H:i') : '-' }}
+                                </span>
+                            </div>
+
+                            <div class="history-transition mt-2">
+                                {{ macros.statusBadge(entry.oldStatus) }}
+                                <span class="history-arrow">→</span>
+                                {{ macros.statusBadge(entry.newStatus) }}
+                            </div>
+
+                            {% if entry.commentary %}
+                                <p class="history-comment mt-2 mb-0">{{ entry.commentary }}</p>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted mb-0">Aucune action enregistree.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>

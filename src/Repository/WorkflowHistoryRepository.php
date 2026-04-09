@@ -85,4 +85,48 @@ public function findLatestByRequests(array $requests): array
 
     return $latestByRequestId;
 }
+
+public function findByRequests(array $requests): array
+{
+    $requestIds = [];
+
+    foreach ($requests as $request) {
+        $id = $request->getId();
+        if ($id !== null) {
+            $requestIds[] = $id;
+        }
+    }
+
+    if ($requestIds === []) {
+        return [];
+    }
+
+    $histories = $this->createQueryBuilder('w')
+        ->leftJoin('w.user', 'u')->addSelect('u')
+        ->andWhere('IDENTITY(w.request) IN (:requestIds)')
+        ->setParameter('requestIds', $requestIds)
+        ->orderBy('w.request', 'ASC')
+        ->addOrderBy('w.date', 'ASC')
+        ->addOrderBy('w.id', 'ASC')
+        ->getQuery()
+        ->getResult();
+
+    $historyByRequestId = [];
+
+    foreach ($histories as $history) {
+        if (!$history instanceof WorkflowHistory) {
+            continue;
+        }
+
+        $requestId = $history->getRequest()?->getId();
+        if ($requestId === null) {
+            continue;
+        }
+
+        $historyByRequestId[$requestId] ??= [];
+        $historyByRequestId[$requestId][] = $history;
+    }
+
+    return $historyByRequestId;
+}
 }

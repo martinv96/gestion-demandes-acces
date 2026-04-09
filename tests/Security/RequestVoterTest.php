@@ -99,4 +99,29 @@ final class RequestVoterTest extends TestCase
 
         self::assertSame(VoterInterface::ACCESS_DENIED, $result);
     }
+
+    public function testUndoAttributeDelegatesToWorkflowService(): void
+    {
+        $request = new AccessRequest();
+        $user = (new User())
+            ->setEmail('user@example.com')
+            ->setPassword('x')
+            ->setIsActive(true);
+
+        $workflow = $this->createMock(WorkflowService::class);
+        $workflow
+            ->expects(self::once())
+            ->method('canUndoLastDecision')
+            ->with($request, $user)
+            ->willReturn(true);
+
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getUser')->willReturn($user);
+
+        $voter = new RequestVoter($workflow);
+
+        $result = $voter->vote($token, $request, [RequestVoter::UNDO]);
+
+        self::assertSame(VoterInterface::ACCESS_GRANTED, $result);
+    }
 }

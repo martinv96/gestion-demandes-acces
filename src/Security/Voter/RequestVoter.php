@@ -15,6 +15,7 @@ final class RequestVoter extends Voter
     public const VALIDATE = 'REQUEST_VALIDATE';
     public const REFUSE = 'REQUEST_REFUSE';
     public const EDIT_INFO = 'REQUEST_EDIT_INFO';
+    public const UNDO = 'REQUEST_UNDO';
 
     public function __construct(private WorkflowService $workflowService)
     {
@@ -31,6 +32,7 @@ final class RequestVoter extends Voter
             self::VALIDATE,
             self::REFUSE,
             self::EDIT_INFO,
+            self::UNDO,
         ], true);
     }
 
@@ -51,6 +53,7 @@ final class RequestVoter extends Voter
             self::VALIDATE => $this->workflowService->canValidate($request, $user),
             self::REFUSE => $this->workflowService->canRefuse($request, $user),
             self::EDIT_INFO => $this->workflowService->canEditAfterRefusal($request, $user),
+            self::UNDO => $this->workflowService->canUndoLastDecision($request, $user),
             default => false,
         };
     }

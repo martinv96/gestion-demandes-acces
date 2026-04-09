@@ -178,6 +178,28 @@ class WorkflowService
         return $transition !== null && in_array($transition['role'], $user->getRoles(), true);
     }
 
+    public function canUndoLastDecision(AccessRequest $request, User $user): bool
+    {
+        $latestHistory = $this->getLatestHistory($request);
+        if (!$latestHistory instanceof WorkflowHistory) {
+            return false;
+        }
+
+        $currentStatus = $request->getStatus() ?? '';
+        $latestNewStatus = $latestHistory->getNewStatus() ?? '';
+
+        if ($currentStatus === '' || $latestNewStatus === '' || $currentStatus !== $latestNewStatus) {
+            return false;
+        }
+
+        $latestUser = $latestHistory->getUser();
+        if (!$latestUser instanceof User) {
+            return false;
+        }
+
+        return $this->shareWorkflowActor($user, $latestUser);
+    }
+
     // Méthode pour valider une demande avec un commentaire obligatoire
     public function validate(AccessRequest $request, User $user, string $comment): void
     {
@@ -208,6 +230,29 @@ class WorkflowService
         }
 
         $this->applyTransition($request, $user, $transition['next'], $comment);
+    }
+
+    public function undoLastDecision(AccessRequest $request, User $user, string $comment): void
+    {
+        if (trim($comment) === '') {
+            throw new \InvalidArgumentException('Un commentaire est obligatoire pour annuler une décision.');
+        }
+
+        $latestHistory = $this->getLatestHistory($request);
+        if (!$latestHistory instanceof WorkflowHistory) {
+            throw new \LogicException('Aucune décision récente à annuler.');
+        }
+
+        if (!$this->canUndoLastDecision($request, $user)) {
+            throw new \LogicException('Annulation de décision non autorisée.');
+        }
+
+        $previousStatus = trim((string) $latestHistory->getOldStatus());
+        if ($previousStatus === '') {
+            throw new \LogicException('Statut précédent introuvable.');
+        }
+
+        $this->applyTransition($request, $user, $previousStatus, 'Annulation de décision : ' . trim($comment));
     }
 
     // Méthode pour obtenir le label lisible d'un statut
@@ -278,5 +323,60 @@ class WorkflowService
         $status = $request->getStatus() ?? '';
 
         return str_starts_with($status, 'refusee_');
+    }
+
+    private function getLatestHistory(AccessRequest $request): ?WorkflowHistory
+    {
+        $latestHistory = null;
+
+        foreach ($request->getRequestId() as $history) {
+            if (!$history instanceof WorkflowHistory) {
+                continue;
+            }
+
+            if ($latestHistory === null || $this->isMoreRecentHistory($history, $latestHistory)) {
+                $latestHistory = $history;
+            }
+        }
+
+        return $latestHistory;
+    }
+
+    private function isMoreRecentHistory(WorkflowHistory $candidate, WorkflowHistory $reference): bool
+    {
+        $candidateTimestamp = $candidate->getDate()?->getTimestamp() ?? 0;
+        $referenceTimestamp = $reference->getDate()?->getTimestamp() ?? 0;
+
+        if ($candidateTimestamp !== $referenceTimestamp) {
+            return $candidateTimestamp > $referenceTimestamp;
+        }
+
+        return ($candidate->getId() ?? 0) > ($reference->getId() ?? 0);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getWorkflowRoles(User $user): array
+    {
+        $roles = array_filter(
+            $user->getRoles(),
+            static fn (string $role): bool => str_starts_with($role, 'ROLE_') && !in_array($role, ['ROLE_USER', 'ROLE_ADMIN'], true)
+        );
+
+        return array_values(array_unique($roles));
+    }
+
+    private function shareWorkflowActor(User $currentUser, User $latestUser): bool
+    {
+        $currentRoles = $this->getWorkflowRoles($currentUser);
+        $latestRoles = $this->getWorkflowRoles($latestUser);
+
+        if ($currentRoles !== [] && $latestRoles !== []) {
+            return array_intersect($currentRoles, $latestRoles) !== [];
+        }
+
+        return $currentUser->getUserIdentifier() !== ''
+            && $currentUser->getUserIdentifier() === $latestUser->getUserIdentifier();
     }
 }

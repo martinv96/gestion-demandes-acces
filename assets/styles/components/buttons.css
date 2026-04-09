@@ -63,3 +63,112 @@
     color: #dc3545 !important;
     background-color: #fef2f2;
 }
+
+.workflow-actions-card {
+    background: linear-gradient(180deg, #f7f8fb 0%, #eef1f5 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.workflow-actions-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7b8794;
+}
+
+.workflow-actions-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #273444;
+}
+
+.workflow-action-trigger,
+.workflow-submit-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 200px;
+    padding: 0.75rem 1.15rem;
+    border-radius: 999px;
+    border-width: 1px;
+    border-style: solid;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.workflow-action-trigger:hover,
+.workflow-submit-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 26px rgba(15, 23, 42, 0.09);
+}
+
+.workflow-action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    font-size: 0.95rem;
+}
+
+.workflow-action-trigger--validate,
+.workflow-submit-button--validate {
+    background-color: #e5f1ec;
+    border-color: #c5ddd2;
+    color: #255847;
+}
+
+.workflow-action-trigger--validate:hover,
+.workflow-submit-button--validate:hover {
+    background-color: #d8eae2;
+    border-color: #b3d1c2;
+    color: #1f4a3c;
+}
+
+.workflow-action-trigger--refuse,
+.workflow-submit-button--refuse {
+    background-color: #f6e8e3;
+    border-color: #e6c9bd;
+    color: #854c3d;
+}
+
+.workflow-action-trigger--refuse:hover,
+.workflow-submit-button--refuse:hover {
+    background-color: #f1ddd6;
+    border-color: #ddb6a7;
+    color: #754236;
+}
+
+.workflow-action-trigger--undo,
+.workflow-submit-button--undo {
+    background-color: #e8edf3;
+    border-color: #cdd7e2;
+    color: #405467;
+}
+
+.workflow-action-trigger--undo:hover,
+.workflow-submit-button--undo:hover {
+    background-color: #dde5ee;
+    border-color: #bcc8d6;
+    color: #33475a;
+}
+
+.workflow-secondary-button {
+    padding: 0.75rem 1.05rem;
+    border-radius: 999px;
+    border: 1px solid #d5dae1;
+    background-color: #ffffff;
+    color: #556372;
+    font-weight: 600;
+}
+
+.workflow-secondary-button:hover {
+    background-color: #f8fafc;
+    border-color: #c4ccd6;
+    color: #3f4e5d;
+}
