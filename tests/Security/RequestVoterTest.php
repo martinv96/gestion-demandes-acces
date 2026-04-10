@@ -124,4 +124,50 @@ final class RequestVoterTest extends TestCase
 
         self::assertSame(VoterInterface::ACCESS_GRANTED, $result);
     }
+
+    public function testUnsupportedAttributeAbstains(): void
+    {
+        $workflow = $this->createMock(workflowService::class);
+        $workflow->expects(self::never())->method('canValidate');
+
+        $user = (new User())
+            ->setEmail('user@mairie.fr')
+            ->setPassword('password')
+            ->setIsActive(true);
+        
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getUser')->willReturn($user);
+
+        $voter = new RequestVoter($workflow);
+
+        $result = $voter->vote($token, new AccessRequest(),
+        ['UNKNOWN_ATTRIBUTE']);
+
+        self::assertSame(VoterInterface::ACCESS_ABSTAIN, $result);
+    }
+
+    public function testUnblockAttributeDelegatesToWorkflowService(): void
+    {
+        $request = new AccessRequest();
+        $user = (new User())
+            ->setEmail('test@mairie.fr')
+            ->setPassword('password')
+            ->setIsActive(true);
+
+        $workflow = $this->createMock(workflowService::class);
+        $workflow
+            ->expects(self::once())
+            ->method('canUnblockByRh')
+            ->with($request, $user)
+            ->willReturn(true);
+
+        $token = $this->createMock(Tokeninterface::class);
+        $token->method('getUser')->willReturn($user);
+
+        $voter = new RequestVoter($workflow);
+
+        $result = $voter->vote($token, $request, [RequestVoter::UNBLOCK]);
+
+        self::assertSame(VoterInterface::ACCESS_GRANTED, $result);
+    }
 }

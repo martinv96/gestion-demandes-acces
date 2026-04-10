@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Service\WorkflowService;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 
 // Voter pour gérer les permissions liées aux demandes d'accès (validation, refus, édition après refus).
 // un voter est une classe qui décide si un utilisateur a le droit d'effectuer une action sur un objet donné.
@@ -16,7 +17,6 @@ final class RequestVoter extends Voter
     public const REFUSE = 'REQUEST_REFUSE';
     public const EDIT_INFO = 'REQUEST_EDIT_INFO';
     public const UNDO = 'REQUEST_UNDO';
-
     public const UNBLOCK = 'REQUEST_UNBLOCK';
 
     public function __construct(private WorkflowService $workflowService)
@@ -40,7 +40,7 @@ final class RequestVoter extends Voter
     }
 
     // ! methode qui permet de décider si l'utilisateur a le droit d'effectuer l'action sur le sujet
-    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
+    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
     {
         $user = $token->getUser();
 
