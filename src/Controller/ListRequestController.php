@@ -656,10 +656,10 @@ final class ListRequestController extends AbstractController
         }
 
         try {
-            $entityManager->lock($requestEntity, \Doctrine\DBAL\LockMode::OPTIMISTIC, $submittedVersion);
+            $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
             $workflowService->unblockByRh($requestEntity, $user, (string) $httpRequest->request->get('comment', ''));
             $this->addRequestFlash($httpRequest, 'info', 'La demande a ete debloquee par RH.');
-        } catch (\Doctrine\ORM\OptimisticLockException) {
+        } catch (OptimisticLockException) {
             $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a ete modifiee entre-temps. Rechargez la page puis reessayez.');
         } catch (\InvalidArgumentException | \LogicException $e) {
             $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());

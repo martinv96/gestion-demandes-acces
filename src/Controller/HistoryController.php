@@ -18,6 +18,13 @@ final class HistoryController extends AbstractController
         ServiceRepository $serviceRepository,
         Request $httpRequest
     ): Response {
+
+        $limit = 10;
+        $page = $httpRequest->query->getInt('page', 1);
+        if ($page < 1) $page =1;
+        $offset = ($page - 1) * $limit;
+
+
         $allowedStatuses = AccessRequest::WORKFLOW_STATUSES;
         $allowedTypes = AccessRequest::TYPES;
 
@@ -66,18 +73,22 @@ final class HistoryController extends AbstractController
             $agent = '';
         }
 
-        $requests            = $requestRepository->findWithFilters($filters);
+        $requests            = $requestRepository->findWithFilters($filters, $limit, $offset);
+        $totalWithFilters    = $requestRepository->countWithFilters($filters);
+        $maxPages            = ceil($totalWithFilters / $limit);
         $services            = $serviceRepository->findBy([], ['name' => 'ASC']);
         $availableDates      = $requestRepository->findDistinctArrivalDates();
         $availableDepartures = $requestRepository->findDistinctDepartureDates();
-        $totalCount          = $requestRepository->count([]);
+        
 
         return $this->render('history/index.html.twig', [
             'requests'            => $requests,
             'services'            => $services,
             'availableDates'      => $availableDates,
             'availableDepartures' => $availableDepartures,
-            'totalCount'          => $totalCount,
+            'currentPage'         => $page,
+            'maxPages'            => $maxPages,
+            'totalCount'          => $totalWithFilters,
             'filters'             => [
                 'status'        => $status,
                 'serviceId'     => $serviceId,

@@ -96,7 +96,7 @@
 						</div>
 						{% if filters.status or filters.serviceId or filters.type or filters.arrivalDate or filters.departureDate or filters.agent %}
 							<div class="col-12 col-md-12 col-xl-2 d-grid">
-								<a href="{{ path('app_list_request') }}" class="btn btn-sm btn-outline-secondary">Réinitialiser</a>
+								<a href="{{ path(resetRoute ?? 'app_list_request') }}" class="btn btn-sm btn-outline-secondary">Réinitialiser</a>
 							</div>
 						{% endif %}
 					</div>
@@ -199,6 +199,8 @@
 				</div>
 			{% endif %}
 		{% endif %}
+
+		{% block content %}{% endblock %} 
 	</div>
 
 	<script>

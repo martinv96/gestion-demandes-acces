@@ -13,3 +13,33 @@
         <a href="{{ path('app_new_request') }}" class="btn btn-primary">Nouvelle demande</a>
     </div>
 {% endblock %}
+
+{% block content %}
+    
+    {# Ton tableau s'affiche ici via le template parent ou ton code #}
+
+    {# BLOC PAGINATION A AJOUTER #}
+    {% if maxPages > 1 %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {# Précédent #}
+                <li class="page-item {{ currentPage == 1 ? 'disabled' : '' }}">
+                    <a class="page-link" href="{{ path('app_history', filters|merge({'page': currentPage - 1})) }}">Précédent</a>
+                </li>
+
+                {# Pages #}
+                {% for i in 1..maxPages %}
+                    <li class="page-item {{ i == currentPage ? 'active' : '' }}">
+                        <a class="page-link" href="{{ path('app_history', filters|merge({'page': i})) }}">{{ i }}</a>
+                    </li>
+                {% endfor %}
+
+                {# Suivant #}
+                <li class="page-item {{ currentPage == maxPages ? 'disabled' : '' }}">
+                    <a class="page-link" href="{{ path('app_history', filters|merge({'page': currentPage + 1})) }}">Suivant</a>
+                </li>
+            </ul>
+        </nav>
+    {% endif %}
+
+{% endblock %}
