@@ -239,7 +239,7 @@ class RequestRepository extends ServiceEntityRepository
             ->leftJoin('a.service', 's')->addSelect('s')
             ->leftJoin('r.ressources', 're')->addSelect('re')
             ->leftJoin('r.childRequests', 'children')->addSelect('children')
-            ->orderBy('r.creationDate', 'ASC')
+            ->orderBy('r.creationDate', 'DESC')
             ->setMaxResults($limit);
 
         $this->applyCurrentScope($qb);
@@ -292,7 +292,7 @@ class RequestRepository extends ServiceEntityRepository
             ->leftJoin('r.agent', 'a')->addSelect('a')
             ->leftJoin('a.service', 's')->addSelect('s')
             ->leftJoin('r.ressources', 're')->addSelect('re')
-            ->orderBy('r.creationDate', 'ASC')
+            ->orderBy('r.creationDate', 'DESC')
             ->setMaxResults($limit);
 
         if (!$historyScope) {

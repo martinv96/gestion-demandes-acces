@@ -85,7 +85,7 @@ final class ListRequestController extends AbstractController
         }
 
         $requests            = $requestRepository->findCurrentWithFilters($filters);
-        $services            = $serviceRepository->findBy([], ['name' => 'ASC']);
+        $services            = $serviceRepository->findBy([], ['name' => 'DESC']);
         $availableDates      = $requestRepository->findDistinctCurrentArrivalDates();
         $availableDepartures = $requestRepository->findDistinctCurrentDepartureDates();
         $totalCount          = $requestRepository->countCurrent();
@@ -418,6 +418,7 @@ final class ListRequestController extends AbstractController
                 'prenom' => (string) $httpRequest->request->get('prenom', ''),
                 'nom' => (string) $httpRequest->request->get('nom', ''),
                 'fonction' => (string) $httpRequest->request->get('fonction', ''),
+                'email' => (string) $httpRequest->request->get('email', ''),
                 'service' => (int) $httpRequest->request->get('service', 0),
                 'date_arrivee' => (string) $httpRequest->request->get('date_arrivee', ''),
                 'date_depart' => (string) $httpRequest->request->get('date_depart', ''),
@@ -457,6 +458,11 @@ final class ListRequestController extends AbstractController
         WorkflowService $workflowService
     ): Response {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
 
         $isAjax = $httpRequest->isXmlHttpRequest();
 
@@ -513,6 +519,17 @@ final class ListRequestController extends AbstractController
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
+        if (!$this->canManageClosureMaterial($ressource, $user)) {
+            $message = 'Ce matériel ne relève pas de votre service.';
+            if ($isAjax) {
+                return new JsonResponse(['ok' => false, 'message' => $message], Response::HTTP_FORBIDDEN);
+            }
+
+            $this->addRequestFlash($httpRequest, 'danger', $message);
+
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
         $parentRequest = $requestEntity->getParentRequest();
         $isTrackedByClosure = $parentRequest instanceof AccessRequest
             && $parentRequest->getRessources()->contains($ressource);
@@ -553,6 +570,27 @@ final class ListRequestController extends AbstractController
         $this->addRequestFlash($httpRequest, 'success', $message);
 
         return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+    }
+
+    private function canManageClosureMaterial(Ressource $ressource, User $user): bool
+    {
+        if ($this->isGranted('ROLE_ADMIN')) {
+            return true;
+        }
+
+        $name = mb_strtolower((string) ($ressource->getName() ?? ''));
+        $isDsiMaterial = str_contains($name, 'ordinateur') || str_contains($name, 'telephone') || str_contains($name, 'téléphone');
+        $isStMaterial = str_contains($name, 'cle') || str_contains($name, 'clé') || str_contains($name, 'badge');
+
+        if ($isDsiMaterial) {
+            return in_array('ROLE_DSI', $user->getRoles(), true);
+        }
+
+        if ($isStMaterial) {
+            return in_array('ROLE_ST', $user->getRoles(), true);
+        }
+
+        return in_array('ROLE_RH', $user->getRoles(), true);
     }
 
     // ! route pour exporter la liste des demandes au format CSV

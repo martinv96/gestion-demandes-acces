@@ -25,6 +25,9 @@ final class NewRequestType extends AbstractType
             ->add('civility', ChoiceType::class, [
                 'label' => 'Civilité *',
                 'placeholder' => 'Sélectionner une civilité',
+                'attr' => [
+                    'title' => 'Veuillez sélectionner une civilité.',
+                ],
                 'choices' => [
                     'M.' => 'M.',
                     'Mme' => 'Mme',
@@ -56,10 +59,13 @@ final class NewRequestType extends AbstractType
                 'label' => 'Fonction *',
             ])
             ->add('arrivalDate', DateType::class, [
-                'label' => 'Date d’arrivée',
+                'label' => 'Date d’arrivée *',
                 'widget' => 'single_text',
                 'input' => 'datetime',
-                'required' => false,
+                'attr' => [
+                    'title' => 'veuillez ajouter une date d\'arrivée',
+                ],
+                'required' => true,
             ])
             ->add('departureDate', DateType::class, [
                 'label' => 'Date de départ',

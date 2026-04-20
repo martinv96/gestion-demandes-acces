@@ -66,8 +66,79 @@ final class WorkflowServiceTest extends TestCase
 
         $service->validate($request, $user, 'Validation ok');
 
-        self::assertSame(WorkflowService::STATUS_EN_ATTENTE_ST, $request->getStatus());
+        self::assertSame(AccessRequest::STATUS_EN_ATTENTE_VALIDATION, $request->getStatus());
         self::assertNotNull($request->getUpdateDate());
+    }
+
+    public function testParallelValidationAllowsStBeforeDsi(): void
+    {
+        $service = $this->createWorkflowService();
+        $request = (new AccessRequest())->setStatus(AccessRequest::STATUS_EN_ATTENTE_VALIDATION);
+        $user = $this->createUserWithRoleLabel('ST');
+
+        self::assertTrue($service->canValidate($request, $user));
+    }
+
+    public function testParallelValidationAllowsDsiWithLegacyLinearSnapshot(): void
+    {
+        $service = $this->createWorkflowService();
+        $request = (new AccessRequest())
+            ->setStatus(AccessRequest::STATUS_EN_ATTENTE_VALIDATION)
+            ->setWorkflowSnapshot([
+                [
+                    'action' => 'validate',
+                    'fromStatus' => 'en_attente_rh',
+                    'toStatus' => 'en_attente_st',
+                    'requiredRole' => 'ROLE_RH',
+                ],
+                [
+                    'action' => 'validate',
+                    'fromStatus' => 'en_attente_st',
+                    'toStatus' => 'en_attente_dsi',
+                    'requiredRole' => 'ROLE_ST',
+                ],
+                [
+                    'action' => 'validate',
+                    'fromStatus' => 'en_attente_dsi',
+                    'toStatus' => 'traitee',
+                    'requiredRole' => 'ROLE_DSI',
+                ],
+            ]);
+
+        $user = $this->createUserWithRoleLabel('DSI');
+
+        self::assertTrue($service->canValidate($request, $user));
+    }
+
+    public function testParallelValidationAllowsDsiOnLegacyPendingStStatus(): void
+    {
+        $service = $this->createWorkflowService();
+        $request = (new AccessRequest())
+            ->setStatus(AccessRequest::STATUS_EN_ATTENTE_ST)
+            ->setWorkflowSnapshot([
+                [
+                    'action' => 'validate',
+                    'fromStatus' => 'en_attente_rh',
+                    'toStatus' => 'en_attente_st',
+                    'requiredRole' => 'ROLE_RH',
+                ],
+                [
+                    'action' => 'validate',
+                    'fromStatus' => 'en_attente_st',
+                    'toStatus' => 'en_attente_dsi',
+                    'requiredRole' => 'ROLE_ST',
+                ],
+                [
+                    'action' => 'validate',
+                    'fromStatus' => 'en_attente_dsi',
+                    'toStatus' => 'traitee',
+                    'requiredRole' => 'ROLE_DSI',
+                ],
+            ]);
+
+        $user = $this->createUserWithRoleLabel('DSI');
+
+        self::assertTrue($service->canValidate($request, $user));
     }
 
     /* 
@@ -141,7 +212,7 @@ final class WorkflowServiceTest extends TestCase
 
         $service->validate($request, $user, 'Reprise RH');
 
-        self::assertSame(WorkflowService::STATUS_EN_ATTENTE_DSI, $request->getStatus());
+        self::assertSame(AccessRequest::STATUS_EN_ATTENTE_VALIDATION, $request->getStatus());
     }
 
     /* 
@@ -156,6 +227,15 @@ final class WorkflowServiceTest extends TestCase
         $user = $this->createUserWithRoleLabel('DSI');
 
         self::assertFalse($service->canEditAfterRefusal($request, $user));
+    }
+
+    public function testCanEditDuringParallelValidationForServiceValidator(): void
+    {
+        $service = $this->createWorkflowService();
+        $request = (new AccessRequest())->setStatus(AccessRequest::STATUS_EN_ATTENTE_VALIDATION);
+        $user = $this->createUserWithRoleLabel('DSI');
+
+        self::assertTrue($service->canEditAfterRefusal($request, $user));
     }
 
     public function testCanUndoLastDecisionReturnsTrueForSameWorkflowActor(): void

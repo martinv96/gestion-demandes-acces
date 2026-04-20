@@ -15,17 +15,18 @@ class RequestUpdateInfoService
 
     /**
      * @param array{
-     *     type?: string,
-     *     civilite?: string,
-     *     prenom?: string,
-     *     nom?: string,
-     *     fonction?: string,
-     *     service?: int,
-     *     date_arrivee?: string,
-     *     date_depart?: string,
-     *     commentaire?: string,
-     *     logiciels?: array<string>,
-     *     materiel?: array<string>
+     * type?: string,
+     * civilite?: string,
+     * prenom?: string,
+     * nom?: string,
+     * email?: string,
+     * fonction?: string,
+     * service?: int,
+     * date_arrivee?: string,
+     * date_depart?: string,
+     * commentaire?: string,
+     * logiciels?: array<string>,
+     * materiel?: array<string>
      * } $payload
      */
     public function update(AccessRequest $requestEntity, array $payload): void
@@ -47,6 +48,14 @@ class RequestUpdateInfoService
             ->setFirstname((string) ($payload['prenom'] ?? $agent->getFirstname() ?? ''))
             ->setLastname((string) ($payload['nom'] ?? $agent->getLastname() ?? ''))
             ->setJobTitle((string) ($payload['fonction'] ?? $agent->getJobTitle() ?? ''));
+
+        // Logique pour l'email
+        $rawEmail = trim((string) ($payload['email'] ?? ''));
+        if ($rawEmail !== '' && filter_var($rawEmail, FILTER_VALIDATE_EMAIL) === false) {
+            throw new \InvalidArgumentException('Adresse email invalide.');
+        }
+
+        $agent->setEmail($rawEmail !== '' ? mb_strtolower($rawEmail) : null);
 
         $serviceId = (int) ($payload['service'] ?? 0);
         if ($serviceId > 0) {

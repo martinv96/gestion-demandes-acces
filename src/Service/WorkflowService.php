@@ -16,6 +16,7 @@ class WorkflowService
 {
     private WorkflowBlockageHelper $workflowBlockageHelper;
     private mixed $userRepository;
+    private const PARALLEL_FALLBACK_ROLES = ['ROLE_ST', 'ROLE_DSI'];
 
     // Statuts possibles
     public const STATUS_EN_ATTENTE_RH  = 'en_attente_rh';
@@ -31,6 +32,7 @@ class WorkflowService
     // Libellés lisibles pour l'affichage
     public const LABELS = [
         self::STATUS_EN_ATTENTE_RH  => 'En attente RH',
+        AccessRequest::STATUS_EN_ATTENTE_VALIDATION => 'En attente validations services',
         self::STATUS_EN_ATTENTE_ST  => 'En attente DGA-ST',
         self::STATUS_EN_ATTENTE_DSI => 'En attente DSI',
         self::STATUS_TRAITEE        => 'Traitée',
@@ -42,8 +44,12 @@ class WorkflowService
     // Transitions: statut_actuel -> action -> [role requis, prochain statut]
     private const TRANSITIONS = [
         self::STATUS_EN_ATTENTE_RH => [
-            'validate' => ['role' => 'ROLE_RH',  'next' => self::STATUS_EN_ATTENTE_ST],
+            'validate' => ['role' => 'ROLE_RH',  'next' => AccessRequest::STATUS_EN_ATTENTE_VALIDATION],
             'refuse'   => ['role' => 'ROLE_RH',  'next' => self::STATUS_REFUSEE_RH],
+        ],
+        AccessRequest::STATUS_EN_ATTENTE_VALIDATION => [
+            'validate' => ['role' => 'ROLE_ST',  'next' => AccessRequest::STATUS_EN_ATTENTE_VALIDATION],
+            'refuse'   => ['role' => 'ROLE_ST',  'next' => self::STATUS_REFUSEE_ST],
         ],
         self::STATUS_EN_ATTENTE_ST => [
             'validate' => ['role' => 'ROLE_ST',  'next' => self::STATUS_EN_ATTENTE_DSI],
@@ -55,30 +61,21 @@ class WorkflowService
         ],
     ];
 
-    private function resolveRhResumeNextStatus(AccessRequest $request, User $user): ?string
-    {
-        $snapshotTransition = $this->findTransitionInSnapshot($request, $user, 'validate', self::STATUS_EN_ATTENTE_RH);
-        if ($snapshotTransition !== null) {
-            return (string) $snapshotTransition['next'];
-        }
-
-        $rows = $this->workflowTransitionConfigRepository->findActiveTransitionsForWorkflow(self::DEFAULT_WORKFLOW_CODE);
-        foreach ($rows as $row) {
-            if (
-                $row->getAction() === 'validate'
-                && $row->getFromStatus() === self::STATUS_EN_ATTENTE_RH
-                && in_array($row->getRequiredRole(), $user->getRoles(), true)
-            ) {
-                return $row->getToStatus();
-            }
-        }
-
-        return self::TRANSITIONS[self::STATUS_EN_ATTENTE_RH]['validate']['next'] ?? null;
-    }
-
     private function resolveRefusalCycleTransition(AccessRequest $request, User $user, string $action, string $status): ?array
     {
-        if ($action === 'refuse' && str_starts_with($status, 'en_attente_')) {
+        if ($action === 'refuse' && $this->isParallelServicePhaseStatus($status)) {
+            $requiredRole = $this->resolveParallelValidationRoleForUser($request, $user);
+            if ($requiredRole === null) {
+                return null;
+            }
+
+            return [
+                'role' => $requiredRole,
+                'next' => sprintf('refusee_%s', $this->extractRoleCode($requiredRole)),
+            ];
+        }
+
+        if ($action === 'refuse' && str_starts_with($status, 'en_attente_') && $status !== AccessRequest::STATUS_EN_ATTENTE_VALIDATION) {
             $code = substr($status, strlen('en_attente_'));
             if ($code === '') {
                 return null;
@@ -100,26 +97,9 @@ class WorkflowService
                 return null;
             }
 
-            $code = substr($status, strlen('refusee_'));
-            if ($code === '') {
-                return null;
-            }
-
-            if ($code === 'rh') {
-                $next = $this->resolveRhResumeNextStatus($request, $user);
-                if ($next === null || $next === '') {
-                    return null;
-                }
-
-                return [
-                    'role' => 'ROLE_RH',
-                    'next' => $next,
-                ];
-            }
-
             return [
                 'role' => 'ROLE_RH',
-                'next' => sprintf('en_attente_%s', $code),
+                'next' => AccessRequest::STATUS_EN_ATTENTE_VALIDATION,
             ];
         }
 
@@ -235,10 +215,10 @@ class WorkflowService
             throw new \InvalidArgumentException('Un commentaire est obligatoire en cas de validation.');
         }
 
-        if (
-            $this->isClosureRequest($request) && $this->hasPendingMaterialReturns($request)
-        ) {
-            throw new \InvalidArgumentException('Impossible de valider cette fermeture tant que tout le matériel n\'est pas marqué comme remis');
+        if ($this->isParallelServicePhaseStatus((string) ($request->getStatus() ?? ''))) {
+            $this->applyParallelValidation($request, $user, $comment);
+
+            return;
         }
 
         $transition = $this->resolveTransition($request, $user, 'validate');
@@ -252,9 +232,20 @@ class WorkflowService
 
     public function canFinalizeClosureByAnyUser(AccessRequest $request): bool
     {
-        return $this->isClosureRequest($request)
-            && ($request->getStatus() ?? '') !== AccessRequest::STATUS_TRAITEE
-            && !$this->hasPendingMaterialReturns($request);
+        if (!$this->isClosureRequest($request)) {
+            return false;
+        }
+
+        if (!$this->isParallelServicePhaseStatus((string) ($request->getStatus() ?? ''))) {
+            return false;
+        }
+
+        $requiredRoles = $this->getParallelValidationRoles($request);
+        if ($requiredRoles !== [] && !$this->areAllParallelRolesValidated($request, $requiredRoles)) {
+            return false;
+        }
+
+        return !$this->hasPendingMaterialReturns($request);
     }
 
     public function finalizeClosureByAnyUser(AccessRequest $request, User $user, string $comment): void
@@ -347,6 +338,18 @@ class WorkflowService
     {
         $status = $request->getStatus() ?? '';
 
+        if ($action === 'validate' && $this->isParallelServicePhaseStatus($status)) {
+            $role = $this->resolveParallelValidationRoleForUser($request, $user);
+            if ($role === null || $this->hasUserAlreadyValidatedParallelStep($request, $role)) {
+                return null;
+            }
+
+            return [
+                'role' => $role,
+                'next' => AccessRequest::STATUS_EN_ATTENTE_VALIDATION,
+            ];
+        }
+
         // Règle métier prioritaire: en cas de refus, reprise RH puis retour direct à l'étape qui a refusé.
         $refusalCycleTransition = $this->resolveRefusalCycleTransition($request, $user, $action, $status);
         if ($refusalCycleTransition !== null) {
@@ -389,13 +392,205 @@ class WorkflowService
     // Méthode pour vérifier si un utilisateur peut éditer une demande après un refus
     public function canEditAfterRefusal(AccessRequest $request, User $user): bool
     {
-        if (!in_array('ROLE_RH', $user->getRoles(), true)) {
-            return false;
-        }
-
         $status = $request->getStatus() ?? '';
 
-        return str_starts_with($status, 'refusee_');
+        if (str_starts_with($status, 'refusee_')) {
+            return in_array('ROLE_RH', $user->getRoles(), true);
+        }
+
+        if ($this->isParallelServicePhaseStatus($status)) {
+            return $this->resolveParallelValidationRoleForUser($request, $user) !== null;
+        }
+
+        return false;
+    }
+
+    private function applyParallelValidation(AccessRequest $request, User $user, string $comment): void
+    {
+        $requiredRoles = $this->getParallelValidationRoles($request);
+        $actorRole = $this->resolveParallelValidationRoleForUser($request, $user, $requiredRoles);
+
+        if ($actorRole === null) {
+            throw new \LogicException('Transition de validation non autorisée pour ce rôle ou ce statut.');
+        }
+
+        if ($this->hasUserAlreadyValidatedParallelStep($request, $actorRole)) {
+            throw new \LogicException('Ce service a déjà validé cette demande.');
+        }
+
+        $validatedRoles = $this->getValidatedParallelRoles($request, $requiredRoles);
+        $validatedRoles[] = $actorRole;
+        $validatedRoles = array_values(array_unique($validatedRoles));
+
+        $allValidated = $requiredRoles === []
+            || array_diff($requiredRoles, $validatedRoles) === [];
+
+        $nextStatus = $allValidated ? AccessRequest::STATUS_TRAITEE : AccessRequest::STATUS_EN_ATTENTE_VALIDATION;
+
+        if (
+            $allValidated
+            && $this->isClosureRequest($request)
+            && $this->hasPendingMaterialReturns($request)
+        ) {
+            $nextStatus = AccessRequest::STATUS_EN_ATTENTE_VALIDATION;
+        }
+
+        $this->applyTransition($request, $user, $nextStatus, $comment);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getParallelValidationRoles(AccessRequest $request): array
+    {
+        $roles = [];
+        $snapshot = $request->getWorkflowSnapshot();
+
+        if (is_array($snapshot)) {
+            foreach ($snapshot as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                if (($row['action'] ?? null) !== 'validate') {
+                    continue;
+                }
+
+                $fromStatus = (string) ($row['fromStatus'] ?? '');
+                if (!str_starts_with($fromStatus, 'en_attente_')) {
+                    continue;
+                }
+
+                if ($fromStatus === AccessRequest::STATUS_EN_ATTENTE_RH) {
+                    continue;
+                }
+
+                $role = strtoupper(trim((string) ($row['requiredRole'] ?? '')));
+                if ($role === '' || $role === 'ROLE_RH') {
+                    continue;
+                }
+
+                $roles[] = $role;
+            }
+        }
+
+        if ($roles === []) {
+            $rows = $this->workflowTransitionConfigRepository->findActiveTransitionsForWorkflow(self::DEFAULT_WORKFLOW_CODE);
+            foreach ($rows as $row) {
+                if ($row->getAction() !== 'validate') {
+                    continue;
+                }
+
+                $fromStatus = (string) $row->getFromStatus();
+                if (!str_starts_with($fromStatus, 'en_attente_') || $fromStatus === AccessRequest::STATUS_EN_ATTENTE_RH) {
+                    continue;
+                }
+
+                $role = strtoupper(trim((string) $row->getRequiredRole()));
+                if ($role === '' || $role === 'ROLE_RH') {
+                    continue;
+                }
+
+                $roles[] = $role;
+            }
+        }
+
+        if ($roles === []) {
+            $roles = self::PARALLEL_FALLBACK_ROLES;
+        }
+
+        return array_values(array_unique($roles));
+    }
+
+    private function resolveParallelValidationRoleForUser(AccessRequest $request, User $user, array $requiredRoles = []): ?string
+    {
+        $roles = $requiredRoles !== [] ? $requiredRoles : $this->getParallelValidationRoles($request);
+        $userRoles = $user->getRoles();
+
+        foreach ($roles as $requiredRole) {
+            if (in_array($requiredRole, $userRoles, true)) {
+                return $requiredRole;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<string> $requiredRoles
+     * @return list<string>
+     */
+    private function getValidatedParallelRoles(AccessRequest $request, array $requiredRoles): array
+    {
+        $doneRoles = [];
+
+        foreach ($request->getRequestId() as $history) {
+            if (!$history instanceof WorkflowHistory) {
+                continue;
+            }
+
+            $oldStatus = (string) ($history->getOldStatus() ?? '');
+            if (!$this->isParallelServicePhaseStatus($oldStatus)) {
+                continue;
+            }
+
+            $newStatus = (string) ($history->getNewStatus() ?? '');
+            if ($newStatus !== AccessRequest::STATUS_EN_ATTENTE_VALIDATION && $newStatus !== AccessRequest::STATUS_TRAITEE) {
+                continue;
+            }
+
+            $comment = (string) ($history->getCommentary() ?? '');
+            if (str_starts_with($comment, 'Annulation de décision')) {
+                continue;
+            }
+
+            $historyUser = $history->getUser();
+            if (!$historyUser instanceof User) {
+                continue;
+            }
+
+            foreach ($requiredRoles as $requiredRole) {
+                if (in_array($requiredRole, $historyUser->getRoles(), true)) {
+                    $doneRoles[] = $requiredRole;
+                }
+            }
+        }
+
+        return array_values(array_unique($doneRoles));
+    }
+
+    private function hasUserAlreadyValidatedParallelStep(AccessRequest $request, string $actorRole): bool
+    {
+        $validatedRoles = $this->getValidatedParallelRoles($request, [$actorRole]);
+
+        return in_array($actorRole, $validatedRoles, true);
+    }
+
+    /**
+     * @param list<string> $requiredRoles
+     */
+    private function areAllParallelRolesValidated(AccessRequest $request, array $requiredRoles): bool
+    {
+        if ($requiredRoles === []) {
+            return true;
+        }
+
+        $validatedRoles = $this->getValidatedParallelRoles($request, $requiredRoles);
+
+        return array_diff($requiredRoles, $validatedRoles) === [];
+    }
+
+    private function extractRoleCode(string $role): string
+    {
+        $code = strtolower(preg_replace('/^ROLE_/', '', strtoupper($role)) ?? '');
+
+        return $code !== '' ? $code : 'service';
+    }
+
+    private function isParallelServicePhaseStatus(string $status): bool
+    {
+        return str_starts_with($status, 'en_attente_')
+            && $status !== AccessRequest::STATUS_EN_ATTENTE_RH;
     }
 
     private function getLatestHistory(AccessRequest $request): ?WorkflowHistory

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Service;  
+namespace App\Service;
 
 use App\Entity\Agent;
 use App\Entity\Request as AccessRequest;
@@ -22,8 +22,7 @@ final class RequestCreationService
         private EntityManagerInterface $em,
         private WorkflowTransitionConfigRepository $workflowTransitionConfigRepository,
         private AgentRepository $agentRepository,
-    ) {
-    }
+    ) {}
 
     /**
      * @param callable(string):void|null $failureHook de test pour simuler une panne intermédiaire.
@@ -50,84 +49,82 @@ final class RequestCreationService
                 ->setUpdateDate(new \DateTimeImmutable())
                 ->setAuthor($currentUser);
 
-        if ($effectiveParentRequest instanceof AccessRequest) {
-            $newRequest->setParentRequest($effectiveParentRequest);
-        }
-
-        $activeTransitions = $this->workflowTransitionConfigRepository->findActiveTransitionsForWorkflow(SELF::DEFAULT_WORKFLOW_CODE);
-        $workflowSnapshot = array_map(
-            static fn($transition): array => [
-                'workflowCode' => (string) $transition->getWorkflowCode(),
-                'stepOrder' => (int) $transition->getStepOrder(),
-                'action' => (string) $transition->getAction(),
-                'fromStatus' => (string) $transition->getFromStatus(),
-                'toStatus' => (string) $transition->getToStatus(),
-                'requiredRole' => (string) $transition->getRequiredRole(),
-            ],
-            $activeTransitions
-        );
-        $newRequest->setWorkflowSnapshot($workflowSnapshot !== [] ? $workflowSnapshot : null);
-        $agent = $effectiveParentRequest?->getAgent();
-
-        if (!$agent instanceof Agent) {
-            $agent = $this->agentRepository->findOneByIdentity(
-                (string) $formData->getFirstname(),
-                (string) $formData->getLastname(),
-                $formData->getEmail()
-            );
-        }
-
-        if (!$agent instanceof Agent) {
-            $agent = new Agent();
-            $this->em->persist($agent);
-        }
-
-        $agent
-            ->setCivility($formData->getCivility() ?? 'N/A')
-            ->setFirstname($formData->getFirstname() ?? '')
-            ->setLastname($formData->getLastname() ?? '')
-            ->setJobTitle($formData->getJobTitle() ?? '')
-            ->setEmail($formData->getEmail())
-            ->setService($formData->getService());
-
-        $newRequest->setAgent($agent);
-
-        if ($failureHook !== null) {
-            $failureHook('after_agent');
-        }
-
-        if ($formData->getArrivalDate() instanceof \DateTime) {
-            $newRequest->setArrivalDate($formData->getArrivalDate());
-        } else {
-            $newRequest->setArrivalDate(new \DateTime());
-        }
-
-        if ($requestType === AccessRequest::TYPE_FERMETURE) {
             if ($effectiveParentRequest instanceof AccessRequest) {
-                foreach ($effectiveParentRequest->getRessources() as $ressource) {
-                    $newRequest->addRessource($ressource);
+                $newRequest->setParentRequest($effectiveParentRequest);
+            }
+
+            $activeTransitions = $this->workflowTransitionConfigRepository->findActiveTransitionsForWorkflow(SELF::DEFAULT_WORKFLOW_CODE);
+            $workflowSnapshot = array_map(
+                static fn($transition): array => [
+                    'workflowCode' => (string) $transition->getWorkflowCode(),
+                    'stepOrder' => (int) $transition->getStepOrder(),
+                    'action' => (string) $transition->getAction(),
+                    'fromStatus' => (string) $transition->getFromStatus(),
+                    'toStatus' => (string) $transition->getToStatus(),
+                    'requiredRole' => (string) $transition->getRequiredRole(),
+                ],
+                $activeTransitions
+            );
+            $newRequest->setWorkflowSnapshot($workflowSnapshot !== [] ? $workflowSnapshot : null);
+            $agent = $effectiveParentRequest?->getAgent();
+
+            if (!$agent instanceof Agent) {
+                $agent = $this->agentRepository->findOneByIdentity(
+                    (string) $formData->getFirstname(),
+                    (string) $formData->getLastname(),
+                    $formData->getEmail()
+                );
+            }
+
+            if (!$agent instanceof Agent) {
+                $agent = new Agent();
+                $this->em->persist($agent);
+            }
+
+            $agent
+                ->setCivility($formData->getCivility() ?? 'N/A')
+                ->setFirstname($formData->getFirstname() ?? '')
+                ->setLastname($formData->getLastname() ?? '')
+                ->setJobTitle($formData->getJobTitle() ?? '')
+                ->setEmail($formData->getEmail())
+                ->setService($formData->getService());
+
+            $newRequest->setAgent($agent);
+
+            if ($failureHook !== null) {
+                $failureHook('after_agent');
+            }
+
+            $newRequest->setArrivalDate($formData->getArrivalDate());
+            $newRequest->setDepartureDate($formData->getDepartureDate());
+
+            if ($requestType === AccessRequest::TYPE_FERMETURE) {
+                if ($effectiveParentRequest instanceof AccessRequest) {
+                    foreach ($effectiveParentRequest->getRessources() as $ressource) {
+                        $newRequest->addRessource($ressource);
+                    }
+                }
+            } else {
+                foreach ($formData->getLogiciels() as $logiciel) {
+                    $logiciel->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
+                    $newRequest->addRessource($logiciel);
+                }
+
+                foreach ($formData->getMateriels() as $materiel) {
+                    $materiel->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
+                    $newRequest->addRessource($materiel);
                 }
             }
-        } else {
-            foreach ($formData->getLogiciels() as $logiciel) {
-                $logiciel->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
-                $newRequest->addRessource($logiciel);
+
+            $this->em->persist($newRequest);
+
+            if ($failureHook !== null) {
+                $failureHook('after_request');
             }
 
-            foreach ($formData->getMateriels() as $materiel) {
-                $materiel->setAssignmentStatus(Ressource::ASSIGNMENT_ATTRIBUE);
-                $newRequest->addRessource($materiel);
-            }
-        }
-
-        $this->em->persist($newRequest);
-
-        if ($failureHook !== null) {
-            $failureHook('after_request');
-        }
-
-        if (
-            ($requestType === AccessRequest::TYPE_MODIFICATION || $requestType === AccessRequest::TYPE_FERMETURE) && $effectiveParentRequest instanceof AccessRequest) {
+            if (
+                ($requestType === AccessRequest::TYPE_MODIFICATION || $requestType === AccessRequest::TYPE_FERMETURE) && $effectiveParentRequest instanceof AccessRequest
+            ) {
                 foreach ($effectiveParentRequest->getRequestId() as $parentHistory) {
                     $historyCopy = new WorkflowHistory();
                     $historyCopy
@@ -146,7 +143,7 @@ final class RequestCreationService
             $creationHistory
                 ->setRequest($newRequest)
                 ->setUser($currentUser)
-                ->setOldStatus ($effectiveParentRequest instanceof AccessRequest ? ($effectiveParentRequest->getStatus() ?? '') : '')
+                ->setOldStatus($effectiveParentRequest instanceof AccessRequest ? ($effectiveParentRequest->getStatus() ?? '') : '')
                 ->setNewStatus($newRequest->getStatus() ?? '')
                 ->setCommentary($formData->getCommentary() ?? '')
                 ->setDate(new \DateTimeImmutable());

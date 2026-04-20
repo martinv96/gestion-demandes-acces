@@ -27,72 +27,102 @@
 
                 {% if requestEntity.workflowSnapshot %}
                     {% set transitions = requestEntity.workflowSnapshot %}
-                    {% set uniqueFromStatuses = [] %}
+                    {% set uniqueStepKeys = [] %}
                     {% set statusLabels = {
                         'en_attente_rh': 'Validation RH',
+                        'en_attente_validation': 'Validation des services',
                         'en_attente_st': 'Validation DGA-ST',
                         'en_attente_dsi': 'Validation DSI',
                         'en_attente_edu': 'Validation EDU',
                         'traitee': 'Demande traitee'
                     } %}
+                    {% set roleLabels = {
+                        'ROLE_RH': 'Validation RH',
+                        'ROLE_ST': 'Validation DGA-ST',
+                        'ROLE_DSI': 'Validation DSI',
+                        'ROLE_EDU': 'Validation EDU'
+                    } %}
 
                     {% for transition in transitions %}
-                        {% if transition.action == 'validate' and transition.fromStatus not in uniqueFromStatuses %}
-                            {% set validation_dates = {
-                                'en_attente_rh': rhValidatedAt,
-                                'en_attente_st': stValidatedAt,
-                                'en_attente_dsi': dsiValidatedAt,
-                                'en_attente_edu': null
-                            } %}
-
+                        {% if transition.action == 'validate' %}
                             {% set fromStatus = transition.fromStatus %}
                             {% set toStatus = transition.toStatus %}
-                            {% if fromStatus in statusLabels|keys %}
-                                {% set stepTitle = statusLabels[fromStatus] %}
-                            {% elseif fromStatus starts with 'en_attente_' %}
-                                {% set stepTitle = 'Validation ' ~ (fromStatus|replace({'en_attente_': ''})|upper) %}
-                            {% else %}
-                                {% set stepTitle = fromStatus %}
-                            {% endif %}
-                            {% set stepDate = validation_dates[fromStatus] ?? null %}
-
-                            {% set isComplete = false %}
-                            {% set isCurrent = false %}
-                            {% set isRefused = false %}
-
-                            {% if stepDate or requestEntity.status == 'traitee' or requestEntity.status == toStatus or (toStatus == 'traitee' and requestEntity.status == 'traitee') %}
-                                {% set isComplete = true %}
-                            {% elseif requestEntity.status == fromStatus %}
-                                {% set isCurrent = true %}
-                            {% elseif requestEntity.status starts with 'refusee_' %}
-                                {% if (fromStatus == 'en_attente_rh' and requestEntity.status == 'refusee_rh') or
-                                    (fromStatus == 'en_attente_st' and requestEntity.status == 'refusee_st') or
-                                    (fromStatus == 'en_attente_dsi' and requestEntity.status == 'refusee_dsi') or
-                                    (fromStatus == 'en_attente_edu' and requestEntity.status == 'refusee_edu') %}
-                                    {% set isRefused = true %}
-                                    {% set isCurrent = true %}
+                            {% set requiredRole = transition.requiredRole|default('') %}
+                            {% set stepKey = fromStatus ~ '|' ~ requiredRole %}
+                            {% if stepKey not in uniqueStepKeys %}
+                                {% if requiredRole == 'ROLE_RH' %}
+                                    {% set stepDate = rhValidatedAt %}
+                                {% elseif requiredRole == 'ROLE_ST' %}
+                                    {% set stepDate = stValidatedAt %}
+                                {% elseif requiredRole == 'ROLE_DSI' %}
+                                    {% set stepDate = dsiValidatedAt %}
+                                {% elseif fromStatus == 'en_attente_rh' %}
+                                    {% set stepDate = rhValidatedAt %}
+                                {% elseif fromStatus == 'en_attente_st' %}
+                                    {% set stepDate = stValidatedAt %}
+                                {% elseif fromStatus == 'en_attente_dsi' %}
+                                    {% set stepDate = dsiValidatedAt %}
+                                {% else %}
+                                    {% set stepDate = null %}
                                 {% endif %}
+
+                                {% if requiredRole in roleLabels|keys %}
+                                    {% set stepTitle = roleLabels[requiredRole] %}
+                                {% elseif fromStatus in statusLabels|keys %}
+                                    {% set stepTitle = statusLabels[fromStatus] %}
+                                {% elseif fromStatus starts with 'en_attente_' %}
+                                    {% set stepTitle = 'Validation ' ~ (fromStatus|replace({'en_attente_': ''})|upper) %}
+                                {% else %}
+                                    {% set stepTitle = fromStatus %}
+                                {% endif %}
+                                {% set isParallelCurrent = requestEntity.status starts with 'en_attente_' and requestEntity.status != 'en_attente_rh' and fromStatus starts with 'en_attente_' and fromStatus != 'en_attente_rh' %}
+
+                                {% set isComplete = false %}
+                                {% set isCurrent = false %}
+                                {% set isRefused = false %}
+
+                                {% if stepDate or requestEntity.status == 'traitee' or requestEntity.status == toStatus or (toStatus == 'traitee' and requestEntity.status == 'traitee') %}
+                                    {% set isComplete = true %}
+                                {% elseif isParallelCurrent %}
+                                    {% set isCurrent = true %}
+                                {% elseif requestEntity.status == fromStatus %}
+                                    {% set isCurrent = true %}
+                                {% elseif requestEntity.status starts with 'refusee_' %}
+                                    {% if (requiredRole == 'ROLE_RH' and requestEntity.status == 'refusee_rh') or
+                                        (requiredRole == 'ROLE_ST' and requestEntity.status == 'refusee_st') or
+                                        (requiredRole == 'ROLE_DSI' and requestEntity.status == 'refusee_dsi') or
+                                        (requiredRole == 'ROLE_EDU' and requestEntity.status == 'refusee_edu') or
+                                        (requiredRole == '' and (
+                                            (fromStatus == 'en_attente_rh' and requestEntity.status == 'refusee_rh') or
+                                            (fromStatus == 'en_attente_st' and requestEntity.status == 'refusee_st') or
+                                            (fromStatus == 'en_attente_dsi' and requestEntity.status == 'refusee_dsi') or
+                                            (fromStatus == 'en_attente_edu' and requestEntity.status == 'refusee_edu')
+                                        )) %}
+                                        {% set isRefused = true %}
+                                        {% set isCurrent = true %}
+                                    {% endif %}
+                                {% endif %}
+
+                                <li class="validation-step {{ isRefused ? 'is-refused' : (isComplete ? 'is-complete' : (isCurrent ? 'is-current' : 'is-pending')) }}">
+                                    <span class="validation-step-marker"></span>
+                                    <div class="validation-step-content">
+                                        <p class="validation-step-title mb-1">{{ stepTitle }}</p>
+                                        <p class="validation-step-meta mb-0">
+                                            {% if isRefused %}
+                                                Refusée
+                                            {% elseif stepDate %}
+                                                Validée le {{ stepDate|date('d/m/Y') }}
+                                            {% elseif not isComplete and not isCurrent %}
+                                                En attente
+                                            {% elseif isCurrent %}
+                                                Etape en cours
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </li>
+
+                                {% set uniqueStepKeys = uniqueStepKeys|merge([stepKey]) %}
                             {% endif %}
-
-                            <li class="validation-step {{ isRefused ? 'is-refused' : (isComplete ? 'is-complete' : (isCurrent ? 'is-current' : 'is-pending')) }}">
-                                <span class="validation-step-marker"></span>
-                                <div class="validation-step-content">
-                                    <p class="validation-step-title mb-1">{{ stepTitle }}</p>
-                                    <p class="validation-step-meta mb-0">
-                                        {% if isRefused %}
-                                            Refusée
-                                        {% elseif stepDate %}
-                                            Validée le {{ stepDate|date('d/m/Y') }}
-                                        {% elseif not isComplete and not isCurrent %}
-                                            En attente
-                                        {% elseif isCurrent %}
-                                            Etape en cours
-                                        {% endif %}
-                                    </p>
-                                </div>
-                            </li>
-
-                            {% set uniqueFromStatuses = uniqueFromStatuses|merge([fromStatus]) %}
                         {% endif %}
                     {% endfor %}
 
@@ -126,7 +156,7 @@
                         </div>
                     </li>
 
-                    <li class="validation-step {{ requestEntity.status == 'refusee_st' ? 'is-refused' : (stStepDone ? 'is-complete' : (rhStepDone ? 'is-current' : 'is-pending')) }}">
+                    <li class="validation-step {{ requestEntity.status == 'refusee_st' ? 'is-refused' : (stStepDone ? 'is-complete' : ((rhStepDone or (requestEntity.status starts with 'en_attente_' and requestEntity.status != 'en_attente_rh')) ? 'is-current' : 'is-pending')) }}">
                         <span class="validation-step-marker"></span>
                         <div class="validation-step-content">
                             <p class="validation-step-title mb-1">Validation DGA-ST</p>
@@ -137,6 +167,8 @@
                                     Refusée, en attente de reprise RH
                                 {% elseif not rhStepDone %}
                                     En attente de la validation RH
+                                {% elseif requestEntity.status starts with 'en_attente_' and requestEntity.status != 'en_attente_rh' %}
+                                    Etape en cours
                                 {% else %}
                                     Etape en cours
                                 {% endif %}
@@ -144,7 +176,7 @@
                         </div>
                     </li>
 
-                    <li class="validation-step {{ requestEntity.status == 'refusee_dsi' ? 'is-refused' : (dsiStepDone ? 'is-complete' : (stStepDone ? 'is-current' : 'is-pending')) }}">
+                    <li class="validation-step {{ requestEntity.status == 'refusee_dsi' ? 'is-refused' : (dsiStepDone ? 'is-complete' : ((stStepDone or (requestEntity.status starts with 'en_attente_' and requestEntity.status != 'en_attente_rh')) ? 'is-current' : 'is-pending')) }}">
                         <span class="validation-step-marker"></span>
                         <div class="validation-step-content">
                             <p class="validation-step-title mb-1">Validation DSI</p>
@@ -153,7 +185,7 @@
                                     Validée le {{ dsiValidatedAt|date('d/m/Y') }}
                                 {% elseif requestEntity.status == 'refusee_dsi' %}
                                     Refusée, retour demande au DGA-ST
-                                {% elseif stStepDone %}
+                                {% elseif stStepDone or (requestEntity.status starts with 'en_attente_' and requestEntity.status != 'en_attente_rh') %}
                                     Etape en cours
                                 {% else %}
                                     En attente de la validation DGA-ST

@@ -62,16 +62,17 @@ final class NewRequestData
     private ?string $commentary = null;
 
     #[Assert\Callback]
-    // Méthode de validation personnalisée pour vérifier les dates
     public function validate(ExecutionContextInterface $context): void
     {
-        if ($this->type === 'ouverture' && !$this->arrivalDate instanceof \DateTime) {
+        // Arrivée obligatoire pour tous les types
+        if (!$this->arrivalDate instanceof \DateTime) {
             $context
-                ->buildViolation('La date d’arrivée est obligatoire pour une ouverture.')
+                ->buildViolation('La date d’arrivée est obligatoire.')
                 ->atPath('arrivalDate')
                 ->addViolation();
         }
 
+        // Départ facultatif, mais si les 2 sont saisis: cohérence des dates
         if (
             $this->arrivalDate instanceof \DateTime
             && $this->departureDate instanceof \DateTime
@@ -79,13 +80,6 @@ final class NewRequestData
         ) {
             $context
                 ->buildViolation('La date de départ ne peut pas être antérieure à la date d’arrivée.')
-                ->atPath('departureDate')
-                ->addViolation();
-        }
-
-        if ($this->type === 'fermeture' && !$this->departureDate instanceof \DateTime) {
-            $context
-                ->buildViolation('La date de départ est obligatoire pour une fermeture.')
                 ->atPath('departureDate')
                 ->addViolation();
         }

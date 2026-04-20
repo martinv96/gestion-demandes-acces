@@ -19,6 +19,10 @@ final class NewRequestController extends AbstractController
     #[Route('/new/request', name: 'app_new_request', methods: ['GET', 'POST'])]
     public function index(Request $request, RequestRepository $requestRepository, RequestCreationService $requestCreationService): Response
     {
+        if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_RH')) {
+            throw $this->createAccessDeniedException('Seuls les comptes RH ou Admin peuvent créer une demande.');
+        }
+
         $formData = new NewRequestData();
         $form = $this->createForm(NewRequestType::class, $formData);
 
@@ -27,9 +31,6 @@ final class NewRequestController extends AbstractController
         // Si le formulaire est soumis et valide, créer la demande d'accès
         if ($form->isSubmitted() && $form->isValid()) {
             $requestType = $formData->getType() ?? AccessRequest::TYPE_OUVERTURE;
-            $initialStatus = $requestType === AccessRequest::TYPE_FERMETURE
-                ? AccessRequest::STATUS_EN_ATTENTE_VALIDATION
-                : AccessRequest::STATUS_EN_ATTENTE_RH;
 
             $currentUser = $this->getUser();
 
@@ -37,6 +38,10 @@ final class NewRequestController extends AbstractController
             if (!$currentUser instanceof User) {
                 throw $this->createAccessDeniedException('Utilisateur non authentifié.');
             }
+
+            $initialStatus = in_array('ROLE_RH', $currentUser->getRoles(), true)
+                ? AccessRequest::STATUS_EN_ATTENTE_VALIDATION
+                : AccessRequest::STATUS_EN_ATTENTE_RH;
 
             $parentRequest = $formData->getParentRequest();
             $effectiveParentRequest = $parentRequest;
