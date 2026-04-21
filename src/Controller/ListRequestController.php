@@ -35,6 +35,15 @@ final class ListRequestController extends AbstractController
     #[Route('/list/request', name: 'app_list_request', methods: ['GET'])]
     public function index(RequestRepository $requestRepository, ServiceRepository $serviceRepository, Request $httpRequest): Response
     {
+
+
+        $limit = 10;
+        $page = $httpRequest->query->getInt('page', 1);
+        if ($page < 1) $page = 1;
+        $offset = ($page - 1) * $limit;
+
+
+
         // ! gestion des filtres de recherche : status, service, type et date d'arrivée
         $allowedStatuses = AccessRequest::WORKFLOW_STATUSES;
         $allowedTypes = AccessRequest::TYPES;
@@ -84,17 +93,22 @@ final class ListRequestController extends AbstractController
             $agent = '';
         }
 
-        $requests            = $requestRepository->findCurrentWithFilters($filters);
+        $requests            = $requestRepository->findWithFilters($filters, $limit, $offset);
         $services            = $serviceRepository->findBy([], ['name' => 'DESC']);
         $availableDates      = $requestRepository->findDistinctCurrentArrivalDates();
         $availableDepartures = $requestRepository->findDistinctCurrentDepartureDates();
         $totalCount          = $requestRepository->countCurrent();
+        $totalWithFilters    = $requestRepository->countWithFilters($filters);
+        $maxPages            = ceil($totalWithFilters / $limit);
+
 
         return $this->render('list_request/index.html.twig', [
             'requests'            => $requests,
             'services'            => $services,
             'availableDates'      => $availableDates,
             'availableDepartures' => $availableDepartures,
+            'currentPage'         => $page,
+            'maxPages'            => $maxPages,
             'totalCount'          => $totalCount,
             'filters'             => [
                 'status'        => $status,
@@ -130,6 +144,8 @@ final class ListRequestController extends AbstractController
         $closureReturnedMateriels = [];
         $closureUntrackedMateriels = [];
 
+        $currentUser = $this->getUser();
+
         if ($requestEntity->getType() === AccessRequest::TYPE_FERMETURE && $requestEntity->getParentRequest() instanceof AccessRequest) {
             $parentMateriels = array_values(array_filter(
                 $requestEntity->getParentRequest()->getRessources()->toArray(),
@@ -144,6 +160,10 @@ final class ListRequestController extends AbstractController
             }
 
             foreach ($parentMateriels as $materiel) {
+                if ($currentUser instanceof User && !$this->canViewClosureMaterial($materiel, $currentUser)) {
+                    continue;
+                }
+
                 $closureTrackedMateriels[] = $materiel;
                 if ($materiel->getId() !== null && in_array($materiel->getId(), $pendingIds, true)) {
                     $closurePendingMateriels[] = $materiel;
@@ -154,6 +174,10 @@ final class ListRequestController extends AbstractController
 
             $trackedIds = array_values(array_filter(array_map(static fn($m) => $m->getId(), $closureTrackedMateriels)));
             foreach ($allMateriels as $materiel) {
+                if ($currentUser instanceof User && !$this->canViewClosureMaterial($materiel, $currentUser)) {
+                    continue;
+                }
+
                 if (!in_array($materiel->getId(), $trackedIds, true)) {
                     $closureUntrackedMateriels[] = $materiel;
                 }
@@ -164,6 +188,28 @@ final class ListRequestController extends AbstractController
             && $requestEntity->getStatus() !== AccessRequest::STATUS_TRAITEE;
         $canFinalizeClosure = $workflowService->canFinalizeClosureByAnyUser($requestEntity);
 
+        $closureManageableMaterielIds = [];
+        $closureOwnerById = [];
+
+        if ($currentUser instanceof User) {
+            foreach ($closureTrackedMateriels as $materiel) {
+                $id = $materiel->getId();
+                if ($id === null) {
+                    continue;
+                }
+
+                $ownerRole = $this->resolveClosureOwnerRole($materiel);
+                $closureOwnerById[$id] = match ($ownerRole) {
+                    'ROLE_DSI' => 'DSI',
+                    'ROLE_ST' => 'Service technique',
+                    default => 'RH',
+                };
+
+                if ($this->canManageClosureMaterial($materiel, $currentUser)) {
+                    $closureManageableMaterielIds[] = $id;
+                }
+            }
+        }
 
         return $this->render('list_request/show.html.twig', [
             'requestEntity' => $requestEntity,
@@ -192,8 +238,46 @@ final class ListRequestController extends AbstractController
             'closurePendingMateriels' => $closurePendingMateriels,
             'closureReturnedMateriels' => $closureReturnedMateriels,
             'closureUntrackedMateriels' => $closureUntrackedMateriels,
-
+            'closureManageableMaterielIds' => $closureManageableMaterielIds,
+            'closureOwnerById' => $closureOwnerById,
         ]);
+    }
+
+    private function resolveClosureOwnerRole(Ressource $ressource): string
+    {
+        $name = mb_strtolower((string) ($ressource->getName() ?? ''));
+
+        $isDsiMaterial = str_contains($name, 'ordinateur')
+            || str_contains($name, 'telephone')
+            || str_contains($name, 'téléphone');
+
+        $isStMaterial = str_contains($name, 'cle')
+            || str_contains($name, 'clé')
+            || str_contains($name, 'badge');
+
+        if ($isDsiMaterial) {
+            return 'ROLE_DSI';
+        }
+
+        if ($isStMaterial) {
+            return 'ROLE_ST';
+        }
+
+        return 'ROLE_RH';
+    }
+
+    private function canViewClosureMaterial(Ressource $ressource, User $user): bool
+    {
+        $viewerRole = $this->getWorkflowRoleFromUserService($user);
+        if ($viewerRole === null) {
+            return $this->isGranted('ROLE_ADMIN');
+        }
+
+        if ($viewerRole === 'ROLE_RH') {
+            return true;
+        }
+
+        return $this->resolveClosureOwnerRole($ressource) === $viewerRole;
     }
 
     // route pour valider une demande
@@ -574,23 +658,26 @@ final class ListRequestController extends AbstractController
 
     private function canManageClosureMaterial(Ressource $ressource, User $user): bool
     {
-        if ($this->isGranted('ROLE_ADMIN')) {
+        $viewerRole = $this->getWorkflowRoleFromUserService($user);
+        if ($viewerRole === null) {
+            return $this->isGranted('ROLE_ADMIN');
+        }
+
+        if ($viewerRole === 'ROLE_RH') {
             return true;
         }
 
-        $name = mb_strtolower((string) ($ressource->getName() ?? ''));
-        $isDsiMaterial = str_contains($name, 'ordinateur') || str_contains($name, 'telephone') || str_contains($name, 'téléphone');
-        $isStMaterial = str_contains($name, 'cle') || str_contains($name, 'clé') || str_contains($name, 'badge');
+        return $this->resolveClosureOwnerRole($ressource) === $viewerRole;
+    }
 
-        if ($isDsiMaterial) {
-            return in_array('ROLE_DSI', $user->getRoles(), true);
+    private function getWorkflowRoleFromUserService(User $user): ?string
+    {
+        $serviceCode = strtoupper(trim((string) ($user->getService()?->getCode() ?? '')));
+        if ($serviceCode === '') {
+            return null;
         }
 
-        if ($isStMaterial) {
-            return in_array('ROLE_ST', $user->getRoles(), true);
-        }
-
-        return in_array('ROLE_RH', $user->getRoles(), true);
+        return 'ROLE_' . $serviceCode;
     }
 
     // ! route pour exporter la liste des demandes au format CSV

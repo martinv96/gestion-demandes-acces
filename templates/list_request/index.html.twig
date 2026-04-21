@@ -7,14 +7,14 @@
 
 	{# Contenu principal #}
 	<div class="container-fluid">
-	{% block page_title %}
-		<div class="d-flex justify-content-between align-items-center mb-4">
-			<div>
-				<h1 class="h3 mb-1">Dernières demandes</h1>
-				<p class="text-muted mb-0">Retrouvez ici les dernières demandes d'accès</p>
+		{% block page_title %}
+			<div class="d-flex justify-content-between align-items-center mb-4">
+				<div>
+					<h1 class="h3 mb-1">Dernières demandes</h1>
+					<p class="text-muted mb-0">Retrouvez ici les dernières demandes d'accès</p>
+				</div>
+				<a href="{{ path('app_new_request') }}" class="btn btn-primary">Nouvelle demande</a>
 			</div>
-			<a href="{{ path('app_new_request') }}" class="btn btn-primary">Nouvelle demande</a>
-		</div>
 		{% endblock %}
 
 		{% if totalCount == 0 %}
@@ -139,8 +139,9 @@
 										<td class="fw-semibold">{{ request.reference }}</td>
 										<td>
 											{% if request.agent %}
-												{{ request.agent.firstname|capitalize }} {{ request.agent.lastname|capitalize }}
-												{% elseif request.author %}
+												{{ request.agent.firstname|capitalize }}
+												{{ request.agent.lastname|capitalize }}
+											{% elseif request.author %}
 												{{ request.author.displayName}}
 											{% else %}
 												<span class="text-muted">-</span>
@@ -198,9 +199,36 @@
 					</div>
 				</div>
 			{% endif %}
+
+			{# PAGINATION #}
+			{% if maxPages > 1 %}
+				<nav class="mt-4">
+					<ul
+						class="pagination justify-content-center">
+						{# Précédent #}
+						<li class="page-item {{ currentPage == 1 ? 'disabled' : ''}}">
+							<a class="page-link" href="{{ path('app_history', filters|merge({'page': currentPage - 1})) }}">Précédent</a>
+						</li>
+
+						{# Pages #}
+						{% for i in 1..maxPages %}
+							<li class="page-item {{ i == currentPage ? 'active' : ''}}">
+								<a class="page-link" href="{{ path('app_history', filters|merge({'page': i})) }}">{{ i }}</a>
+							</li>
+						{% endfor %}
+
+						{# Suivant #}
+						<li class="page-item {{ currentPage == maxPages ? 'disabled' : ''}}">
+							<a class="page-link" href="{{path('app_history', filters|merge({'page': currentPage + 1})) }}">Suivant</a>
+						</li>
+					</ul>
+				</nav>
+			{% endif %}
+
+
 		{% endif %}
 
-		{% block content %}{% endblock %} 
+		{% block content %}{% endblock %}
 	</div>
 
 	<script>
