@@ -452,6 +452,7 @@ final class ListRequestController extends AbstractController
         Request $httpRequest,
         EntityManagerInterface $entityManager,
         RequestUpdateInfoService $requestUpdateInfoService,
+        WorkflowService $workflowService,
     ): Response {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -510,6 +511,13 @@ final class ListRequestController extends AbstractController
                 'logiciels' => $logiciels,
                 'materiel' => $materiels,
             ]);
+
+            $workflowService->notifyAllActors(
+                $requestEntity,
+                trim((string) $httpRequest->request->get('commentaire', '')) !== ''
+                    ? (string) $httpRequest->request->get('commentaire', '')
+                    : 'Informations de la demande mises à jour.'
+            );
 
             $this->addRequestFlash($httpRequest, 'success', 'Les informations de la demande ont été mises à jour.');
         } catch (\InvalidArgumentException | \LogicException $e) {
@@ -639,6 +647,8 @@ final class ListRequestController extends AbstractController
         $requestEntity->setUpdateDate(new \DateTimeImmutable());
 
         $entityManager->flush();
+
+        $workflowService->notifyAllActors($requestEntity, $message);
 
         if ($isAjax) {
             return new JsonResponse([

@@ -8,6 +8,7 @@ use App\Form\Model\NewRequestData;
 use App\Form\NewRequestType;
 use App\Repository\RequestRepository;
 use App\Service\RequestCreationService;
+use App\Service\WorkflowService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,7 +18,7 @@ final class NewRequestController extends AbstractController
 {
     // route pour créer une nouvelle demande d'accès
     #[Route('/new/request', name: 'app_new_request', methods: ['GET', 'POST'])]
-    public function index(Request $request, RequestRepository $requestRepository, RequestCreationService $requestCreationService): Response
+    public function index(Request $request, RequestRepository $requestRepository, RequestCreationService $requestCreationService, WorkflowService $workflowService): Response
     {
         if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_RH')) {
             throw $this->createAccessDeniedException('Seuls les comptes RH ou Admin peuvent créer une demande.');
@@ -105,12 +106,19 @@ final class NewRequestController extends AbstractController
             }
 
             try {
-                $requestCreationService->createAtomically(
+                $createdRequest = $requestCreationService->createAtomically(
                     $formData,
                     $currentUser,
                     $requestType,
                     $initialStatus,
                     $effectiveParentRequest
+                );
+
+                $workflowService->notifyAllActors(
+                    $createdRequest,
+                    trim((string) ($formData->getCommentary() ?? '')) !== ''
+                        ? (string) $formData->getCommentary()
+                        : 'Nouvelle demande créée.'
                 );
             } catch (\Throwable) {
                 $this->addFlash('danger', 'La création de la demande a échoué. Aucune donnée n\'a été enregistrée.');
@@ -126,6 +134,5 @@ final class NewRequestController extends AbstractController
             'form' => $form->createView(),
         ]);
     }
-
-    
+   
 }

@@ -45,7 +45,7 @@ final class ListRequestConcurrencyTest extends WebTestCase
         $reloadedRequest = $em->getRepository(AccessRequest::class)->find($request->getId());
 
         self::assertInstanceOf(AccessRequest::class, $reloadedRequest);
-        self::assertSame(AccessRequest::STATUS_EN_ATTENTE_ST, $reloadedRequest->getStatus());
+        self::assertSame(AccessRequest::STATUS_EN_ATTENTE_VALIDATION, $reloadedRequest->getStatus());
         self::assertSame(2, $reloadedRequest->getVersion());
         self::assertSame(1, $em->getRepository(WorkflowHistory::class)->count(['request' => $reloadedRequest]));
     }
@@ -62,7 +62,7 @@ final class ListRequestConcurrencyTest extends WebTestCase
         $this->loginAs($client, $user);
 
         $crawler = $client->request('GET', '/request/' . $request->getId());
-        $editForm = $crawler->selectButton('Enregistrer les modifications RH')->form([
+        $editForm = $crawler->selectButton('Enregistrer les modifications')->form([
             'commentaire' => 'Maj RH',
         ]);
         $staleValidateForm = $crawler->selectButton('Confirmer la validation')->form([

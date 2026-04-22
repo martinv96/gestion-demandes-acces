@@ -12,6 +12,7 @@ use App\Service\WorkflowService;
 use App\Repository\WorkflowTransitionConfigRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Mailer\MailerInterface;
 
 /* 
     ? WorkflowServiceTest vérifie les règles de validation, de refus et d'édition après refus des demandes d'accès.
@@ -284,8 +285,9 @@ final class WorkflowServiceTest extends TestCase
     {
         $entityManager = $em ?? $this->createMock(EntityManagerInterface::class);
         $workflowRepo = $this->createMock(WorkflowTransitionConfigRepository::class);
+        $mailer = $this->createMock(MailerInterface::class);
 
-        return new WorkflowService($entityManager, $workflowRepo);
+        return new WorkflowService($entityManager, $workflowRepo, $mailer);
     }
 
     /* 

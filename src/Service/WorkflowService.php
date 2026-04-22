@@ -9,6 +9,9 @@ use App\Repository\UserRepository;
 use App\Repository\WorkflowTransitionConfigRepository;
 use App\Service\Workflow\WorkflowBlockageHelper;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
+use Symfony\Component\Mailer\MailerInterface;
 use LogicException;
 
 
@@ -150,7 +153,10 @@ class WorkflowService
     public function __construct(
         private EntityManagerInterface $em,
         private WorkflowTransitionConfigRepository $workflowTransitionConfigRepository,
-        ?UserRepository $userRepository = null
+        private MailerInterface $mailer,
+        ?UserRepository $userRepository = null,
+        private string $mailerFrom = 'no-reply@localhost',
+        private ?LoggerInterface $logger = null,
     ) {
         if ($userRepository instanceof UserRepository) {
             $this->userRepository = $userRepository;
@@ -332,6 +338,8 @@ class WorkflowService
 
         $this->em->persist($history);
         $this->em->flush();
+
+        $this->notifyAllActors($request, $comment);
     }
 
     private function resolveTransition(AccessRequest $request, User $user, string $action): ?array
@@ -688,4 +696,168 @@ class WorkflowService
     {
         return $this->workflowBlockageHelper->getMissingValidatorLabel($request);
     }
+
+    /** 
+     * Pour notifier tout le monde
+     */
+
+    public function notifyAllActors(AccessRequest $request, string $comment): void
+    {
+        if (!is_object($this->userRepository) || !method_exists($this->userRepository, 'findBy')) {
+            return;
+        }
+
+        try {
+            $allUsers = $this->userRepository->findBy(['isActive' => true]);
+        } catch (\Throwable) {
+            return;
+        }
+
+        if (!is_array($allUsers) || $allUsers === []) {
+            return;
+        }
+
+        $nextRoles = $this->getNextValidatorRoles($request);
+
+        foreach ($allUsers as $user) {
+            if (!$user instanceof User) {
+                continue;
+            }
+
+            $email = trim((string) ($user->getEmail() ?? ''));
+            if ($email === '') {
+                continue;
+            }
+
+            $isNextValidator = $nextRoles !== [] && array_intersect($nextRoles, $user->getRoles()) !== [];
+
+            try {
+                $this->sendTemplateEmail($email, $request, $comment, $isNextValidator);
+
+                if ($this->logger instanceof LoggerInterface) {
+                    $this->logger->info('Notification workflow envoyee.', [
+                        'request_id' => $request->getId(),
+                        'to' => $email,
+                        'type' => $isNextValidator ? 'ACTION' : 'INFO',
+                        'status' => $request->getStatus(),
+                        'from' => $this->resolveMailerFrom(),
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                if ($this->logger instanceof LoggerInterface) {
+                    $this->logger->error('Echec envoi notification mail workflow.', [
+                        'request_id' => $request->getId(),
+                        'to' => $email,
+                        'is_action' => $isNextValidator,
+                        'status' => $request->getStatus(),
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getNextValidatorRoles(AccessRequest $request): array
+    {
+        $status = (string) ($request->getStatus() ?? '');
+        if ($status === '' || $status === AccessRequest::STATUS_TRAITEE || str_starts_with($status, 'refusee_')) {
+            return [];
+        }
+
+        if ($status === AccessRequest::STATUS_EN_ATTENTE_VALIDATION) {
+            $parallelRoles = $this->getParallelValidationRoles($request);
+            if ($parallelRoles === []) {
+                return [];
+            }
+
+            $validatedRoles = $this->getValidatedParallelRoles($request, $parallelRoles);
+
+            return array_values(array_diff($parallelRoles, $validatedRoles));
+        }
+
+        $roles = [];
+        $snapshot = $request->getWorkflowSnapshot();
+        if (is_array($snapshot)) {
+            foreach ($snapshot as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                if (($row['action'] ?? null) !== 'validate') {
+                    continue;
+                }
+
+                if ((string) ($row['fromStatus'] ?? '') !== $status) {
+                    continue;
+                }
+
+                $role = strtoupper(trim((string) ($row['requiredRole'] ?? '')));
+                if ($role !== '') {
+                    $roles[] = $role;
+                }
+            }
+        }
+
+        if ($roles === []) {
+            $rows = $this->workflowTransitionConfigRepository->findActiveTransitionsForWorkflow(self::DEFAULT_WORKFLOW_CODE);
+            foreach ($rows as $row) {
+                if ($row->getAction() !== 'validate' || (string) $row->getFromStatus() !== $status) {
+                    continue;
+                }
+
+                $role = strtoupper(trim((string) $row->getRequiredRole()));
+                if ($role !== '') {
+                    $roles[] = $role;
+                }
+            }
+        }
+
+        if ($roles === [] && isset(self::TRANSITIONS[$status]['validate']['role'])) {
+            $fallbackRole = strtoupper(trim((string) self::TRANSITIONS[$status]['validate']['role']));
+            if ($fallbackRole !== '') {
+                $roles[] = $fallbackRole;
+            }
+        }
+
+        return array_values(array_unique($roles));
+    }
+
+    private function sendTemplateEmail(string $to, AccessRequest $request, string $comment, bool $isAction): void
+    {
+        $subject = $isAction ? "ACTION REQUISE" : "INFO";
+        $template = $isAction ? 'emails/notification_action.html.twig' : 'emails/notification_info.html.twig';
+        $from = $this->resolveMailerFrom();
+
+        $email = (new TemplatedEmail())
+            ->from($from)
+            ->to($to)
+            ->subject(sprintf('%s : Demande #%d (%s)', $subject, $request->getId(), self::getLabel($request->getStatus())))
+            ->htmlTemplate($template)
+            ->context([
+                'request' => $request,
+                'status_label' => self::getLabel($request->getStatus()),
+                'last_comment' => $comment,
+            ]);
+
+        $this->mailer->send($email);
+    }
+
+    private function resolveMailerFrom(): string
+    {
+        $runtimeFrom = trim((string) ($_SERVER['MAILER_FROM'] ?? $_ENV['MAILER_FROM'] ?? ''));
+        if ($runtimeFrom !== '') {
+            return $runtimeFrom;
+        }
+
+        $configuredFrom = trim((string) $this->mailerFrom);
+
+        return $configuredFrom !== '' ? $configuredFrom : 'no-reply@localhost';
+    }
+    
+    
 }
+
+
