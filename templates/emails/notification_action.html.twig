@@ -1,33 +1,229 @@
-{% apply inky_to_html|inline_css %}
+{% apply inline_css %}
 <style>
-    .header { background: #e67e22; padding: 20px; text-align: center; color: white; }
-    .content { padding: 30px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; }
-    .btn { background: #e67e22; color: white; padding: 15px 25px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; }
-    .card { background: #fdf2e9; border: 1px solid #fab1a0; padding: 20px; border-radius: 8px; margin: 20px 0; }
+	body {
+		margin: 0;
+		padding: 0;
+		background-color: #c3cee7;
+	}
+	table {
+		border-collapse: collapse;
+		mso-table-lspace: 0;
+		mso-table-rspace: 0;
+	}
+
+	/* Sidebar : Sienne Brulée (Pro et sobre) */
+	.sidebar {
+		background-color: #8e44ad;
+		background-color: #a35233;
+		width: 260px;
+		min-width: 260px;
+		padding: 40px 20px;
+		text-align: center;
+		vertical-align: top;
+	}
+	.sidebar h4 {
+		color: #ffffff !important;
+		margin: 15px 0 5px;
+		font-family: 'Segoe UI', sans-serif;
+		font-size: 18px;
+	}
+	.sidebar p {
+		color: #f2d7cc;
+		margin: 0;
+		font-family: 'Segoe UI', sans-serif;
+		font-size: 13px;
+		opacity: 0.8;
+	}
+
+	/* Contenu : Ambre doux (Moins agressif) */
+	.main-content {
+		background-color: #d18d67;
+		padding: 60px 40px;
+		vertical-align: top;
+	}
+	h2 {
+		color: #ffffff;
+		font-family: 'Segoe UI', sans-serif;
+		font-weight: bold;
+		font-size: 26px;
+		margin: 0 0 25px;
+	}
+	.text-intro {
+		color: #ffffff;
+		font-family: 'Segoe UI', sans-serif;
+		font-size: 16px;
+		line-height: 1.6;
+		margin-bottom: 30px;
+		opacity: 0.9;
+	}
+
+	/* Card : Contraste renforcé */
+	.info-card {
+		background-color: #f2f2f2;
+		border-radius: 8px;
+		padding: 30px;
+		margin-bottom: 30px;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+	}
+	.label {
+		color: #6e7985;
+		font-family: 'Segoe UI', sans-serif;
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		margin-bottom: 5px;
+	}
+	.value {
+		color: #2c3e50;
+		font-family: 'Segoe UI', sans-serif;
+		font-weight: 600;
+		font-size: 17px;
+		margin-bottom: 20px;
+	}
+	.badge {
+		background-color: #f8f1ed;
+		border: 1px solid #e6ccbe;
+		color: #a35233;
+		padding: 6px 15px;
+		border-radius: 4px;
+		font-weight: bold;
+		font-size: 12px;
+		display: inline-block;
+	}
+
+	/* Commentaire : Bulle plus neutre pour le texte */
+	.comment-title {
+		color: #ffffff;
+		font-family: 'Segoe UI', sans-serif;
+		font-weight: bold;
+		font-size: 15px;
+		margin-bottom: 10px;
+	}
+	.comment-bubble {
+		background-color: #f2f2f2;
+		border-radius: 12px;
+		padding: 25px;
+		border: 1px solid rgba(255, 255, 255, 0.3);
+		text-align: center;
+	}
+	.comment-text {
+		color: #475569;
+		font-family: 'Segoe UI', sans-serif;
+		font-style: italic;
+		font-size: 16px;
+		margin: 0;
+		line-height: 1.5;
+	}
+
+	/* Bouton : Sidebar Color (Rappel pro) */
+	.btn-primary {
+		background-color: #a35233;
+		color: #ffffff !important;
+		padding: 16px 32px;
+		text-decoration: none;
+		border-radius: 6px;
+		font-weight: bold;
+		display: inline-block;
+		font-family: 'Segoe UI', sans-serif;
+		margin-top: 30px;
+		border: 1px solid rgba(255, 255, 255, 0.2);
+	}
+
+	/* Footer */
+	.footer {
+		background-color: #e9ecef;
+		padding: 30px;
+		text-align: center;
+		border-top: 1px solid #dee2e6;
+		color: #7f8c8d;
+		font-family: 'Segoe UI', sans-serif;
+		font-size: 11px;
+	}
+
+	@media only screen and(max-width: 600px) {
+		.sidebar {
+			width: 110px !important;
+			min-width: 110px !important;
+			padding: 25px 10px !important;
+		}
+		.sidebar h4 {
+			font-size: 12px !important;
+		}
+		.sidebar p {
+			font-size: 10px !important;
+		}
+		.main-content {
+			padding: 30px 20px !important;
+		}
+		h2 {
+			font-size: 22px !important;
+		}
+		.info-card {
+			padding: 20px !important;
+		}
+	}
 </style>
-<container>
-    <row class="header">
-        <columns><h1>Action Attendue</h1></columns>
-    </row>
-    <row>
-        <columns class="content">
-            <p>Bonjour,</p>
-            <p>Une demande nécessite votre intervention pour passer à l'étape suivante du workflow.</p>
-            
-            <div class="card">
-                <strong>Demande #{{ request.id }}</strong><br>
-                <strong>Agent :</strong> {{ request.agent.firstname }} {{ request.agent.lastname }}<br>
-                <strong>Étape actuelle :</strong> {{ status_label }}
-            </div>
 
-            <p><strong>Dernière note :</strong><br>
-            <span style="color: #666; font-style: italic;">"{{ last_comment }}"</span></p>
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+	<tr>
+		<td class="sidebar">
+			<img src="https://www.leplessistrevise.fr/wp-content/themes/leplessistrevise/img/logo.svg" alt="Logo" width="75">
+			<h4>Le Plessis-Trévise</h4>
+			<p>Gestion des accès</p>
+		</td>
 
-            <spacer size="20"></spacer>
-            <center>
-                <button href="{{ url('app_request_show', {id: request.id}) }}" class="btn">Accéder à la demande</button>
-            </center>
-        </columns>
-    </row>
-</container>
+		<td class="main-content">
+			<h2>Action demandée</h2>
+
+			<div class="text-intro">
+				Bonjour,<br>
+				Une demande nécessite votre intervention pour passer à l'étape suivante du workflow.
+			</div>
+
+			<div class="info-card">
+				<table width="100%" border="0" cellspacing="0" cellpadding="0">
+					<tr>
+						<td width="50%" valign="top">
+							<div class="label">Référence</div>
+							<div class="value">{{ request.reference|default('#' ~ request.id) }}</div>
+						</td>
+						<td width="50%" valign="top">
+							<div class="label">Agent</div>
+							<div class="value">{{ request.agent.firstname|capitalize }}
+								{{ request.agent.lastname|upper }}</div>
+						</td>
+					</tr>
+					<tr>
+						<td colspan="2" style="padding-top: 5px;">
+							<div class="label">Statut actuel</div>
+							<div class="badge">{{ status_label }}</div>
+						</td>
+					</tr>
+				</table>
+			</div>
+
+			<div class="comment-title">Dernier message du service :</div>
+			<div class="comment-bubble">
+				<p class="comment-text">«
+					{{ last_comment }}
+					»</p>
+			</div>
+
+			<div style="text-align: center;">
+				<a href="{{ url('app_request_show', {id: request.id}) }}" class="btn-primary">Accéder à la demande</a>
+			</div>
+		</td>
+	</tr>
+
+	{# footer #}
+	<tr>
+		<td colspan="2" class="footer">
+			<p style="margin-bottom: 5px;">Ceci est une notification automatique envoyée par la plateforme de Gestion des Accès.</p>
+			<strong>Mairie du Plessis-Trévise</strong>
+			&copy;
+			{{ "now"|date("Y") }}
+		</td>
+	</tr>
+
+</table>
 {% endapply %}

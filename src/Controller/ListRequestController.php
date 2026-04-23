@@ -128,7 +128,6 @@ final class ListRequestController extends AbstractController
     public function show(
         AccessRequest $requestEntity,
         WorkflowService $workflowService,
-        RequestRepository $requestRepository,
         RessourceRepository $ressourceRepository,
         ServiceRepository $serviceRepository
     ): Response {
@@ -774,7 +773,7 @@ final class ListRequestController extends AbstractController
         if (!$this->isGranted(RequestVoter::UNBLOCK, $requestEntity)) {
             $entityManager->refresh($requestEntity);
             if (!$this->isGranted(RequestVoter::UNBLOCK, $requestEntity)) {
-                $this->addRequestFlash($httpRequest, 'warning', 'Deblocage impossible. La demande n est pas bloquee.');
+                $this->addRequestFlash($httpRequest, 'warning', 'Déblocage impossible. La demande n\'est pas bloquée.');
                 return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
             }
         }
@@ -793,9 +792,9 @@ final class ListRequestController extends AbstractController
         try {
             $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
             $workflowService->unblockByRh($requestEntity, $user, (string) $httpRequest->request->get('comment', ''));
-            $this->addRequestFlash($httpRequest, 'info', 'La demande a ete debloquee par RH.');
+            $this->addRequestFlash($httpRequest, 'info', 'La demande a ete debloquée par RH.');
         } catch (OptimisticLockException) {
-            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a ete modifiee entre-temps. Rechargez la page puis reessayez.');
+            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a ete modifiée entre-temps. Rechargez la page puis reessayez.');
         } catch (\InvalidArgumentException | \LogicException $e) {
             $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
         }

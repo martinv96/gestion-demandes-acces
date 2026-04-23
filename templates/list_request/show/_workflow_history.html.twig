@@ -1,20 +1,34 @@
 {% import 'list_request/show/_macros.html.twig' as macros %}
-<div class="col-12">
+
+<div class="col-12 mt-4">
     <div class="card">
         <div class="card-header">Historique des validations</div>
         <div class="card-body">
             {% set sortedHistory = history|sort((a, b) => a.date <=> b.date) %}
-            {% if sortedHistory|length > 0 %}
+            {% set totalHistory = sortedHistory|length %}
+
+            {% if totalHistory > 0 %}
+                {% set perPage = 5 %}
+                {% set totalPages = (totalHistory / perPage)|round(0, 'ceil') %}
+                {% set currentPage = app.request.query.getInt('history_page', 1) %}
+                
+                {% if currentPage < 1 %}{% set currentPage = 1 %}{% endif %}
+                {% if totalPages > 0 and currentPage > totalPages %}{% set currentPage = totalPages %}{% endif %}
+                
+                {% set offset = (currentPage - 1) * perPage %}
+                {% set pagedHistory = sortedHistory|slice(offset, perPage) %}
+
                 <ul class="list-group list-group-flush history-list">
-                    {% for entry in sortedHistory %}
+                    {% for entry in pagedHistory %}
                         {% set isRefusal = entry.newStatus starts with 'refusee_' %}
-                        {% set isReturnAfterRefusal =
-                            (entry.oldStatus == 'en_attente_st' and entry.newStatus == 'en_attente_rh')
-                            or (entry.oldStatus == 'en_attente_dsi' and entry.newStatus == 'en_attente_st')
+                        {% set isReturnAfterRefusal = 
+                            (entry.oldStatus == 'en_attente_st' and entry.newStatus == 'en_attente_rh') 
+                            or (entry.oldStatus == 'en_attente_dsi' and entry.newStatus == 'en_attente_st') 
                         %}
                         {% set eventType = isRefusal ? 'refusal' : (isReturnAfterRefusal ? 'return' : 'validation') %}
                         {% set eventLabel = isRefusal ? 'Refus' : (isReturnAfterRefusal ? 'Retour' : 'Validation') %}
                         {% set eventIcon = isRefusal ? 'x' : (isReturnAfterRefusal ? '↺' : '✓') %}
+                        
                         <li class="list-group-item history-item px-0">
                             <div class="history-item-top">
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -23,11 +37,7 @@
                                         {{ eventLabel }}
                                     </span>
                                     <span class="history-actor fw-semibold">
-                                        {% if entry.user %}
-                                            {{ entry.user.displayName }}
-                                        {% else %}
-                                            Systeme
-                                        {% endif %}
+                                        {{ entry.user ? entry.user.displayName : 'Systeme' }}
                                     </span>
                                 </div>
                                 <span class="history-date">
@@ -47,6 +57,32 @@
                         </li>
                     {% endfor %}
                 </ul>
+
+                {% if totalHistory > perPage %}
+                    <nav class="mt-3" aria-label="Pagination historique workflow">
+                        <ul class="pagination pagination-sm mb-0 justify-content-end">
+                            {# fleche gauche #}
+                                <li class="page-item {{ currentPage <= 1 ? 'disabled' : '' }}">
+                                    <a class="page-link" href="{{ path('app_request_show', {id: requestEntity.id, history_page: currentPage - 1}) }}" aria-label="Précédent"><span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                            
+                            {# Numéro page #}
+                            {% for p in 1..totalPages %}
+                                <li class="page-item {{ p == currentPage ? 'active' : '' }}">
+                                    <a class="page-link" href="{{ path('app_request_show', {id: requestEntity.id, history_page: p}) }}">{{ p }}</a>
+                                </li>
+                            {% endfor %}
+
+                            {# flèche droite #}
+                                <li class="page-item {{ currentPage >= totalPages ? 'disabled' : '' }}">
+                                    <a class="page-link" href="{{ path('app_request_show', {id: requestEntity.id, history_page: currentPage + 1}) }}"aria-label="suivant"><span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                        </ul>
+                    </nav>
+                {% endif %}
+
             {% else %}
                 <p class="text-muted mb-0">Aucune action enregistree.</p>
             {% endif %}
