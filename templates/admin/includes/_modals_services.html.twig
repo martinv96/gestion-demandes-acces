@@ -1,0 +1,72 @@
+    {# ── Ajouter un service ── #}
+	<div class="modal fade" id="addServiceModal" tabindex="-1" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content admin-modal">
+				<div class="modal-header border-0 pb-1">
+					<h5 class="modal-title">Ajouter un Service</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+				</div>
+				<form method="post" action="{{ path('app_admin_service_add') }}">
+					<input type="hidden" name="_token" value="{{ csrf_token('admin_service_add') }}">
+					<div class="modal-body">
+						<div class="mb-3">
+							<label class="form-label">Nom du service</label>
+							<input type="text" class="form-control" name="name" placeholder="Ex : Direction Générale des Services" required autocomplete="off">
+						</div>
+						<div class="mb-3">
+							<label class="form-label">Email du service
+								<span class="text-muted">(optionnel)</span>
+							</label>
+							<input type="email" class="form-control" name="email" placeholder="service@mairie.fr">
+						</div>
+						<div class="mb-3">
+							<label class="form-label">Code workflow
+								<span class="text-muted">(optionnel)</span>
+							</label>
+							<input type="text" class="form-control" name="code" placeholder="Ex : RH, ST, DSI" maxlength="20" autocomplete="off">
+							<div class="form-text">Code acteur de validation. Exemple: EDU ajoute une étape ROLE_EDU.</div>
+						</div>
+						<div class="modal-footer border-0 pt-0">
+							<button type="submit" class="btn btn-primary">Créer</button>
+							<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+
+		{# ── Modifier chaque service ── #}
+		{% for service in services %}
+			<div class="modal fade" id="editServiceModal{{ service.id }}" tabindex="-1" aria-hidden="true">
+				<div class="modal-dialog modal-dialog-centered">
+					<div class="modal-content admin-modal">
+						<div class="modal-header border-0 pb-1">
+							<h5 class="modal-title">Modifier le service</h5>
+							<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+						</div>
+						<form method="post" action="{{ path('app_admin_service_edit', {id: service.id}) }}">
+							<input type="hidden" name="_token" value="{{ csrf_token('admin_service_edit_' ~ service.id) }}">
+							<div class="modal-body">
+								<div class="mb-3">
+									<label class="form-label">Nom du service</label>
+									<input type="text" class="form-control" name="name" value="{{ service.name }}" required>
+								</div>
+								<div class="mb-3">
+									<label class="form-label">Email du service</label>
+									<input type="email" class="form-control" name="email" value="{{ service.email }}">
+								</div>
+								<div class="mb-3">
+									<label class="form-label">Code workflow</label>
+									<input type="text" class="form-control" name="code" value="{{ service.code }}" placeholder="Ex : RH, ST, DSI, EDU" maxlength="20" autocomplete="off">
+								</div>
+							</div>
+							<div class="modal-footer border-0 pt-0">
+								<button type="submit" class="btn btn-primary">Enregistrer</button>
+								<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		{% endfor %}

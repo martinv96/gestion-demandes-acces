@@ -1,0 +1,112 @@
+{# ── Ajouter un compte ── #}
+	<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content admin-modal">
+				<div class="modal-header border-0 pb-1">
+					<div>
+						<h5 class="modal-title mb-0" id="addUserModalLabel">Ajouter un compte</h5>
+						<p class="text-primary small mb-0">Créer un nouveau compte pour accéder à l'application</p>
+					</div>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+				</div>
+				<form method="post" action="{{ path('app_admin_user_add') }}">
+					<input type="hidden" name="_token" value="{{ csrf_token('admin_user_add') }}">
+					<div class="modal-body">
+						<div class="mb-3">
+							<label class="form-label">Email</label>
+							<input type="email" class="form-control" name="email" placeholder="email@mairie.fr" required autocomplete="off">
+						</div>
+						<div class="mb-3">
+							<label class="form-label">Rôle</label>
+							<select class="form-select" name="role_id">
+								<option value="">Sélectionner un rôle</option>
+								{% set statusMap = {
+                                'ROLE_ADMIN': 'Administrateur',
+                                'ROLE_USER': 'Compte'
+                            } %}
+								{% for role in roles %}
+									<option value="{{ role.id }}">{{ statusMap[role.label] ?? '-' }}</option>
+								{% endfor %}
+							</select>
+						</div>
+						<div class="mb-3">
+							<label class="form-label">Service</label>
+							<select class="form-select" name="service_id">
+								<option value="">Sélectionner un service</option>
+								{% for service in services %}
+									<option value="{{ service.id }}">{{ service.name }}</option>
+								{% endfor %}
+							</select>
+						</div>
+						<p class="text-muted small mb-0">
+							Un mot de passe provisoire sera généré automatiquement et affiché après la création.
+						</p>
+					</div>
+					<div class="modal-footer border-0 pt-0">
+						<button type="submit" class="btn btn-primary">Créer</button>
+						<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+
+    {# ── Modifier chaque compte ── #}
+	{% for user in users %}
+		<div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content admin-modal">
+					<div class="modal-header border-0 pb-1">
+						<h5 class="modal-title">Modifier le compte</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+					</div>
+					<form method="post" action="{{ path('app_admin_user_edit', {id: user.id}) }}">
+						<input type="hidden" name="_token" value="{{ csrf_token('admin_user_edit_' ~ user.id) }}">
+						<div class="modal-body">
+							<div class="row g-3">
+								<div class="col-md-6">
+									<label class="form-label">Compte</label>
+									<input type="text" class="form-control" value="{{ user.displayName }}" readonly>
+								</div>
+							</div>
+							<div class="mb-3">
+								<label class="form-label">Email</label>
+								<input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+							</div>
+							<div class="mb-3">
+								<label class="form-label">Rôle</label>
+								<select class="form-select" name="role_id">
+									<option value="">Aucun rôle</option>
+									{% for role in roles %}
+										{% set statusMap = {
+                                        'ROLE_ADMIN': 'Administrateur',
+                                        'ROLE_USER': 'Compte'
+                                    } %}
+										<option value="{{ role.id }}" {{ user.role and user.role.id == role.id ? 'selected' : '' }}>
+											{{ statusMap[role.label] ?? '-' }}
+										</option>
+									{% endfor %}
+								</select>
+							</div>
+							<div class="mb-3">
+								<label class="form-label">Service</label>
+								<select class="form-select" name="service_id">
+									<option value="">Aucun service</option>
+									{% for service in services %}
+										<option value="{{ service.id }}" {{ user.service and user.service.id == service.id ? 'selected' : '' }}>
+											{{ service.name }}
+										</option>
+									{% endfor %}
+								</select>
+							</div>
+						</div>
+						<div class="modal-footer border-0 pt-0">
+							<button type="submit" class="btn btn-primary">Enregistrer</button>
+							<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	{% endfor %}

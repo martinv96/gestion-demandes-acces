@@ -38,11 +38,11 @@
 								<option value="">Tous les statuts</option>
 								{% set statusOptions = {
                             'en_attente_rh': 'En attente RH',
-                            'en_attente_st': 'En attente DGA-ST',
+                            'en_attente_st': 'En attente ST',
                             'en_attente_dsi': 'En attente DSI',
                             'traitee': 'Traitée',
                             'refusee_rh': 'Refusée RH',
-                            'refusee_st': 'Refusée DGA-ST',
+                            'refusee_st': 'Refusée ST',
                             'refusee_dsi': 'Refusée DSI'
                         } %}
 								{% for value, label in statusOptions %}
@@ -158,11 +158,11 @@
 										<td>
 											{% set statusMap = {
                                         'en_attente_rh':  ['info',    'En attente RH'],
-                                        'en_attente_st':  ['warning', 'En attente DGA-ST'],
+                                        'en_attente_st':  ['warning', 'En attente ST'],
                                         'en_attente_dsi': ['primary', 'En attente DSI'],
                                         'traitee':        ['success', 'Traitée'],
                                         'refusee_rh':     ['danger',  'Refusée RH'],
-                                        'refusee_st':     ['danger',  'Refusée DGA-ST'],
+                                        'refusee_st':     ['danger',  'Refusée ST'],
                                         'refusee_dsi':    ['danger',  'Refusée DSI'],
                                     } %}
 											{% if request.status in statusMap|keys %}

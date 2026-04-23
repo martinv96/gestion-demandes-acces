@@ -172,3 +172,14 @@
     border-color: #c4ccd6;
     color: #3f4e5d;
 }
+
+.pagination .page-link {
+    border: none;
+    color: #6c757d;
+    background: transparent;
+}
+.pagination .page-item.active .page-link {
+    background-color: transparent;
+    color: #000;
+    font-weight: bold;
+}

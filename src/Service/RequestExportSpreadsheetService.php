@@ -43,11 +43,11 @@ class RequestExportSpreadsheetService
 
         $statusLabels = [
             AccessRequest::STATUS_EN_ATTENTE_RH => 'En attente RH',
-            AccessRequest::STATUS_EN_ATTENTE_ST => 'En attente DGA-ST',
+            AccessRequest::STATUS_EN_ATTENTE_ST => 'En attente ST',
             AccessRequest::STATUS_EN_ATTENTE_DSI => 'En attente DSI',
             AccessRequest::STATUS_TRAITEE => 'Traitée',
             AccessRequest::STATUS_REFUSEE_RH => 'Refusée RH',
-            AccessRequest::STATUS_REFUSEE_ST => 'Refusée DGA-ST',
+            AccessRequest::STATUS_REFUSEE_ST => 'Refusée ST',
             AccessRequest::STATUS_REFUSEE_DSI => 'Refusée DSI',
         ];
 

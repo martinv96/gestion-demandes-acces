@@ -59,7 +59,7 @@
                 </ul>
 
                 {% if totalHistory > perPage %}
-                    <nav class="mt-3" aria-label="Pagination historique workflow">
+                    <nav class="navigation" aria-label="Pagination historique workflow">
                         <ul class="pagination pagination-sm mb-0 justify-content-end">
                             {# fleche gauche #}
                                 <li class="page-item {{ currentPage <= 1 ? 'disabled' : '' }}">
@@ -84,7 +84,7 @@
                 {% endif %}
 
             {% else %}
-                <p class="text-muted mb-0">Aucune action enregistree.</p>
+                <p class="text-muted mb-0">Aucune action enregistrée.</p>
             {% endif %}
         </div>
     </div>

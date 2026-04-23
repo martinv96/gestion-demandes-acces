@@ -2,11 +2,11 @@
 	{% set map = {
         'en_attente_rh':  ['info',     'En attente RH'],
 	'en_attente_validation': ['secondary', 'En attente validation'],
-        'en_attente_st':  ['warning',  'En attente DGA-ST'],
+        'en_attente_st':  ['warning',  'En attente ST'],
         'en_attente_dsi': ['primary',  'En attente DSI'],
         'traitee':        ['success',  'Traitée'],
         'refusee_rh':     ['danger',   'Refusée par RH'],
-        'refusee_st':     ['danger',   'Refusée par DGA-ST'],
+        'refusee_st':     ['danger',   'Refusée par ST'],
         'refusee_dsi':    ['danger',   'Refusée par DSI'],
     } %}
 	{% if status in map|keys %}

@@ -36,11 +36,11 @@ class WorkflowService
     public const LABELS = [
         self::STATUS_EN_ATTENTE_RH  => 'En attente RH',
         AccessRequest::STATUS_EN_ATTENTE_VALIDATION => 'En attente validations services',
-        self::STATUS_EN_ATTENTE_ST  => 'En attente DGA-ST',
+        self::STATUS_EN_ATTENTE_ST  => 'En attente ST',
         self::STATUS_EN_ATTENTE_DSI => 'En attente DSI',
         self::STATUS_TRAITEE        => 'Traitée',
         self::STATUS_REFUSEE_RH     => 'Refusée par RH',
-        self::STATUS_REFUSEE_ST     => 'Refusée par DGA-ST',
+        self::STATUS_REFUSEE_ST     => 'Refusée par ST',
         self::STATUS_REFUSEE_DSI    => 'Refusée par DSI',
     ];
 
@@ -230,7 +230,7 @@ class WorkflowService
         $transition = $this->resolveTransition($request, $user, 'validate');
 
         if ($transition === null || !in_array($transition['role'], $user->getRoles(), true)) {
-            throw new \LogicException('Transition de validation non autorisée pour ce rôle ou ce statut.');
+            throw new LogicException('Transition de validation non autorisée pour ce rôle ou ce statut.');
         }
 
         $this->applyTransition($request, $user, $transition['next'], $comment);
@@ -261,7 +261,7 @@ class WorkflowService
         }
 
         if (!$this->canFinalizeClosureByAnyUser($request)) {
-            throw new \LogicException('Cette demande de fermeture ne peut pas être validée pour le moment.');
+            throw new LogicException('Cette demande de fermeture ne peut pas être validée pour le moment.');
         }
 
         $this->applyTransition($request, $user, AccessRequest::STATUS_TRAITEE, $comment);
@@ -286,7 +286,7 @@ class WorkflowService
         $transition = $this->resolveTransition($request, $user, 'refuse');
 
         if ($transition === null || !in_array($transition['role'], $user->getRoles(), true)) {
-            throw new \LogicException('Transition de refus non autorisée pour ce rôle ou ce statut.');
+            throw new LogicException('Transition de refus non autorisée pour ce rôle ou ce statut.');
         }
 
         $this->applyTransition($request, $user, $transition['next'], $comment);
@@ -300,16 +300,16 @@ class WorkflowService
 
         $latestHistory = $this->getLatestHistory($request);
         if (!$latestHistory instanceof WorkflowHistory) {
-            throw new \LogicException('Aucune décision récente à annuler.');
+            throw new LogicException('Aucune décision récente à annuler.');
         }
 
         if (!$this->canUndoLastDecision($request, $user)) {
-            throw new \LogicException('Annulation de décision non autorisée.');
+            throw new LogicException('Annulation de décision non autorisée.');
         }
 
         $previousStatus = trim((string) $latestHistory->getOldStatus());
         if ($previousStatus === '') {
-            throw new \LogicException('Statut précédent introuvable.');
+            throw new LogicException('Statut précédent introuvable.');
         }
 
         $this->applyTransition($request, $user, $previousStatus, 'Annulation de décision : ' . trim($comment));
@@ -419,11 +419,11 @@ class WorkflowService
         $actorRole = $this->resolveParallelValidationRoleForUser($request, $user, $requiredRoles);
 
         if ($actorRole === null) {
-            throw new \LogicException('Transition de validation non autorisée pour ce rôle ou ce statut.');
+            throw new LogicException('Transition de validation non autorisée pour ce rôle ou ce statut.');
         }
 
         if ($this->hasUserAlreadyValidatedParallelStep($request, $actorRole)) {
-            throw new \LogicException('Ce service a déjà validé cette demande.');
+            throw new LogicException('Ce service a déjà validé cette demande.');
         }
 
         $validatedRoles = $this->getValidatedParallelRoles($request, $requiredRoles);
@@ -676,7 +676,7 @@ class WorkflowService
         $nextStatus = $this->workflowBlockageHelper->resolveNextValidationStatus($request, $currentStatus);
 
         if ($nextStatus === null || $nextStatus === '') {
-            throw new \LogicException('Transition de déblocage introuvable.');
+            throw new LogicException('Transition de déblocage introuvable.');
         }
 
         $this->applyTransition(

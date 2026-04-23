@@ -1,0 +1,51 @@
+{# ── Ajouter un logiciel ── #}
+		<div class="modal fade" id="addLogicielModal" tabindex="-1" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content admin-modal">
+					<div class="modal-header border-0 pb-1">
+						<h5 class="modal-title">Ajouter un logiciel</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+					</div>
+					<form method="post" action="{{ path('app_admin_logiciel_add') }}">
+						<input type="hidden" name="_token" value="{{ csrf_token('admin_logiciel_add') }}">
+						<div class="modal-body">
+							<div class="mb-3">
+								<label class="form-label">Nom du logiciel</label>
+								<input type="text" class="form-control" name="name" placeholder="Ex : Ciril RH" required autocomplete="off">
+							</div>
+						</div>
+						<div class="modal-footer border-0 pt-0">
+							<button type="submit" class="btn btn-primary">Ajouter</button>
+							<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		{# ── Modifier chaque logiciel ── #}
+		{% for logiciel in logiciels %}
+			<div class="modal fade" id="editLogicielModal{{ logiciel.id }}" tabindex="-1" aria-hidden="true">
+				<div class="modal-dialog modal-dialog-centered">
+					<div class="modal-content admin-modal">
+						<div class="modal-header border-0 pb-1">
+							<h5 class="modal-title">Modifier le logiciel</h5>
+							<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+						</div>
+						<form method="post" action="{{ path('app_admin_logiciel_edit', {id: logiciel.id}) }}">
+							<input type="hidden" name="_token" value="{{ csrf_token('admin_logiciel_edit_' ~ logiciel.id) }}">
+							<div class="modal-body">
+								<div class="mb-3">
+									<label class="form-label">Nom du logiciel</label>
+									<input type="text" class="form-control" name="name" value="{{ logiciel.name }}" required>
+								</div>
+							</div>
+							<div class="modal-footer border-0 pt-0">
+								<button type="submit" class="btn btn-primary">Enregistrer</button>
+								<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		{% endfor %}
