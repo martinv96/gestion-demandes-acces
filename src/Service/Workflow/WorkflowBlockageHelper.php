@@ -4,24 +4,52 @@ namespace App\Service\Workflow;
 
 use App\Entity\Request as AccessRequest;
 use App\Entity\User;
+use App\Repository\UserRepository;
 use App\Repository\WorkflowTransitionConfigRepository;
 
 class WorkflowBlockageHelper
 {
+    private const DEFAULT_WORKFLOW_CODE = 'default_access';
+
+    /**
+     * @var array<string, array<string, array{role: string, next: string}>>
+     */
+    private const FALLBACK_TRANSITIONS = [
+        AccessRequest::STATUS_EN_ATTENTE_RH => [
+            'validate' => ['role' => 'ROLE_RH', 'next' => AccessRequest::STATUS_EN_ATTENTE_VALIDATION],
+        ],
+        AccessRequest::STATUS_EN_ATTENTE_VALIDATION => [
+            'validate' => ['role' => 'ROLE_ST', 'next' => AccessRequest::STATUS_EN_ATTENTE_VALIDATION],
+        ],
+        AccessRequest::STATUS_EN_ATTENTE_ST => [
+            'validate' => ['role' => 'ROLE_ST', 'next' => AccessRequest::STATUS_EN_ATTENTE_DSI],
+        ],
+        AccessRequest::STATUS_EN_ATTENTE_DSI => [
+            'validate' => ['role' => 'ROLE_DSI', 'next' => AccessRequest::STATUS_TRAITEE],
+        ],
+    ];
+
+    /**
+     * @var array<string, string>
+     */
+    private const STATUS_LABELS = [
+        AccessRequest::STATUS_EN_ATTENTE_RH => 'En attente RH',
+        AccessRequest::STATUS_EN_ATTENTE_VALIDATION => 'En attente validations services',
+        AccessRequest::STATUS_EN_ATTENTE_ST => 'En attente ST',
+        AccessRequest::STATUS_EN_ATTENTE_DSI => 'En attente DSI',
+        AccessRequest::STATUS_TRAITEE => 'Traitee',
+        'refusee_rh' => 'Refusee par RH',
+        'refusee_st' => 'Refusee par ST',
+        'refusee_dsi' => 'Refusee par DSI',
+    ];
+
     private const NEUTRAL_WAITING_STATUSES = [
         AccessRequest::STATUS_EN_ATTENTE_VALIDATION,
     ];
 
-    /**
-     * @param array<string, array<string, array{role: string, next: string}>> $fallbackTransitions
-     * @param array<string, string> $statusLabels
-     */
     public function __construct(
         private WorkflowTransitionConfigRepository $workflowTransitionConfigRepository,
-        private mixed $userRepository,
-        private string $defaultWorkflowCode,
-        private array $fallbackTransitions,
-        private array $statusLabels,
+        private UserRepository $userRepository,
     ) {
     }
 
@@ -82,7 +110,7 @@ class WorkflowBlockageHelper
             }
         }
 
-        $rows = $this->workflowTransitionConfigRepository->findActiveTransitionsForWorkflow($this->defaultWorkflowCode);
+        $rows = $this->workflowTransitionConfigRepository->findActiveTransitionsForWorkflow(self::DEFAULT_WORKFLOW_CODE);
         foreach ($rows as $row) {
             if ($row->getAction() !== 'validate' || $row->getFromStatus() !== $status) {
                 continue;
@@ -94,7 +122,7 @@ class WorkflowBlockageHelper
             }
         }
 
-        return $this->fallbackTransitions[$status]['validate']['next'] ?? null;
+        return self::FALLBACK_TRANSITIONS[$status]['validate']['next'] ?? null;
     }
 
     public function isBlockedByMissingValidator(AccessRequest $request): bool
@@ -122,8 +150,8 @@ class WorkflowBlockageHelper
     {
         $status = (string) ($request->getStatus() ?? '');
 
-        if (isset($this->statusLabels[$status]) && str_starts_with($this->statusLabels[$status], 'En attente ')) {
-            return trim(str_replace('En attente ', '', $this->statusLabels[$status]));
+        if (isset(self::STATUS_LABELS[$status]) && str_starts_with(self::STATUS_LABELS[$status], 'En attente ')) {
+            return trim(str_replace('En attente ', '', self::STATUS_LABELS[$status]));
         }
 
         if (str_starts_with($status, 'en_attente_')) {
@@ -138,10 +166,6 @@ class WorkflowBlockageHelper
 
     private function hasActiveUserForWorkflowRole(string $workflowRole): bool
     {
-        if (!is_object($this->userRepository) || !method_exists($this->userRepository, 'hasActiveUserForWorkflowRole')) {
-            return true;
-        }
-
         return (bool) $this->userRepository->hasActiveUserForWorkflowRole($workflowRole);
     }
 }
