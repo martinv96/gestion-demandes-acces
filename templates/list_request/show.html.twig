@@ -4,7 +4,7 @@
 	{{ requestEntity.reference }}
 {% endblock %}
 
-{% import 'list_request/show/_macros.html.twig' as macros %}
+{% import 'list_request/includes/_macros.html.twig' as macros %}
 
 {% block body %}
 
@@ -442,18 +442,18 @@
 				{% endif %}
 
 				{# Historique du workflow #}
-				{% include 'list_request/show/_workflow_history.html.twig' %}
+				{% include 'list_request/includes/_workflow_history.html.twig' %}
 			</div>
 
 			{# Parcours de validation #}
-			{% include 'list_request/show/_parcours_validation.html.twig' %}
+			{% include 'list_request/includes/_parcours_validation.html.twig' %}
 
 		</div>
 
 		{# Actions workflow en bas de page #}
-		{% include 'list_request/show/_workflow_actions.html.twig' %}
+		{% include 'list_request/includes/_workflow_actions.html.twig' %}
 
 	</div>
 
-	{% include 'list_request/show/_scripts.html.twig' %}
+	{% include 'list_request/includes/_scripts.html.twig' %}
 {% endblock %}
