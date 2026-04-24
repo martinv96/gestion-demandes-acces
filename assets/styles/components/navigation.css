@@ -1,9 +1,10 @@
 /* Navigation */
 
 .nav-link {
-    color: #495057; /* gris foncé Bootstrap par défaut */
+    color: #495057; 
+    font-weight:450;
 }
 
 .nav-link:hover {
-    color: #212529; /* un peu plus foncé au survol */
+    color: #212529; 
 }

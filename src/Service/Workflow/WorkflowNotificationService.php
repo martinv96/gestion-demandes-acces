@@ -18,6 +18,7 @@ class WorkflowNotificationService
         AccessRequest::STATUS_EN_ATTENTE_VALIDATION => 'En attente validations services',
         AccessRequest::STATUS_EN_ATTENTE_ST => 'En attente ST',
         AccessRequest::STATUS_EN_ATTENTE_DSI => 'En attente DSI',
+        AccessRequest::STATUS_EN_ATTENTE_TRAITEMENT => 'En attente traitement',
         AccessRequest::STATUS_TRAITEE => 'Traitee',
         'refusee_rh' => 'Refusee par RH',
         'refusee_st' => 'Refusee par ST',

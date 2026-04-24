@@ -645,6 +645,12 @@ final class ListRequestController extends AbstractController
 
         $requestEntity->setUpdateDate(new \DateTimeImmutable());
 
+        if ($requestEntity->getStatus() !== AccessRequest::STATUS_EN_ATTENTE_VALIDATION) {
+            $requestEntity->setStatus(AccessRequest::STATUS_EN_ATTENTE_VALIDATION);
+        }
+
+        $canFinalizeClosureNow = $workflowService->canFinalizeClosureByAnyUser($requestEntity);
+
         $entityManager->flush();
 
         $workflowService->notifyAllActors($requestEntity, $message);
@@ -656,7 +662,7 @@ final class ListRequestController extends AbstractController
                 'ressourceId' => $ressourceId,
                 'newStatus' => $newStatus,
                 'version' => $requestEntity->getVersion(),
-                'canFinalizeClosure' => $workflowService->canFinalizeClosureByAnyUser($requestEntity),
+                'canFinalizeClosure' => $canFinalizeClosureNow,
             ]);
         }
 

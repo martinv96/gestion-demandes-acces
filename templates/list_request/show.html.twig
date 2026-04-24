@@ -16,9 +16,9 @@
 		{% set history = requestEntity.requestId|sort((a, b) => a.date <=> b.date) %}
 		{% set createdAt = requestEntity.creationDate %}
 		{% set createdBy = requestEntity.author ? requestEntity.author.displayName : 'Service RH' %}
-		{% set rhStepDone = requestEntity.status in ['en_attente_validation', 'en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'] %}
-		{% set stStepDone = requestEntity.status in ['en_attente_dsi', 'traitee', 'refusee_st', 'refusee_dsi'] %}
-		{% set dsiStepDone = requestEntity.status in ['traitee', 'refusee_dsi'] %}
+		{% set rhStepDone = requestEntity.status in ['en_attente_validation', 'en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'en_attente_traitement', 'refusee_st', 'refusee_dsi'] %}
+		{% set stStepDone = requestEntity.status in ['en_attente_dsi', 'traitee', 'refusee_st', 'refusee_dsi', 'en_attente_traitement'] %}
+		{% set dsiStepDone = requestEntity.status in ['traitee', 'refusee_dsi', 'en_attente_traitement'] %}
 		{% set treatedStepDone = requestEntity.status == 'traitee' %}
 		{% set rhValidatedAt = null %}
 		{% set stValidatedAt = null %}
@@ -46,7 +46,7 @@
 				{% set dsiValidatedAt = entry.date %}
 			{% endif %}
 
-			{% if not isUndoEntry and entry.oldStatus starts with 'en_attente_' and entry.oldStatus != 'en_attente_rh' and entry.newStatus in ['en_attente_validation', 'traitee'] %}
+			{% if not isUndoEntry and entry.oldStatus starts with 'en_attente_' and entry.oldStatus != 'en_attente_rh' and entry.newStatus in ['en_attente_validation', 'traitee', 'en_attente_traitement'] %}
 				{% if 'ROLE_ST' in entryRoles %}
 					{% set stStepDone = true %}
 					{% if stValidatedAt is null %}

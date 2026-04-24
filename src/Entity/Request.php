@@ -19,6 +19,8 @@ class Request
     public const STATUS_EN_ATTENTE_VALIDATION = 'en_attente_validation';
     public const STATUS_EN_ATTENTE_ST = 'en_attente_st';
     public const STATUS_EN_ATTENTE_DSI = 'en_attente_dsi';
+    public const STATUS_EN_ATTENTE_TRAITEMENT = 'en_attente_traitement';
+
     public const STATUS_TRAITEE = 'traitee';
     public const STATUS_REFUSEE_RH = 'refusee_rh';
     public const STATUS_REFUSEE_ST = 'refusee_st';
@@ -35,6 +37,7 @@ class Request
         self::STATUS_EN_ATTENTE_VALIDATION,
         self::STATUS_EN_ATTENTE_ST,
         self::STATUS_EN_ATTENTE_DSI,
+        self::STATUS_EN_ATTENTE_TRAITEMENT,
         self::STATUS_TRAITEE,
         self::STATUS_REFUSEE_RH,
         self::STATUS_REFUSEE_ST,

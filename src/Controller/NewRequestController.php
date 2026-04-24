@@ -20,12 +20,16 @@ final class NewRequestController extends AbstractController
     #[Route('/new/request', name: 'app_new_request', methods: ['GET', 'POST'])]
     public function index(Request $request, RequestRepository $requestRepository, RequestCreationService $requestCreationService, WorkflowService $workflowService): Response
     {
-        if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_RH')) {
-            throw $this->createAccessDeniedException('Seuls les comptes RH ou Admin peuvent créer une demande.');
-        }
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+        $canCreateAllRequestTypes = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_RH');
 
         $formData = new NewRequestData();
-        $form = $this->createForm(NewRequestType::class, $formData);
+        $form = $this->createForm(NewRequestType::class, $formData, [
+            'allowed_types' => $canCreateAllRequestTypes
+                ? AccessRequest::TYPES
+                : [AccessRequest::TYPE_FERMETURE],
+        ]);
 
         $form->handleRequest($request);
 
@@ -40,9 +44,15 @@ final class NewRequestController extends AbstractController
                 throw $this->createAccessDeniedException('Utilisateur non authentifié.');
             }
 
-            $initialStatus = in_array('ROLE_RH', $currentUser->getRoles(), true)
+            if (!$canCreateAllRequestTypes && $requestType !== AccessRequest::TYPE_FERMETURE) {
+                throw $this->createAccessDeniedException('Seule une demande de fermeture peut etre creee avec ce compte.');
+            }
+
+            $initialStatus = $requestType === AccessRequest::TYPE_FERMETURE
                 ? AccessRequest::STATUS_EN_ATTENTE_VALIDATION
-                : AccessRequest::STATUS_EN_ATTENTE_RH;
+                : (in_array('ROLE_RH', $currentUser->getRoles(), true)
+                    ? AccessRequest::STATUS_EN_ATTENTE_VALIDATION
+                    : AccessRequest::STATUS_EN_ATTENTE_RH);
 
             $parentRequest = $formData->getParentRequest();
             $effectiveParentRequest = $parentRequest;

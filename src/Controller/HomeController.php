@@ -34,12 +34,12 @@ class HomeController extends AbstractController
             [
                 'title' => 'Demandes traitées',
                 'value' => $processedRequests,
-                'icon' => 'images/dashboard/logoTraité.png',
+                'icon' => 'images/dashboard/logoTotaux.png',
             ],
             [
                 'title' => 'Total des demandes',
                 'value' => $totalRequests,
-                'icon' => 'images/dashboard/logoTotaux.png',
+                'icon' => 'images/dashboard/logoTraité.png',
             ],
         ];
 

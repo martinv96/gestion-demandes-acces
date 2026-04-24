@@ -83,8 +83,11 @@ class WorkflowStateResolver
 
     public function isParallelServicePhase(string $status): bool
     {
-        return str_starts_with($status, 'en_attente_')
-            && $status !== AccessRequest::STATUS_EN_ATTENTE_RH;
+        return in_array($status, [
+            AccessRequest::STATUS_EN_ATTENTE_VALIDATION,
+            AccessRequest::STATUS_EN_ATTENTE_ST,
+            AccessRequest::STATUS_EN_ATTENTE_DSI,
+        ], true);
     }
 
     /**
@@ -189,7 +192,11 @@ class WorkflowStateResolver
             }
 
             $newStatus = (string) ($history->getNewStatus() ?? '');
-            if ($newStatus !== AccessRequest::STATUS_EN_ATTENTE_VALIDATION && $newStatus !== AccessRequest::STATUS_TRAITEE) {
+            if (
+                $newStatus !== AccessRequest::STATUS_EN_ATTENTE_VALIDATION
+                && $newStatus !== AccessRequest::STATUS_EN_ATTENTE_TRAITEMENT
+                && $newStatus !== AccessRequest::STATUS_TRAITEE
+            ) {
                 continue;
             }
 

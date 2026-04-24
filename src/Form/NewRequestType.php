@@ -21,6 +21,23 @@ final class NewRequestType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $requestTypeChoices = [];
+        foreach ($options['allowed_types'] as $type) {
+            if ($type === AccessRequest::TYPE_OUVERTURE) {
+                $requestTypeChoices['Ouverture - Nouveau collaborateur'] = AccessRequest::TYPE_OUVERTURE;
+                continue;
+            }
+
+            if ($type === AccessRequest::TYPE_MODIFICATION) {
+                $requestTypeChoices['Modification - Changement de service ou fonction'] = AccessRequest::TYPE_MODIFICATION;
+                continue;
+            }
+
+            if ($type === AccessRequest::TYPE_FERMETURE) {
+                $requestTypeChoices['Fermeture - Départ du collaborateur'] = AccessRequest::TYPE_FERMETURE;
+            }
+        }
+
         $builder
             ->add('civility', ChoiceType::class, [
                 'label' => 'Civilité *',
@@ -78,11 +95,7 @@ final class NewRequestType extends AbstractType
                 'expanded' => true,
                 'multiple' => false,
                 'required' => true,
-                'choices' => [
-                    'Ouverture - Nouveau collaborateur' => AccessRequest::TYPE_OUVERTURE,
-                    'Modification - Changement de service ou fonction' => AccessRequest::TYPE_MODIFICATION,
-                    'Fermeture - Départ du collaborateur' => AccessRequest::TYPE_FERMETURE,
-                ]
+                'choices' => $requestTypeChoices,
             ])
             ->add('parentRequest', EntityType::class, [
                 'class' => AccessRequest::class,
@@ -201,6 +214,9 @@ final class NewRequestType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => NewRequestData::class,
+            'allowed_types' => AccessRequest::TYPES,
         ]);
+
+        $resolver->setAllowedTypes('allowed_types', 'array');
     }
 }

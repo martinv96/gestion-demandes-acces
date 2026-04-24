@@ -15,6 +15,10 @@ class WorkflowPermissionChecker
 
     public function canValidate(AccessRequest $request, User $user): bool
     {
+        if ($this->isClosureRequest($request)) {
+            return false;
+        }
+
         $transition = $this->stateResolver->resolveTransition($request, $user, 'validate');
 
         return $transition !== null && in_array($transition['role'], $user->getRoles(), true);
@@ -22,6 +26,10 @@ class WorkflowPermissionChecker
 
     public function canRefuse(AccessRequest $request, User $user): bool
     {
+        if ($this->isClosureRequest($request)) {
+            return false;
+        }
+
         $transition = $this->stateResolver->resolveTransition($request, $user, 'refuse');
 
         return $transition !== null && in_array($transition['role'], $user->getRoles(), true);
@@ -60,12 +68,12 @@ class WorkflowPermissionChecker
             return false;
         }
 
-        if (!$this->stateResolver->isParallelServicePhase((string) ($request->getStatus() ?? ''))) {
-            return false;
-        }
+        $currentStatus = (string) ($request->getStatus() ?? '');
 
-        $requiredRoles = $this->stateResolver->getParallelRequiredRoles($request);
-        if ($requiredRoles !== [] && !$this->stateResolver->areAllParallelRolesValidated($request, $requiredRoles)) {
+        if (!in_array($currentStatus, [
+            AccessRequest::STATUS_EN_ATTENTE_VALIDATION,
+            AccessRequest::STATUS_EN_ATTENTE_TRAITEMENT,
+        ], true)) {
             return false;
         }
 
@@ -83,6 +91,10 @@ class WorkflowPermissionChecker
 
         if (str_starts_with($status, 'refusee_')) {
             return in_array('ROLE_RH', $user->getRoles(), true);
+        }
+
+        if ($this->isClosureRequest($request)) {
+            return false;
         }
 
         if ($this->stateResolver->isParallelServicePhase($status)) {

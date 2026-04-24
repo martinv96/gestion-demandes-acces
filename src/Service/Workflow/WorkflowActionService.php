@@ -142,11 +142,11 @@ class WorkflowActionService
         $actorRole = $this->stateResolver->resolveParallelRoleForUser($request, $user, $requiredRoles);
 
         if ($actorRole === null) {
-            throw new LogicException('Transition de validation non autorisee pour ce role ou ce statut.');
+            throw new LogicException('Transition de validation non autorisée pour ce role ou ce statut.');
         }
 
         if ($this->stateResolver->hasRoleAlreadyValidated($request, $actorRole)) {
-            throw new LogicException('Ce service a deja valide cette demande.');
+            throw new LogicException('Ce service a déjà validé cette demande.');
         }
 
         $validatedRoles = $this->stateResolver->getValidatedParallelRoles($request, $requiredRoles);
@@ -157,30 +157,6 @@ class WorkflowActionService
 
         $nextStatus = $allValidated ? AccessRequest::STATUS_TRAITEE : AccessRequest::STATUS_EN_ATTENTE_VALIDATION;
 
-        if ($allValidated && $this->isClosureRequest($request) && $this->hasPendingMaterialReturns($request)) {
-            $nextStatus = AccessRequest::STATUS_EN_ATTENTE_VALIDATION;
-        }
-
         $this->applyTransition($request, $user, $nextStatus, $comment);
-    }
-
-    private function isClosureRequest(AccessRequest $request): bool
-    {
-        try {
-            return $request->getType() === AccessRequest::TYPE_FERMETURE;
-        } catch (\Error) {
-            return false;
-        }
-    }
-
-    private function hasPendingMaterialReturns(AccessRequest $request): bool
-    {
-        foreach ($request->getRessources() as $ressource) {
-            if ($ressource->getCategory() === 'materiel') {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

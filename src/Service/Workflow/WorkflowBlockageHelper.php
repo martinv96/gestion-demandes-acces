@@ -37,6 +37,7 @@ class WorkflowBlockageHelper
         AccessRequest::STATUS_EN_ATTENTE_VALIDATION => 'En attente validations services',
         AccessRequest::STATUS_EN_ATTENTE_ST => 'En attente ST',
         AccessRequest::STATUS_EN_ATTENTE_DSI => 'En attente DSI',
+        AccessRequest::STATUS_EN_ATTENTE_TRAITEMENT => 'En attente traitement',
         AccessRequest::STATUS_TRAITEE => 'Traitee',
         'refusee_rh' => 'Refusee par RH',
         'refusee_st' => 'Refusee par ST',
@@ -45,6 +46,7 @@ class WorkflowBlockageHelper
 
     private const NEUTRAL_WAITING_STATUSES = [
         AccessRequest::STATUS_EN_ATTENTE_VALIDATION,
+        AccessRequest::STATUS_EN_ATTENTE_TRAITEMENT,
     ];
 
     public function __construct(
