@@ -54,4 +54,25 @@
 						</table>
 					</div>
 				</div>
+				{# PAGINATION #}
+				{% if maxPages > 1 %}
+					<nav class="mt-4">
+						<ul
+							class="pagination justify-content-center">
+							<li class="page-item {{ currentPage == 1 ? 'disabled' : ''}}">
+								<a class="page-link" href="{{ path('app_admin_index', filters|merge({'page': currentPage - 1})) }}" aria-label="Précédent"><span aria-hidden="true">&laquo;</span></a>
+							</li>
+
+							{% for i in 1..maxPages %}
+								<li class="page-item {{ i == currentPage ? 'active' : ''}}">
+									<a class="page-link" href="{{ path('app_admin_index', filters|merge({'page': i})) }}">{{ i }}</a>
+								</li>
+							{% endfor %}
+
+							<li class="page-item {{ currentPage == maxPages ? 'disabled' : ''}}">
+								<a class="page-link" href="{{ path('app_admin_index', filters|merge({'page': currentPage + 1 })) }}"><span aria-hidden="true">&raquo;</span></a>
+							</li>
+						</ul>
+					</nav>
+				{% endif %}
 			</div>

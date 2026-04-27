@@ -38,4 +38,29 @@ class UserRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult() > 0;
     }
+
+    /**
+     * pour retourner les comptes paginés
+     * @return User[]
+     */
+    public function findPaginated(int $offset, int $limit): array
+    {
+        return $this->createQueryBuilder('u')
+            ->orderBy('u.email', 'ASC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * compte le nombre total de comtpes (calcul du nombre de pages)
+     */
+    public function countAll():int
+    {
+        return $this->createQueryBuilder('u')
+            ->select('count(u.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

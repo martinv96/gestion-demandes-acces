@@ -45,6 +45,29 @@ final class AdminController extends AbstractController
     ): Response {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
+        $limit = 10;
+        $userLimit = 5;
+        $softwareLimit = 5;
+        $tab = $request->query->getString('tab','users');
+
+        $serviceCurrentPage = $request->query->getInt('page', 1);
+        $usersCurrentPage = $request->query->getInt('users_page', 1);
+        $softwareCurrentPage = $request->query->getInt('logiciels_page', 1);
+
+
+        if ($serviceCurrentPage < 1) {
+            $serviceCurrentPage = 1;
+        }
+        if ($usersCurrentPage < 1) {
+            $usersCurrentPage = 1;
+        }
+        if ($softwareCurrentPage < 1) {
+            $softwareCurrentPage = 1;
+        }
+        $servicesOffset = ($serviceCurrentPage - 1) * $limit;
+        $usersOffset = ($usersCurrentPage - 1) * $userLimit;
+        $softwareOffset = ($softwareCurrentPage - 1) * $softwareLimit;
+        
         $activeTransitions = $workflowTransitionConfigRepository->findBy(
             ['isActive' => true],
             ['workflowCode' => 'ASC', 'stepOrder' => 'ASC', 'action' => 'ASC']
@@ -62,11 +85,45 @@ final class AdminController extends AbstractController
         $workflowCodes = array_keys($workflowByCode);
         sort($workflowCodes);
 
+        //services
+        $paginatedServices = $serviceRepository->findPaginated($servicesOffset, $limit);
+        $totalServices = $serviceRepository->countAll();
+        $servicesMaxPages = (int) ceil($totalServices / $limit);
+
+
+        //users
+        $paginatedUsers = $userRepository->findPaginated($usersOffset, $userLimit);
+        $totalUsers =$userRepository->countAll();
+        $usersMaxPages = (int) ceil($totalUsers / $userLimit);
+
+        //logiciels
+        $category='logiciel';
+        $paginatedSoftware = $ressourceRepository->findPaginated($category, $softwareOffset, $softwareLimit);
+        $totalSoftwares = $ressourceRepository->countAll($category);
+        $softwaresMaxPages = (int) ceil($totalSoftwares / $softwareLimit);
+
+
+
         return $this->render('admin/index.html.twig', [
             'tab'       => $request->query->getString('tab', 'users'),
-            'users'     => $userRepository->findBy([], ['email' => 'ASC']),
-            'services'  => $serviceRepository->findBy([], ['name' => 'ASC']),
-            'logiciels' => $ressourceRepository->findBy(['category' => 'logiciel'], ['name' => 'ASC']),
+
+            'users'     => $paginatedUsers,
+            'usersCurrentPage' => $usersCurrentPage,
+            'usersMaxPages' => $usersMaxPages,
+            'totalUsers' => $totalUsers,
+
+            'services'  => $paginatedServices,
+            'currentPage' => $serviceCurrentPage,
+            'maxPages' => $servicesMaxPages,
+            'total_pages' => $servicesMaxPages,
+            'totalServices' => $totalServices,
+            'filters' => ['tab' => 'services'],
+            
+            'logiciels' => $paginatedSoftware,
+            'softwareCurrentPage' => $softwareCurrentPage,
+            'softwaresMaxPages' => $softwaresMaxPages,
+            'totalSoftwares' => $totalSoftwares,
+
             'roles'     => $roleRepository->findBy([], ['label' => 'ASC']),
             'workflow_transitions' => $workflowByCode,
             'workflowCodes' => $workflowCodes,

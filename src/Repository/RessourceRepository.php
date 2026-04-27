@@ -40,4 +40,33 @@ class RessourceRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
+
+    /**
+     * pour retourner les logiciels paginés
+     * @return Ressource[]
+     */
+    public function findPaginated(string $category, int $offset, $limit): array
+    {
+        return $this->createQueryBuilder('r')
+            ->andWhere('r.category = :cat')
+            ->setParameter('cat', $category)
+            ->orderBy('r.name', 'ASC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * compte le nombre total de comptes (calcul du nombre de pages)
+     */
+    public function countAll(string $category):int
+    {
+        return $this->createQueryBuilder('r')
+            ->select('count(r.id)')
+            ->andWhere('r.category = :cat')
+            ->setParameter('cat', $category)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

@@ -207,8 +207,8 @@
 						class="pagination justify-content-center">
 						{# Précédent #}
 						<li class="page-item {{ currentPage == 1 ? 'disabled' : ''}}">
-							<a class="page-link" href="{{ path('app_history', filters|merge({'page': currentPage - 1})) }}">Précédent</a>
-						</li>
+							<a class="page-link" href="{{ path('app_history', filters|merge({'page': currentPage - 1})) }}"><span aria-hidden="true">&laquo;</span></a>
+						</li> 
 
 						{# Pages #}
 						{% for i in 1..maxPages %}
@@ -219,7 +219,7 @@
 
 						{# Suivant #}
 						<li class="page-item {{ currentPage == maxPages ? 'disabled' : ''}}">
-							<a class="page-link" href="{{path('app_history', filters|merge({'page': currentPage + 1})) }}">Suivant</a>
+							<a class="page-link" href="{{path('app_history', filters|merge({'page': currentPage + 1})) }}"><span aria-hidden="true">&raquo;</span></a>
 						</li>
 					</ul>
 				</nav>
