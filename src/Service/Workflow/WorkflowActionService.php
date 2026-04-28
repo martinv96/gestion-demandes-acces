@@ -34,7 +34,7 @@ class WorkflowActionService
         $transition = $this->stateResolver->resolveTransition($request, $user, 'validate');
 
         if ($transition === null || !in_array($transition['role'], $user->getRoles(), true)) {
-            throw new LogicException('Transition de validation non autorisee pour ce role ou ce statut.');
+            throw new LogicException('Transition de validation non autorisée pour ce rôle ou ce statut.');
         }
 
         $this->applyTransition($request, $user, $transition['next'], $comment);
@@ -49,7 +49,7 @@ class WorkflowActionService
         $transition = $this->stateResolver->resolveTransition($request, $user, 'refuse');
 
         if ($transition === null || !in_array($transition['role'], $user->getRoles(), true)) {
-            throw new LogicException('Transition de refus non autorisee pour ce role ou ce statut.');
+            throw new LogicException('Transition de refus non autorisée pour ce rôle ou ce statut.');
         }
 
         $this->applyTransition($request, $user, $transition['next'], $comment);
@@ -58,24 +58,24 @@ class WorkflowActionService
     public function undoLastDecision(AccessRequest $request, User $user, string $comment): void
     {
         if (trim($comment) === '') {
-            throw new \InvalidArgumentException('Un commentaire est obligatoire pour annuler une decision.');
+            throw new \InvalidArgumentException('Un commentaire est obligatoire pour annuler une décision.');
         }
 
         $latestHistory = $this->stateResolver->getLatestHistory($request);
         if (!$latestHistory instanceof WorkflowHistory) {
-            throw new LogicException('Aucune decision recente a annuler.');
+            throw new LogicException('Aucune décision récente à annuler.');
         }
 
         if (!$this->permissionChecker->canUndoLastDecision($request, $user)) {
-            throw new LogicException('Annulation de decision non autorisee.');
+            throw new LogicException('Annulation de décision non autorisée.');
         }
 
         $previousStatus = trim((string) $latestHistory->getOldStatus());
         if ($previousStatus === '') {
-            throw new LogicException('Statut precedent introuvable.');
+            throw new LogicException('Statut précedent introuvable.');
         }
 
-        $this->applyTransition($request, $user, $previousStatus, 'Annulation de decision : ' . trim($comment));
+        $this->applyTransition($request, $user, $previousStatus, 'Annulation de décision : ' . trim($comment));
     }
 
     public function finalizeClosureByAnyUser(AccessRequest $request, User $user, string $comment): void
@@ -85,7 +85,7 @@ class WorkflowActionService
         }
 
         if (!$this->permissionChecker->canFinalizeClosureByAnyUser($request)) {
-            throw new LogicException('Cette demande de fermeture ne peut pas etre validee pour le moment.');
+            throw new LogicException('Cette demande de fermeture ne peut pas être validée pour le moment.');
         }
 
         $this->applyTransition($request, $user, AccessRequest::STATUS_TRAITEE, $comment);
@@ -94,25 +94,25 @@ class WorkflowActionService
     public function unblockByRh(AccessRequest $request, User $user, string $comment): void
     {
         if (trim($comment) === '') {
-            throw new \InvalidArgumentException('Un commentaire est obligatoire pour debloquer.');
+            throw new \InvalidArgumentException('Un commentaire est obligatoire pour débloquer.');
         }
 
         if (!$this->permissionChecker->canUnblockByRh($request, $user)) {
-            throw new LogicException('Deblocage non autorise pour cette demande.');
+            throw new LogicException('Déblocage non autorisé pour cette demande.');
         }
 
         $currentStatus = (string) ($request->getStatus() ?? '');
         $nextStatus = $this->blockageHelper->resolveNextValidationStatus($request, $currentStatus);
 
         if ($nextStatus === null || $nextStatus === '') {
-            throw new LogicException('Transition de deblocage introuvable.');
+            throw new LogicException('Transition de déblocage introuvable.');
         }
 
         $this->applyTransition(
             $request,
             $user,
             $nextStatus,
-            'Deblocage RH (compte valideur inactif/supprime) : ' . trim($comment)
+            'Déblocage RH (compte valideur inactif/supprimé) : ' . trim($comment)
         );
     }
 
@@ -142,11 +142,11 @@ class WorkflowActionService
         $actorRole = $this->stateResolver->resolveParallelRoleForUser($request, $user, $requiredRoles);
 
         if ($actorRole === null) {
-            throw new LogicException('Transition de validation non autorisée pour ce role ou ce statut.');
+            throw new LogicException('Transition de validation non autorisée pour ce rôle ou ce statut.');
         }
 
         if ($this->stateResolver->hasRoleAlreadyValidated($request, $actorRole)) {
-            throw new LogicException('Ce service a déjà validé cette demande.');
+            throw new LogicException('Ce service à déjà validé cette demande.');
         }
 
         $validatedRoles = $this->stateResolver->getValidatedParallelRoles($request, $requiredRoles);

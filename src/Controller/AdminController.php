@@ -150,11 +150,13 @@ final class AdminController extends AbstractController
         }
 
         $email      = trim((string) $request->request->get('email', ''));
+        $firstName  = trim((string) $request->request->get('first_name', ''));
+        $lastName   = trim((string) $request->request->get('last_name', ''));
         $roleId     = (int) $request->request->get('role_id', 0);
         $serviceId  = (int) $request->request->get('service_id', 0);
 
-        if ($email === '') {
-            $this->addFlash('danger', 'L email est obligatoire.');
+        if ($email === '' || $firstName === '' || $lastName === '') {
+            $this->addFlash('danger', 'L\'email, le prénom et le nom sont obligatoires.');
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
 
@@ -162,15 +164,10 @@ final class AdminController extends AbstractController
         $service = $serviceId > 0 ? $serviceRepository->find($serviceId) : null;
 
         if ($service === null) {
-            $this->addFlash('danger', 'Le service est obligatoire pour créer un compte de service.');
+            $this->addFlash('danger', 'Le service est obligatoire.');
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
 
-        $existingForService = $userRepository->findOneBy(['service' => $service]);
-        if ($existingForService !== null) {
-            $this->addFlash('danger', sprintf('Un compte existe déjà pour le service %s.', $service->getName()));
-            return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
-        }
         // ! Vérifier que l'email n'est pas déjà utilisé
         if ($userRepository->findOneBy(['email' => strtolower(trim($email))]) !== null) {
             $this->addFlash('danger', sprintf('L\'adresse email "%s" est déjà utilisée.', htmlspecialchars($email, ENT_QUOTES)));
@@ -182,6 +179,8 @@ final class AdminController extends AbstractController
 
         $user = new User();
         $user->setEmail($email)
+            ->setFirstName($firstName)
+            ->setLastName($lastName)
             ->setIsActive(true)
             ->setMustChangePassword(true)
             ->setRole($role)
@@ -221,11 +220,13 @@ final class AdminController extends AbstractController
         }
 
         $email      = trim((string) $request->request->get('email', ''));
+        $firstName  = trim((string) $request->request->get('first_name', ''));
+        $lastName   = trim((string) $request->request->get('last_name', ''));
         $roleId     = (int) $request->request->get('role_id', 0);
         $serviceId  = (int) $request->request->get('service_id', 0);
 
-        if ($email === '') {
-            $this->addFlash('danger', 'L email est obligatoire.');
+        if ($email === '' || $firstName === '' || $lastName === '') {
+            $this->addFlash('danger', 'L\'email, le nom et le prénom sont obligatoires.');
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
 
@@ -233,17 +234,13 @@ final class AdminController extends AbstractController
         $service = $serviceId > 0 ? $serviceRepository->find($serviceId) : null;
 
         if ($service === null) {
-            $this->addFlash('danger', 'Le service est obligatoire pour un compte de service.');
-            return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
-        }
-
-        $existingForService = $em->getRepository(User::class)->findOneBy(['service' => $service]);
-        if ($existingForService !== null && $existingForService->getId() !== $user->getId()) {
-            $this->addFlash('danger', sprintf('Un autre compte existe déjà pour le service %s.', $service->getName()));
+            $this->addFlash('danger', 'Le service est obligatoire.');
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
 
         $user->setEmail($email)
+            ->setFirstname($firstName)
+            ->setLastname($lastName)
             ->setRole($role)
             ->setService($service);
 

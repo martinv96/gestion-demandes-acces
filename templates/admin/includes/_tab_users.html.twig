@@ -23,7 +23,7 @@
 				<tbody>
 					{% for user in users %}
 						<tr>
-							<td>{{ user.displayName }}</td>
+							<td>{{ user.firstName }} {{ user.lastName }}</td>
 							<td class="text-muted">{{ user.email }}</td>
 							<td>
 								{% set statusMap = {

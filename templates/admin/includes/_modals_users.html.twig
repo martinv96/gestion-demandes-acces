@@ -17,6 +17,15 @@
 							<input type="email" class="form-control" name="email" placeholder="email@mairie.fr" required autocomplete="off">
 						</div>
 						<div class="mb-3">
+							<label class="form-label">Prénom</label>
+							<input type="text" class="form-control" id="userAddFirstName" name="first_name" required maxlength="100">
+						</div>
+						<div class="mb-3">
+							<label class="form-label" for="userAddLastName">Nom</label>
+							<input type="text" class="form-control" id="userAddLastName" name="last_name" required maxlength="100">
+						</div>
+
+						<div class="mb-3">
 							<label class="form-label">Rôle</label>
 							<select class="form-select" name="role_id">
 								<option value="">Sélectionner un rôle</option>
@@ -73,6 +82,14 @@
 							<div class="mb-3">
 								<label class="form-label">Email</label>
 								<input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+							</div>
+							<div class="mb-3">
+								<label class="form-label" for="userEditFirstName{{ user.id }}">Prénom</label>
+								<input type="text" class="form-control" id="userEditFirstName{{user.id}}" name="first_name" value="{{ user.firstName}}" required maxlength="100">
+							</div>
+							<div class="mb-3">
+								<label class="form-label" for="userEditLastName{{ user.id}}">Nom</label>
+								<input type="text" class="form-control" id="userEditLastName{{user.id}}" name="last_name" value="{{ user.lastName }}" required maxlength="100">
 							</div>
 							<div class="mb-3">
 								<label class="form-label">Rôle</label>

@@ -11,13 +11,19 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[UniqueEntity(fields: ['email'], message: 'Cet email est deja utilise.')]
+#[UniqueEntity(fields: ['email'], message: 'Cet email est déjà utilisé.')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id;
+
+    #[ORM\Column(length: 100)]
+    private ?string $firstname = null;
+
+    #[ORM\Column(length: 100)]
+    private ?string $lastname = null;
 
     #[ORM\Column(length: 150, unique: true)]
     private ?string $email;
@@ -62,11 +68,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getDisplayName(): string
     {
-        if ($this->service !== null && $this->service->getName() !== null) {
-            return 'Compte ' . $this->service->getName();
+        $fullName = trim(sprintf('%s %s', $this->firstname ?? '', $this->lastname ?? ''));
+        if ($fullName !== '') {
+            return $fullName;
         }
 
-        return $this->email ?? 'Compte utilisateur';
+        return $this->email ?? 'Utilisateur';
+    }
+
+    public function getFirstname(): ?string
+    {
+        return $this->firstname;
+    }
+
+    public function setFirstname(string $firstname): static
+    {
+        $this->firstname = $firstname;
+
+        return $this;
+    }
+
+    public function getLastname(): ?string
+    {
+        return $this->lastname;
+    }
+
+    public function setLastname(string $lastname): static
+    {
+        $this->lastname = $lastname;
+
+        return $this;
     }
 
     public function getEmail(): ?string
