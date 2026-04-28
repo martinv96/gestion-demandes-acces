@@ -20,6 +20,7 @@
 		{% if totalCount == 0 %}
 			<div class="alert alert-info" role="alert">
 				Aucune demande en base pour le moment.
+				<button type="button" class="close">X</button>
 			</div>
 		{% else %}
 
@@ -106,6 +107,7 @@
 			{% if requests is empty %}
 				<div class="alert alert-warning" role="alert">
 					Aucune demande ne correspond aux critères sélectionnés.
+					<button type="button" class="close">X</button>
 				</div>
 			{% else %}
 
