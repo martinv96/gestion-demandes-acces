@@ -59,9 +59,9 @@
 	{# PAGINATION #}
 	{% if softwaresMaxPages > 1 %}
 	<nav class="mt-4">
-		<ul class="pagination justify-content-center">
+		<ul class="pagination">
 			<li class="page-item {{ softwareCurrentPage == 1 ? 'disabled' : ''}}">
-				<a class="page-link" href="{{ path('app_admin_index', { tab: 'logiciels', logiciels_page: softwareCurrentPage - 1 }) }}" aria-label="Précédent"><span aria-hidden="true">&laquo;</span></a>
+				<a class="page-link" href="{{ path('app_admin_index', { tab: 'logiciels', logiciels_page: softwareCurrentPage - 1 }) }}" aria-label="Précédent"><span aria-hidden="true">&#129168;</span></a>
 			</li>
 
 			{% for i in 1..softwaresMaxPages %}
@@ -71,7 +71,7 @@
 			{% endfor %}
 
 			<li class="page-item {{ softwareCurrentPage == softwareCurrentPage ? 'disabled' : ''}}">
-				<a class="page-link" href="{{ path('app_admin_index', {tab: 'logiciels', logiciels_page: softwareCurrentPage + 1 }) }}"><span aria-hidden="true">&raquo;</span></a>
+				<a class="page-link" href="{{ path('app_admin_index', {tab: 'logiciels', logiciels_page: softwareCurrentPage + 1 }) }}"><span aria-hidden="true">&#129170;</span></a>
 			</li>
 		</ul>
 	</nav>

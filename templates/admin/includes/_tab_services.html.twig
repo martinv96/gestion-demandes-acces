@@ -58,9 +58,9 @@
 				{% if maxPages > 1 %}
 					<nav class="mt-4">
 						<ul
-							class="pagination justify-content-center">
+							class="pagination">
 							<li class="page-item {{ currentPage == 1 ? 'disabled' : ''}}">
-								<a class="page-link" href="{{ path('app_admin_index', filters|merge({'page': currentPage - 1})) }}" aria-label="Précédent"><span aria-hidden="true">&laquo;</span></a>
+								<a class="page-link" href="{{ path('app_admin_index', filters|merge({'page': currentPage - 1})) }}" aria-label="Précédent"><span aria-hidden="true">&#129168;</span></a>
 							</li>
 
 							{% for i in 1..maxPages %}
@@ -70,7 +70,7 @@
 							{% endfor %}
 
 							<li class="page-item {{ currentPage == maxPages ? 'disabled' : ''}}">
-								<a class="page-link" href="{{ path('app_admin_index', filters|merge({'page': currentPage + 1 })) }}"><span aria-hidden="true">&raquo;</span></a>
+								<a class="page-link" href="{{ path('app_admin_index', filters|merge({'page': currentPage + 1 })) }}"><span aria-hidden="true">&#129170;</span></a>
 							</li>
 						</ul>
 					</nav>
