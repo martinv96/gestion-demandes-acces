@@ -69,6 +69,44 @@ class WorkflowNotificationService
         }
     }
 
+    public function sendReminder (AccessRequest $request, string $message = 'Ceci est un rappel automatique.'): void
+    {
+        try {
+            $nextRoles = $this->stateResolver->getNextValidatorRoles($request);
+            $activeUsers = $this->userRepository->findBy(['isActive' => true]);
+        } catch (\Throwable) {
+            return;
+        }
+
+        foreach ($activeUsers as $user) {
+            if (!is_object($user) || !method_exists($user, 'getEmail') || !method_exists($user, 'getRoles')) {
+                continue;
+            }
+            $emailAddress = trim((string) $user->getEmail());
+            if ($emailAddress === '') {
+                continue;
+            }
+            $isNextValidator = !empty(array_intersect($nextRoles, $user->getRoles()));
+            if ($isNextValidator) {
+                try {
+                    $email = (new TemplatedEmail())
+                        ->from($this->resolveMailerFrom())
+                        ->to($emailAddress)
+                        ->subject(sprintf('RAPPEL : Demande #%d(%s)', $request->getId(), $this->getLabel((string) $request->getStatus())))
+                        ->htmlTemplate('emails/notification_reminder.html.twig')
+                        ->context([
+                            'request' => $request,
+                            'status_label' => $this->getLabel((string) $request->getStatus()), 'reminder_message' => $message,
+                        ]);
+                    $this->mailer->send($email);
+                    $this->logInfo($emailAddress, $request, true);
+                } catch (\Throwable $e) {
+                    $this->logError("Echec de l'envoi du mail de rappel", $request, $e, $emailAddress, true);
+                }
+            }
+        }
+    }
+
     private function sendEmail(string $to, AccessRequest $request, string $comment, bool $isAction): void
     {
         $subjectTag = $isAction ? 'ACTION REQUISE' : 'INFO';
@@ -102,7 +140,7 @@ class WorkflowNotificationService
 
     private function logInfo(string $to, AccessRequest $request, bool $isAction): void
     {
-        $this->logger?->info('Notification workflow envoyee.', [
+        $this->logger?->info('Notification workflow envoyée.', [
             'request_id' => $request->getId(),
             'to' => $to,
             'type' => $isAction ? 'ACTION' : 'INFO',
