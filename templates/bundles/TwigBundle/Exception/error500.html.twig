@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+{% block title %}Erreur interne{% endblock %}
+{% block body %}
+<div class="container py-5 text-center">
+    <h1 class="display-1 fw-bold text-danger">500</h1>
+    <h2 class="mb-4">Problème technique</h2>
+    <p class="lead">Une erreur inattendue est survenue sur le server.</p>
+    <p>Veuillez réessayer dans quelques instants.</p>
+    <a href="{{ path('app_dashboard') }}" class="btn btn-danger mt-3">Rafraichir la page</a>
+</div>
+{% endblock %}
