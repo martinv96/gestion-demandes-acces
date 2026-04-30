@@ -57,8 +57,10 @@ final class SecurityController extends AbstractController
             $newPassword     = (string) $request->request->get('new_password', '');
             $confirmPassword = (string) $request->request->get('confirm_password', '');
 
-            if (strlen($newPassword) < 8) {
-                $this->addFlash('danger', 'Le mot de passe doit contenir au moins 8 caractères.');
+            if (
+                strlen($newPassword) < 10 || !preg_match('/[a-z]/', $newPassword) || !preg_match('/[A-Z]/',$newPassword) || !preg_match('/\d/', $newPassword) || !preg_match('/[\W_]/',$newPassword)
+                ) {
+                $this->addFlash('danger', 'Le mot de passe doit contenir au moins 10 caractères, une minuscule, un chiffre et un caractère spécial.');
                 return $this->redirectToRoute('app_force_change_password');
             }
 

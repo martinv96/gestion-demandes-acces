@@ -19,13 +19,13 @@ final class Version20260428073346 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE user ADD firstname VARCHAR(100) NOT NULL, ADD lastname VARCHAR(100) NOT NULL');
+        // Les colonnes existent déjà, on s'assure juste qu'elles sont NOT NULL
+        $this->addSql('ALTER TABLE user CHANGE firstname firstname VARCHAR(100) NOT NULL, CHANGE lastname lastname VARCHAR(100) NOT NULL');
     }
 
     public function down(Schema $schema): void
     {
-        // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE user DROP firstname, DROP lastname');
+        // On remet les colonnes en NULLABLE si on rollback
+        $this->addSql('ALTER TABLE user CHANGE firstname firstname VARCHAR(100) DEFAULT NULL, CHANGE lastname lastname VARCHAR(100) DEFAULT NULL');
     }
 }
