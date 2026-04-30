@@ -56,6 +56,7 @@ sudo mysql -e "FLUSH PRIVILEGES;"
 php bin/console doctrine:migrations:migrate --no-interaction --env=prod
 
 ## 5. INITIALISATION DATA (ROLES / SERVICE / ADMIN)
+<!-- On doit reprendre ici -->
 
 ## Ajoute les rôles et un service par défaut dans la base
 

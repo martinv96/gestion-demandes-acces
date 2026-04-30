@@ -43,5 +43,16 @@
     pointer-events:none;
 }
 
+.pagination .page-link {
+    border: none;
+    color: #6c757d;
+    background: transparent;
+}
+.pagination .page-item.active .page-link {
+    background-color: transparent;
+    color: #000;
+    font-weight: bold;
+}
+
 
 

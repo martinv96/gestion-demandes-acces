@@ -59,7 +59,7 @@
 /* bouton close */
 .alert .close, .alert .btn-close {
     position: absolute;
-    top: 50%;
+    top: 40%;
     right: 15px;
     transform: translateY(-50%);
     opacity:0.5;

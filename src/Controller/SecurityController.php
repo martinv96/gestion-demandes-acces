@@ -30,7 +30,7 @@ final class SecurityController extends AbstractController
     #[Route('/logout', name: 'app_logout', methods: ['GET', 'POST'])]
     public function logout(): void
     {
-        throw new LogicException('Cette methode est interceptee par le firewall logout.');
+        throw new LogicException('Cette méthode est interceptée par le firewall logout.');
     }
 
     #[Route('/change-password', name: 'app_force_change_password', methods: ['GET', 'POST'])]
@@ -73,7 +73,7 @@ final class SecurityController extends AbstractController
             $user->setMustChangePassword(false);
             $em->flush();
 
-            $this->addFlash('success', 'Mot de passe mis à jour. Bienvenue !');
+            $this->addFlash('success', 'Le mot de passe est mis à jour. Bienvenue ' . $user->getFirstname() . ' ' . $user->getLastname() . ' !');
             return $this->redirectToRoute('app_dashboard');
         }
 
