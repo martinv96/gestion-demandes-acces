@@ -6,19 +6,21 @@ use App\Entity\Request as AccessRequest;
 use App\Entity\User;
 use App\Form\Model\NewRequestData;
 use App\Form\NewRequestType;
+use App\Message\WorkflowNotificationMessage;
 use App\Repository\RequestRepository;
 use App\Service\RequestCreationService;
 use App\Service\WorkflowService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class NewRequestController extends AbstractController
 {
     // route pour créer une nouvelle demande d'accès
     #[Route('/new/request', name: 'app_new_request', methods: ['GET', 'POST'])]
-    public function index(Request $request, RequestRepository $requestRepository, RequestCreationService $requestCreationService, WorkflowService $workflowService): Response
+    public function index(Request $request, RequestRepository $requestRepository, RequestCreationService $requestCreationService, WorkflowService $workflowService, MessageBusInterface $messageBus): Response
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -124,12 +126,12 @@ final class NewRequestController extends AbstractController
                     $effectiveParentRequest
                 );
 
-                $workflowService->notifyAllActors(
-                    $createdRequest,
+                $messageBus->dispatch(new WorkflowNotificationMessage(
+                    (int) $createdRequest->getId(),
                     trim((string) ($formData->getCommentary() ?? '')) !== ''
                         ? (string) $formData->getCommentary()
                         : 'Nouvelle demande créée.'
-                );
+                ));
             } catch (\Throwable) {
                 $this->addFlash('danger', 'La création de la demande a échoué. Aucune donnée n\'a été enregistrée.');
 

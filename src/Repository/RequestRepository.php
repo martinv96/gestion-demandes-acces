@@ -406,4 +406,28 @@ class RequestRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getOneOrNullResult();
     }
+
+    /**
+     * @return list<Request>
+     */
+    public function findPendingForAutomaticReminder(): array
+    {
+        /**@var list<Request> $results */
+        $results = $this->createQueryBuilder('r')
+            ->leftJoin('r.agent','a')->addSelect('a')
+            ->leftJoin('a.service','s')->addSelect('s')
+            ->andWhere('r.status IN (:statuses)')
+            ->setParameter('statuses', [
+                Request::STATUS_EN_ATTENTE_RH,
+                Request::STATUS_EN_ATTENTE_VALIDATION,
+                Request::STATUS_EN_ATTENTE_ST,
+                Request::STATUS_EN_ATTENTE_DSI,
+                Request::STATUS_EN_ATTENTE_TRAITEMENT,
+            ])
+            ->orderBy('r.updateDate','ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $results;
+    }
 }

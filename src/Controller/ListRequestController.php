@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Request as AccessRequest;
 use App\Entity\Ressource;
 use App\Entity\User;
+use App\Message\WorkflowNotificationMessage;
 use App\Repository\RessourceRepository;
 use App\Repository\RequestRepository;
 use App\Repository\ServiceRepository;
@@ -13,6 +14,7 @@ use App\Service\RequestUpdateInfoService;
 use App\Service\WorkflowService;
 use App\Security\Voter\RequestVoter;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -452,6 +454,7 @@ final class ListRequestController extends AbstractController
         EntityManagerInterface $entityManager,
         RequestUpdateInfoService $requestUpdateInfoService,
         WorkflowService $workflowService,
+        MessageBusInterface $messageBus,
     ): Response {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -511,12 +514,12 @@ final class ListRequestController extends AbstractController
                 'materiel' => $materiels,
             ]);
 
-            $workflowService->notifyAllActors(
-                $requestEntity,
+            $messageBus->dispatch(new WorkflowNotificationMessage(
+                (int) $requestEntity->getId(),
                 trim((string) $httpRequest->request->get('commentaire', '')) !== ''
                     ? (string) $httpRequest->request->get('commentaire', '')
                     : 'Informations de la demande mises à jour.'
-            );
+            ));
 
             $this->addRequestFlash($httpRequest, 'success', 'Les informations de la demande ont été mises à jour.');
         } catch (\InvalidArgumentException | \LogicException $e) {
@@ -546,7 +549,8 @@ final class ListRequestController extends AbstractController
         int $ressourceId,
         Request $httpRequest,
         EntityManagerInterface $entityManager,
-        WorkflowService $workflowService
+        WorkflowService $workflowService,
+        MessageBusInterface $messageBus
     ): Response {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -653,7 +657,7 @@ final class ListRequestController extends AbstractController
 
         $entityManager->flush();
 
-        $workflowService->notifyAllActors($requestEntity, $message);
+        $messageBus->dispatch(new WorkflowNotificationMessage((int) $requestEntity->getId(), $message));
 
         if ($isAjax) {
             return new JsonResponse([

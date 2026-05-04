@@ -107,6 +107,62 @@ class WorkflowNotificationService
         }
     }
 
+    public function sendEscalation(AccessRequest $request, string $message ='La demande est toujours en attente et nécessite une intervention.'): void
+    {
+        try {
+            $activeUsers = $this->userRepository->findBy(['isActive' => true]);
+        } catch (\Throwable) {
+            return;
+        }
+
+        foreach ($activeUsers as $user) {
+            if (!is_object($user)|| !method_exists($user,'getEmail') || !method_exists($user,'getRoles')) {
+                continue;
+            }
+
+            $roles = (array) $user->getRoles();
+            $mustReceiveEscalation = in_array('ROLE_ADMIN',$roles, true) || in_array('ROLE_RH',$roles, true);
+
+            if(!$mustReceiveEscalation) {
+                continue;
+            }
+
+            $emailAddress = trim((string) $user->getEmail());
+            if ($emailAddress === '') {
+                continue;
+            }
+
+            try {
+                $email = (new TemplatedEmail())
+                    ->from($this->resolveMailerFrom())
+                    ->to($emailAddress)
+                    ->subject(sprintf('ESCALADE : Demande #%d(%s)', $request->getId(), $this->getLabel((string) $request->getStatus())))
+                    ->htmlTemplate('email/notification_info.html.twig')
+                    ->context([
+                        'request' => $request,
+                        'status_label' => $this->getLabel((string) $request->getStatus()), 'last_comment' => $message,
+                    ]);
+
+                $this->mailer->send($email);
+
+                $this->logger?->info('Escalade workflow envoyée.',[
+                    'request_id' => $request->getId(),
+                    'to' => $emailAddress,
+                    'status' => $request->getAgent(),
+                ]);
+            
+
+            } catch (\Throwable $e) {
+                $this->logger?->error('Echec de l\'envoi du mail d\'escalade.',[
+                    'request_id' => $request->getId(),
+                    'to' => $emailAddress,
+                    'status' => $request->getStatus(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
     private function sendEmail(string $to, AccessRequest $request, string $comment, bool $isAction): void
     {
         $subjectTag = $isAction ? 'ACTION REQUISE' : 'INFO';

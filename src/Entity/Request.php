@@ -76,6 +76,15 @@ class Request
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $updateDate = null;
 
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable:true)]
+    private ?\DateTimeImmutable $lastReminderAt = null;
+
+    #[ORM\Column(options: ['default' => 0])]
+    private int $reminderCount = 0;
+
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable:true)]
+    private ?\DateTimeImmutable $escalatedAt = null;
+
     #[ORM\Version]
     #[ORM\Column(type:'integer')]
     private int $version = 1;
@@ -407,5 +416,41 @@ class Request
             str_starts_with($this->getCurrentStateLabel(), 'Remplacée') => 'secondary',
             default => 'secondary',
         };
+    }
+
+    public function getLastReminderAt(): ?\DateTimeImmutable
+    {
+        return $this->lastReminderAt;
+    }
+
+    public function setLastReminderAt(?\DateTimeImmutable $lastReminderAt): static
+    {
+        $this->lastReminderAt = $lastReminderAt;
+
+        return $this;
+    }
+
+    public function getReminderCount(): int
+    {
+        return $this->reminderCount;
+    }
+
+    public function setReminderCount(int $reminderCount): static
+    {
+        $this->reminderCount = $reminderCount;
+
+        return $this;
+    }
+
+    public function getEscalatedAt(): ?\DateTimeImmutable
+    {
+        return $this->escalatedAt;
+    }
+
+    public function setEscalatedAt(?\DateTimeImmutable $escalatedAt): static
+    {
+        $this->escalatedAt = $escalatedAt;
+
+        return $this;
     }
 }
