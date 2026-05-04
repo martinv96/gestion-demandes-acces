@@ -1,1 +1,11 @@
 {% extends 'base.html.twig' %}
+{% block title %}Une erreur est survenue{% endblock %}
+
+{% block body %}
+<div class="container py-5 text-center">
+    <h1 class="display-4 fw-bold">Erreur {{status_code}}</h1>
+    <p class="lead">Une erreur imprévu à une lieu ({{status_text}}).</p>
+    <a href="{{ path('app_dashboard') }}" clasx="btn btn-secondary mt-3">Retour accueil<a>
+</div>
+{% endblock %}
+

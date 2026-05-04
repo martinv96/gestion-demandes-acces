@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+{% block title %}Trop de requetes{% endblock %}
+{% block body %}
+<div class="container py-5 text-center">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h1 class="display-1 fw-bold text-info">
+                <i class="fas fa-clock"></i>429
+            </h1>
+            <h2 class="mb-4">Ralentissez un peu !</h2>
+            <p class="lead">Nous avons reçu trop de requetes dans un court laps de temps. Par mesure de sécurité, l'accès est temporairement limité.</p>
+            <div class="alert alert-info mt-4">
+                 <i class="fas fa-info-circle"></i>
+                 Veuillez patienter quelques instants avant de refraichir la page ou de tenter une nouvelle connexion.
+            </div>
+            <a href="{{ path('app_dahsboard') }}" class="btn btn-info text-white mt-3">Réessayer maintenant</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

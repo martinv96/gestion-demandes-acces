@@ -6,6 +6,7 @@ use App\Entity\Request as AccessRequest;
 use App\Entity\User;
 use App\Entity\WorkflowHistory;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use LogicException;
 
 class WorkflowActionService
@@ -16,6 +17,7 @@ class WorkflowActionService
         private WorkflowPermissionChecker $permissionChecker,
         private WorkflowBlockageHelper $blockageHelper,
         private WorkflowNotificationService $notificationService,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -133,7 +135,10 @@ class WorkflowActionService
         $this->em->persist($history);
         $this->em->flush();
 
-        $this->notificationService->notifyAllActors($request, $comment);
+        $this->messageBus->dispatch(new \App\Message\WorkflowNotificationMessage(
+            $request->getId(),
+            $comment,
+        ));
     }
 
     private function applyParallelValidation(AccessRequest $request, User $user, string $comment): void

@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Service\Workflow\WorkflowActionService;
 use App\Service\Workflow\WorkflowNotificationService;
 use App\Service\Workflow\WorkflowPermissionChecker;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 class WorkflowService
 {
@@ -26,6 +27,7 @@ class WorkflowService
         private WorkflowActionService $actionService,
         private WorkflowPermissionChecker $permissionChecker,
         private WorkflowNotificationService $notificationService,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -101,6 +103,9 @@ class WorkflowService
 
     public function notifyAllActors(AccessRequest $request, string $comment): void
     {
-        $this->notificationService->notifyAllActors($request, $comment);
+        $this->messageBus->dispatch(new \App\Message\WorkflowNotificationMessage(
+            $request->getId(),
+            $comment,
+        ));
     }
 }

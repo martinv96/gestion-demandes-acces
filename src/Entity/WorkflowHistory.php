@@ -7,6 +7,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: WorkflowHistoryRepository::class)]
+#[ORM\Table(name: 'workflow_history')]
+#[ORM\Index(columns: ['request_id', 'date'], name: 'idx_wh_request_date')]
 class WorkflowHistory
 {
     #[ORM\Id]
