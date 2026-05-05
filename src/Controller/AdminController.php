@@ -6,6 +6,10 @@ use App\Entity\Ressource;
 use App\Entity\Service;
 use App\Entity\User;
 use App\Entity\WorkflowTransitionConfig;
+use App\Entity\LoginAudit;
+use App\Repository\LoginAuditDailyStatRepository;
+use App\Repository\LoginAuditRepository;
+use App\Service\Security\LoginAuditRetentionService;
 use App\Repository\WorkflowTransitionConfigRepository;
 use App\Repository\RessourceRepository;
 use App\Repository\RoleRepository;
@@ -41,6 +45,8 @@ final class AdminController extends AbstractController
         ServiceRepository $serviceRepository,
         RessourceRepository $ressourceRepository,
         RoleRepository $roleRepository,
+        LoginAuditRepository $loginAuditRepository,
+        LoginAuditDailyStatRepository $loginAuditDailyStatRepository,
         WorkflowTransitionConfigRepository $workflowTransitionConfigRepository,
     ): Response {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
@@ -68,6 +74,25 @@ final class AdminController extends AbstractController
         $usersOffset = ($usersCurrentPage - 1) * $userLimit;
         $softwareOffset = ($softwareCurrentPage - 1) * $softwareLimit;
         
+        $auditLimit = 20;
+        $auditCurrentPage = $request->query->getInt('audit_page', 1);
+        if ($auditCurrentPage < 1) {
+            $auditCurrentPage = 1;
+        }
+        $auditOffset = ($auditCurrentPage - 1) * $auditLimit;
+
+        $audits = $loginAuditRepository->findPaginated($auditOffset, $auditLimit);
+        $totalAudits = $loginAuditRepository->countAll();
+        $auditMaxPages = (int) ceil(max(1, $totalAudits) / $auditLimit);
+
+        $liveSuccess = $loginAuditRepository->countByEventType(LoginAudit::EVENT_SUCCESS);
+        $liveFailure = $loginAuditRepository->countByEventType(LoginAudit::EVENT_FAILURE);
+        $liveLogout = $loginAuditRepository->countByEventType(LoginAudit::EVENT_LOGOUT);
+
+        $historyTotals = $loginAuditDailyStatRepository->getTotals();
+        $historyRecentDays = $loginAuditDailyStatRepository->findRecentDays(30);
+
+
         $activeTransitions = $workflowTransitionConfigRepository->findBy(
             ['isActive' => true],
             ['workflowCode' => 'ASC', 'stepOrder' => 'ASC', 'action' => 'ASC']
@@ -118,6 +143,17 @@ final class AdminController extends AbstractController
             'total_pages' => $servicesMaxPages,
             'totalServices' => $totalServices,
             'filters' => ['tab' => 'services'],
+
+
+            'audits' => $audits,
+            'auditCurrentPage' => $auditCurrentPage,
+            'auditMaxPages' => $auditMaxPages,
+            'totalAudits' => $totalAudits,
+            'liveSuccess' => $liveSuccess,
+            'liveFailure' => $liveFailure,
+            'liveLogout' => $liveLogout,
+            'historyTotals' => $historyTotals,
+            'historyRecentDays' => $historyRecentDays,
             
             'logiciels' => $paginatedSoftware,
             'softwareCurrentPage' => $softwareCurrentPage,
@@ -129,6 +165,30 @@ final class AdminController extends AbstractController
             'workflowCodes' => $workflowCodes,
         ]);
     }
+
+    #[Route('/audit/purge', name: 'audit_purge', methods: ['POST'])]
+public function auditPurge(
+    Request $request,
+    LoginAuditRetentionService $retentionService,
+): Response {
+    $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+    if (!$this->isCsrfTokenValid('admin_audit_purge', (string) $request->request->get('_token'))) {
+        $this->addFlash('danger', 'Token de sécurité invalide.');
+        return $this->redirectToRoute('app_admin_index', ['tab' => 'audits']);
+    }
+
+    $result = $retentionService->purgeOlderThanMonths(12);
+
+    $this->addFlash('success', sprintf(
+        'Purge audit terminée (cutoff %s) : %d ligne(s) agrégée(s), %d ligne(s) supprimée(s).',
+        $result['cutoff'],
+        $result['aggregated_rows'],
+        $result['purged_rows']
+    ));
+
+    return $this->redirectToRoute('app_admin_index', ['tab' => 'audits']);
+}
 
     // route pour ajouter un utilisateur
     // ! la route /admin/user/add permet d'ajouter un nouvel utilisateur via un formulaire.

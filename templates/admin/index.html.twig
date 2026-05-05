@@ -9,7 +9,8 @@
 		{% set adminSubtitleMap = {
         'users': 'Gestion des comptes',
         'services': 'Gestion des services',
-        'logiciels': 'Gestion des logiciels'
+        'logiciels': 'Gestion des logiciels',
+		'audits': 'Audit des connexions'
     } %}
 
 		{# En-tête #}
@@ -35,6 +36,11 @@
 					Logiciels
 				</button>
 			</li>
+			<li class="nav-item" role="presentation">
+    <button class="admin-tab-btn {{ tab == 'audits' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#tab-audits" type="button" role="tab">
+        Audits
+    </button>
+</li>
 		</ul>
 
 		<div class="tab-content">
@@ -42,6 +48,7 @@
 			{% include 'admin/includes/_tab_users.html.twig' %}
 			{% include 'admin/includes/_tab_services.html.twig' %}
 			{% include 'admin/includes/_tab_logiciels.html.twig' %}
+			{% include 'admin/includes/_tab_audits.html.twig' %}
 		</div>
 		{# /tab-content #}
 	</div>
@@ -84,7 +91,8 @@ const adminSubtitle = document.getElementById('adminSubtitle');
 const subtitles = {
 '#tab-users': 'Gestion des comptes',
 '#tab-services': 'Gestion des services',
-'#tab-logiciels': 'Gestion des logiciels'
+'#tab-logiciels': 'Gestion des logiciels',
+'#tab-audits': 'Audit des connexions'
 };
 
 if (adminTabs && adminSubtitle) {
