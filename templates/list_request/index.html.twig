@@ -205,23 +205,24 @@
 			{# PAGINATION #}
 			{% if maxPages > 1 %}
 				<nav class="mt-4">
+					{% set paginationRoute = pageRoute|default('app_list_request') %}
 					<ul
 						class="pagination">
 						{# Précédent #}
 						<li class="page-item {{ currentPage == 1 ? 'disabled' : ''}}">
-							<a class="page-link" href="{{ path('app_history', filters|merge({'page': currentPage - 1})) }}"><span aria-hidden="true">&#129168;</span></a>
+							<a class="page-link" href="{{ path(paginationRoute, filters|merge({'page': currentPage - 1})) }}"><span aria-hidden="true">&#129168;</span></a>
 						</li> 
 
 						{# Pages #}
 						{% for i in 1..maxPages %}
 							<li class="page-item {{ i == currentPage ? 'active' : ''}}">
-								<a class="page-link" href="{{ path('app_history', filters|merge({'page': i})) }}">{{ i }}</a>
+								<a class="page-link" href="{{ path(paginationRoute, filters|merge({'page': i})) }}">{{ i }}</a>
 							</li>
 						{% endfor %}
 
 						{# Suivant #}
 						<li class="page-item {{ currentPage == maxPages ? 'disabled' : ''}}">
-							<a class="page-link" href="{{path('app_history', filters|merge({'page': currentPage + 1})) }}"><span aria-hidden="true">&#129170;</span></a>
+							<a class="page-link" href="{{ path(paginationRoute, filters|merge({'page': currentPage + 1})) }}"><span aria-hidden="true">&#129170;</span></a>
 						</li>
 					</ul>
 				</nav>

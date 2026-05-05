@@ -73,12 +73,6 @@
 					<form method="post" action="{{ path('app_admin_user_edit', {id: user.id}) }}">
 						<input type="hidden" name="_token" value="{{ csrf_token('admin_user_edit_' ~ user.id) }}">
 						<div class="modal-body">
-							<div class="row g-3">
-								<div class="col-md-6">
-									<label class="form-label">Compte</label>
-									<input type="text" class="form-control" value="{{ user.displayName }}" readonly>
-								</div>
-							</div>
 							<div class="mb-3">
 								<label class="form-label">Email</label>
 								<input type="email" class="form-control" name="email" value="{{ user.email }}" required>

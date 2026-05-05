@@ -396,7 +396,7 @@ class Request
         $typeLabel = self::TYPE_LABELS[$this->getType() ?? ''] ?? 'Demande';
 
         if (!$this->isCurrentState()) {
-            return 'Remplacée - ' . $typeLabel;
+            return 'Ancienne version - ' . $typeLabel;
         }
 
         if ($this->getType() === self::TYPE_FERMETURE && $this->getStatus() === self::STATUS_TRAITEE) {
@@ -413,7 +413,7 @@ class Request
             str_starts_with($this->getCurrentStateLabel(), 'Active - Modification') => 'primary',
             str_starts_with($this->getCurrentStateLabel(), 'Active - Fermeture') => 'dark',
             str_starts_with($this->getCurrentStateLabel(), 'Clôturée - Fermeture') => 'dark',
-            str_starts_with($this->getCurrentStateLabel(), 'Remplacée') => 'secondary',
+            str_starts_with($this->getCurrentStateLabel(), 'Ancienne version') => 'secondary',
             default => 'secondary',
         };
     }

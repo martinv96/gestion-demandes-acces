@@ -95,12 +95,12 @@ final class ListRequestController extends AbstractController
             $agent = '';
         }
 
-        $requests            = $requestRepository->findWithFilters($filters, $limit, $offset);
+        $requests            = $requestRepository->findCurrentWithFilters($filters, $limit, $offset);
         $services            = $serviceRepository->findBy([], ['name' => 'DESC']);
         $availableDates      = $requestRepository->findDistinctCurrentArrivalDates();
         $availableDepartures = $requestRepository->findDistinctCurrentDepartureDates();
         $totalCount          = $requestRepository->countCurrent();
-        $totalWithFilters    = $requestRepository->countWithFilters($filters);
+        $totalWithFilters    = $requestRepository->countCurrentWithFilters($filters);
         $maxPages            = ceil($totalWithFilters / $limit);
 
 
@@ -121,6 +121,7 @@ final class ListRequestController extends AbstractController
                 'agent'         => $agent,
             ],
             'exportScope' => 'current',
+            'pageRoute'   => 'app_list_request',
         ]);
     }
 

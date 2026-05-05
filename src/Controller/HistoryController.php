@@ -101,6 +101,7 @@ final class HistoryController extends AbstractController
             'pageTitle'    => 'Historique des demandes',
             'pageSubtitle' => 'Toutes les demandes enregistrées',
             'resetRoute'   => 'app_history',
+            'pageRoute'    => 'app_history',
         ]);
     }
 }
