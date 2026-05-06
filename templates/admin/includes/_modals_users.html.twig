@@ -42,7 +42,7 @@
 							<label class="form-label">Service</label>
 							<select class="form-select" name="service_id">
 								<option value="">Sélectionner un service</option>
-								{% for service in services %}
+								{% for service in allServices %}
 									<option value="{{ service.id }}">{{ service.name }}</option>
 								{% endfor %}
 							</select>
@@ -104,7 +104,7 @@
 								<label class="form-label">Service</label>
 								<select class="form-select" name="service_id">
 									<option value="">Aucun service</option>
-									{% for service in services %}
+									{% for service in allServices %}
 										<option value="{{ service.id }}" {{ user.service and user.service.id == service.id ? 'selected' : '' }}>
 											{{ service.name }}
 										</option>

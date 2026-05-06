@@ -112,6 +112,7 @@ final class AdminController extends AbstractController
 
         //services
         $paginatedServices = $serviceRepository->findPaginated($servicesOffset, $limit);
+        $allServices = $serviceRepository->findBy([], ['name' => 'ASC']);
         $totalServices = $serviceRepository->countAll();
         $servicesMaxPages = (int) ceil($totalServices / $limit);
 
@@ -138,6 +139,7 @@ final class AdminController extends AbstractController
             'totalUsers' => $totalUsers,
 
             'services'  => $paginatedServices,
+            'allServices' => $allServices,
             'currentPage' => $serviceCurrentPage,
             'maxPages' => $servicesMaxPages,
             'total_pages' => $servicesMaxPages,
@@ -253,11 +255,11 @@ public function auditPurge(
         $this->addFlash('success', sprintf(
             ' Compte "%s" créé. Mot de passe provisoire : '
                 . '<strong class="font-monospace user-select-all">%s</strong> '
-                . '<button type="button" class="btn btn-sm btn-outline-light ms-2 py-0" '
-                . 'onclick="navigator.clipboard.writeText(\'%s\').then(()=>this.textContent=\'Copié !\')">Copier</button>',
+                . '<button type="button" class="btn btn-sm btn-outline-light ms-2 py-0 js-copy-temp-password" '
+                . 'data-copy-text="%s">Copier</button>',
             htmlspecialchars('Compte ' . ($service->getName() ?? 'Service'), ENT_QUOTES),
             $tempPassword,
-            $tempPassword
+            htmlspecialchars($tempPassword, ENT_QUOTES)
         ));
         return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
     }
@@ -378,11 +380,11 @@ public function auditPurge(
         $this->addFlash('success', sprintf(
             'Mot de passe de %s réinitialisé. Nouveau mot de passe provisoire : '
                 . '<strong class="font-monospace user-select-all">%s</strong> '
-                . '<button type="button" class="btn btn-sm btn-outline-light ms-2 py-0" '
-                . 'onclick="navigator.clipboard.writeText(\'%s\').then(()=>this.textContent=\'Copié !\')">Copier</button>',
+                . '<button type="button" class="btn btn-sm btn-outline-light ms-2 py-0 js-copy-temp-password" '
+                . 'data-copy-text="%s">Copier</button>',
             htmlspecialchars($user->getDisplayName(), ENT_QUOTES),
             $tempPassword,
-            $tempPassword
+            htmlspecialchars($tempPassword, ENT_QUOTES)
         ));
         return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
     }

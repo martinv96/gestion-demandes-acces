@@ -39,8 +39,8 @@
 								<option value="">Tous les statuts</option>
 								{% set statusOptions = {
                             'en_attente_rh': 'En attente RH',
-                            'en_attente_st': 'En attente ST',
-                            'en_attente_dsi': 'En attente DSI',
+                            'en_attente_validation': 'En attente validation',
+							'en_attente_traitement': 'En attente traitement',
                             'traitee': 'Traitée',
                             'refusee_rh': 'Refusée RH',
                             'refusee_st': 'Refusée ST',
@@ -160,8 +160,8 @@
 										<td>
 											{% set statusMap = {
                                         'en_attente_rh':  ['info',    'En attente RH'],
-                                        'en_attente_st':  ['warning', 'En attente ST'],
-                                        'en_attente_dsi': ['primary', 'En attente DSI'],
+                                        'en_attente_validation':  ['warning', 'En attente validation'],
+                                        'en_attente_traitement': ['primary', 'En attente traitement'],
                                         'traitee':        ['success', 'Traitée'],
                                         'refusee_rh':     ['danger',  'Refusée RH'],
                                         'refusee_st':     ['danger',  'Refusée ST'],

@@ -96,5 +96,61 @@
 			</main>
 		</div>
 
+		<script>
+			document.addEventListener('click', async function (event) {
+				const button = event.target.closest('.js-copy-temp-password');
+				if (!button) {
+					return;
+				}
+
+				let textToCopy = button.getAttribute('data-copy-text') || '';
+				if (!textToCopy) {
+					const passwordNode = button.parentElement ? button.parentElement.querySelector('.font-monospace') : null;
+					textToCopy = passwordNode ? passwordNode.textContent.trim() : '';
+				}
+				if (!textToCopy) {
+					return;
+				}
+
+				let copied = false;
+
+				try {
+					if (navigator.clipboard && window.isSecureContext) {
+						await navigator.clipboard.writeText(textToCopy);
+						copied = true;
+					}
+				} catch (e) {
+					copied = false;
+				}
+
+				if (!copied) {
+					const textarea = document.createElement('textarea');
+					textarea.value = textToCopy;
+					textarea.setAttribute('readonly', 'readonly');
+					textarea.style.position = 'fixed';
+					textarea.style.opacity = '0';
+					document.body.appendChild(textarea);
+					textarea.focus();
+					textarea.select();
+
+					try {
+						copied = document.execCommand('copy');
+					} catch (e) {
+						copied = false;
+					}
+
+					document.body.removeChild(textarea);
+				}
+
+				if (copied) {
+					button.textContent = 'Copié';
+					button.classList.remove('btn-outline-light');
+					button.classList.add('btn-success');
+				} else {
+					window.prompt('Copie manuelle: Ctrl+C puis Entree', textToCopy);
+				}
+			});
+		</script>
+
 	</body>
 </html>
