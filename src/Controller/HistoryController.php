@@ -74,6 +74,7 @@ final class HistoryController extends AbstractController
         }
 
         $requests            = $requestRepository->findWithFilters($filters, $limit, $offset);
+        $totalCount          = $requestRepository->countWithFilters([]);
         $totalWithFilters    = $requestRepository->countWithFilters($filters);
         $maxPages            = ceil($totalWithFilters / $limit);
         $services            = $serviceRepository->findBy([], ['name' => 'ASC']);
@@ -88,7 +89,7 @@ final class HistoryController extends AbstractController
             'availableDepartures' => $availableDepartures,
             'currentPage'         => $page,
             'maxPages'            => $maxPages,
-            'totalCount'          => $totalWithFilters,
+            'totalCount'          => $totalCount,
             'filters'             => [
                 'status'        => $status,
                 'serviceId'     => $serviceId,

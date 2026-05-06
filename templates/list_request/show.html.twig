@@ -32,6 +32,21 @@
 			{% set entryRoles = entry.user ? entry.user.roles : [] %}
 			{% set isUndoEntry = entry.commentary starts with 'Annulation de décision' %}
 
+			{% if isUndoEntry %}
+				{% if 'ROLE_RH' in entryRoles %}
+					{% set rhStepDone = false %}
+					{% set rhValidatedAt = null %}
+				{% endif %}
+				{% if 'ROLE_ST' in entryRoles %}
+					{% set stStepDone = false %}
+					{% set stValidatedAt = null %}
+				{% endif %}
+				{% if 'ROLE_DSI' in entryRoles %}
+					{% set dsiStepDone = false %}
+					{% set dsiValidatedAt = null %}
+				{% endif %}
+			{% endif %}
+
 			{% if not isUndoEntry and 'ROLE_RH' in entryRoles and entry.newStatus in ['en_attente_validation', 'en_attente_st'] and rhValidatedAt is null %}
 				{% set rhValidatedAt = entry.date %}
 			{% endif %}

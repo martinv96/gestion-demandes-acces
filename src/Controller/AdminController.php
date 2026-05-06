@@ -462,8 +462,8 @@ public function auditPurge(
                 'workflowCode' => $workflowCode,
                 'stepOrder' => 1,
                 'action' => 'validate',
-                'fromStatus' => 'en attente_rh',
-                'toStatus' => 'en_attente_st',
+                'fromStatus' => 'en_attente_rh',
+                'toStatus' => 'en_attente_validation',
                 'requiredRole' => 'ROLE_RH',
             ],
             [
@@ -478,32 +478,32 @@ public function auditPurge(
                 'workflowCode' => $workflowCode,
                 'stepOrder' => 2,
                 'action' => 'validate',
-                'fromStatus' => 'en_attente_st',
-                'toStatus' => 'en_attente_dsi',
+                'fromStatus' => 'en_attente_validation',
+                'toStatus' => 'traitee',
                 'requiredRole' => 'ROLE_ST',
             ],
             [
                 'workflowCode' => $workflowCode,
                 'stepOrder' => 2,
                 'action' => 'refuse',
-                'fromStatus' => 'en_attente_st',
-                'toStatus' => 'en_attente_st',
+                'fromStatus' => 'en_attente_validation',
+                'toStatus' => 'refusee_st',
                 'requiredRole' => 'ROLE_ST',
             ],
             [
                 'workflowCode' => $workflowCode,
                 'stepOrder' => 3,
                 'action' => 'validate',
-                'fromStatus' => 'en_attente_dsi',
+                'fromStatus' => 'en_attente_validation',
                 'toStatus' => 'traitee',
                 'requiredRole' => 'ROLE_DSI',
             ],
             [
                 'workflowCode' => $workflowCode,
                 'stepOrder' => 3,
-                'action' => 'rufuse',
-                'fromStatus' => 'en_attente_dsi',
-                'toStatus' => 'en_attente_st',
+                'action' => 'refuse',
+                'fromStatus' => 'en_attente_validation',
+                'toStatus' => 'refusee_dsi',
                 'requiredRole' => 'ROLE_DSI',
             ],
         ];
@@ -652,9 +652,7 @@ public function auditPurge(
     ): void {
         $workflowCode = 'default_access';
         $requiredRole = 'ROLE_' . $serviceCode;
-        $pendingStatus = 'en_attente_' . strtolower($serviceCode);
 
-        // Marquer toutes les transitions ROLE_{serviceCode} comme inactives
         $transitions = $workflowTransitionConfigRepository->findBy([
             'workflowCode' => $workflowCode,
             'requiredRole' => $requiredRole,
@@ -662,40 +660,6 @@ public function auditPurge(
 
         foreach ($transitions as $transition) {
             $transition->setIsActive(false);
-        }
-
-        // Restaurer la transition qui pointait vers en_attente_{serviceCode}
-        // (elle doit revenir à 'traitee'), meme si elle a ete desactivee manuellement.
-        $allTransitions = $workflowTransitionConfigRepository->findBy([
-            'workflowCode' => $workflowCode,
-            'toStatus' => $pendingStatus,
-        ]);
-
-        foreach ($allTransitions as $transition) {
-            $transition->setToStatus('traitee');
-            $transition->setIsActive(true);
-        }
-
-        // Filet de securite: si la transition coeur DSI->traitee a ete supprimee,
-        // on la recree pour conserver le parcours RH -> ST -> DSI.
-        $coreDsiValidate = $workflowTransitionConfigRepository->findOneBy([
-            'workflowCode' => $workflowCode,
-            'action' => 'validate',
-            'fromStatus' => 'en_attente_dsi',
-            'requiredRole' => 'ROLE_DSI',
-        ]);
-
-        if (!$coreDsiValidate instanceof WorkflowTransitionConfig) {
-            $coreDsiValidate = new WorkflowTransitionConfig();
-            $coreDsiValidate
-                ->setWorkflowCode($workflowCode)
-                ->setStepOrder(3)
-                ->setAction('validate')
-                ->setFromStatus('en_attente_dsi')
-                ->setToStatus('traitee')
-                ->setRequiredRole('ROLE_DSI')
-                ->setIsActive(true);
-            $em->persist($coreDsiValidate);
         }
     }
 
@@ -723,7 +687,6 @@ public function auditPurge(
     ): void {
         $workflowCode = 'default_access';
         $requiredRole = 'ROLE_' . $serviceCode;
-        $pendingStatus = 'en_attente_' . strtolower($serviceCode);
 
         $alreadyExists = $workflowTransitionConfigRepository->findOneBy([
             'workflowCode' => $workflowCode,
@@ -740,28 +703,17 @@ public function auditPurge(
             ['stepOrder' => 'ASC', 'action' => 'ASC']
         );
 
-        $finalValidate = null;
+        $newStepOrder = 2;
         foreach ($active as $transition) {
-            if ($transition->getAction() === 'validate' && $transition->getToStatus() === 'traitee') {
-                $finalValidate = $transition;
-            }
+            $newStepOrder = max($newStepOrder, (int) $transition->getStepOrder() + 1);
         }
-
-        if (!$finalValidate instanceof WorkflowTransitionConfig) {
-            return;
-        }
-
-        $previousFinalFromStatus = (string) $finalValidate->getFromStatus();
-        $newStepOrder = (int) $finalValidate->getStepOrder() + 1;
-
-        $finalValidate->setToStatus($pendingStatus);
 
         $validate = new WorkflowTransitionConfig();
         $validate
             ->setWorkflowCode($workflowCode)
             ->setStepOrder($newStepOrder)
             ->setAction('validate')
-            ->setFromStatus($pendingStatus)
+            ->setFromStatus('en_attente_validation')
             ->setToStatus('traitee')
             ->setRequiredRole($requiredRole)
             ->setIsActive(true);
@@ -771,8 +723,8 @@ public function auditPurge(
             ->setWorkflowCode($workflowCode)
             ->setStepOrder($newStepOrder)
             ->setAction('refuse')
-            ->setFromStatus($pendingStatus)
-            ->setToStatus($previousFinalFromStatus)
+            ->setFromStatus('en_attente_validation')
+            ->setToStatus('refusee_' . strtolower($serviceCode))
             ->setRequiredRole($requiredRole)
             ->setIsActive(true);
 

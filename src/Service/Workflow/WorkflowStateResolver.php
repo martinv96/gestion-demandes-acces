@@ -66,14 +66,21 @@ class WorkflowStateResolver
 
         $rows = $this->configRepository->findActiveTransitionsForWorkflow(self::DEFAULT_WORKFLOW_CODE);
         foreach ($rows as $row) {
+            $normalizedTransition = $this->normalizeTransition(
+                (string) $row->getAction(),
+                (string) $row->getFromStatus(),
+                (string) $row->getToStatus(),
+                (string) $row->getRequiredRole(),
+            );
+
             if (
-                $row->getAction() === $action
-                && $row->getFromStatus() === $status
-                && in_array($row->getRequiredRole(), $user->getRoles(), true)
+                $normalizedTransition['action'] === $action
+                && $normalizedTransition['fromStatus'] === $status
+                && in_array($normalizedTransition['role'], $user->getRoles(), true)
             ) {
                 return [
-                    'role' => $row->getRequiredRole(),
-                    'next' => $row->getToStatus(),
+                    'role' => $normalizedTransition['role'],
+                    'next' => $normalizedTransition['toStatus'],
                 ];
             }
         }
@@ -104,11 +111,18 @@ class WorkflowStateResolver
                     continue;
                 }
 
-                if (($row['action'] ?? null) !== 'validate') {
+                $normalizedTransition = $this->normalizeTransition(
+                    (string) ($row['action'] ?? ''),
+                    (string) ($row['fromStatus'] ?? ''),
+                    (string) ($row['toStatus'] ?? ''),
+                    (string) ($row['requiredRole'] ?? ''),
+                );
+
+                if ($normalizedTransition['action'] !== 'validate') {
                     continue;
                 }
 
-                $fromStatus = (string) ($row['fromStatus'] ?? '');
+                $fromStatus = $normalizedTransition['fromStatus'];
                 if (!str_starts_with($fromStatus, 'en_attente_')) {
                     continue;
                 }
@@ -117,7 +131,7 @@ class WorkflowStateResolver
                     continue;
                 }
 
-                $role = strtoupper(trim((string) ($row['requiredRole'] ?? '')));
+                $role = $normalizedTransition['role'];
                 if ($role === '' || $role === 'ROLE_RH') {
                     continue;
                 }
@@ -129,16 +143,23 @@ class WorkflowStateResolver
         if ($roles === []) {
             $rows = $this->configRepository->findActiveTransitionsForWorkflow(self::DEFAULT_WORKFLOW_CODE);
             foreach ($rows as $row) {
-                if ($row->getAction() !== 'validate') {
+                $normalizedTransition = $this->normalizeTransition(
+                    (string) $row->getAction(),
+                    (string) $row->getFromStatus(),
+                    (string) $row->getToStatus(),
+                    (string) $row->getRequiredRole(),
+                );
+
+                if ($normalizedTransition['action'] !== 'validate') {
                     continue;
                 }
 
-                $fromStatus = (string) $row->getFromStatus();
+                $fromStatus = $normalizedTransition['fromStatus'];
                 if (!str_starts_with($fromStatus, 'en_attente_') || $fromStatus === AccessRequest::STATUS_EN_ATTENTE_RH) {
                     continue;
                 }
 
-                $role = strtoupper(trim((string) $row->getRequiredRole()));
+                $role = $normalizedTransition['role'];
                 if ($role === '' || $role === 'ROLE_RH') {
                     continue;
                 }
@@ -180,9 +201,41 @@ class WorkflowStateResolver
     public function getValidatedParallelRoles(AccessRequest $request, array $requiredRoles): array
     {
         $doneRoles = [];
+        $histories = $request->getRequestId()->toArray();
 
-        foreach ($request->getRequestId() as $history) {
+        usort($histories, static function (mixed $a, mixed $b): int {
+            if (!$a instanceof WorkflowHistory || !$b instanceof WorkflowHistory) {
+                return 0;
+            }
+
+            $aDate = $a->getDate();
+            $bDate = $b->getDate();
+
+            if ($aDate == $bDate) {
+                return ($a->getId() ?? 0) <=> ($b->getId() ?? 0);
+            }
+
+            return $aDate <=> $bDate;
+        });
+
+        foreach ($histories as $history) {
             if (!$history instanceof WorkflowHistory) {
+                continue;
+            }
+
+            $historyUser = $history->getUser();
+            if (!$historyUser instanceof User) {
+                continue;
+            }
+
+            $comment = (string) ($history->getCommentary() ?? '');
+            if (str_starts_with($comment, 'Annulation de décision')) {
+                foreach ($requiredRoles as $requiredRole) {
+                    if (in_array($requiredRole, $historyUser->getRoles(), true)) {
+                        unset($doneRoles[$requiredRole]);
+                    }
+                }
+
                 continue;
             }
 
@@ -200,24 +253,14 @@ class WorkflowStateResolver
                 continue;
             }
 
-            $comment = (string) ($history->getCommentary() ?? '');
-            if (str_starts_with($comment, 'Annulation de décision')) {
-                continue;
-            }
-
-            $historyUser = $history->getUser();
-            if (!$historyUser instanceof User) {
-                continue;
-            }
-
             foreach ($requiredRoles as $requiredRole) {
                 if (in_array($requiredRole, $historyUser->getRoles(), true)) {
-                    $doneRoles[] = $requiredRole;
+                    $doneRoles[$requiredRole] = true;
                 }
             }
         }
 
-        return array_values(array_unique($doneRoles));
+        return array_values(array_keys($doneRoles));
     }
 
     /**
@@ -307,15 +350,22 @@ class WorkflowStateResolver
                     continue;
                 }
 
-                if (($row['action'] ?? null) !== 'validate') {
+                $normalizedTransition = $this->normalizeTransition(
+                    (string) ($row['action'] ?? ''),
+                    (string) ($row['fromStatus'] ?? ''),
+                    (string) ($row['toStatus'] ?? ''),
+                    (string) ($row['requiredRole'] ?? ''),
+                );
+
+                if ($normalizedTransition['action'] !== 'validate') {
                     continue;
                 }
 
-                if ((string) ($row['fromStatus'] ?? '') !== $status) {
+                if ($normalizedTransition['fromStatus'] !== $status) {
                     continue;
                 }
 
-                $role = strtoupper(trim((string) ($row['requiredRole'] ?? '')));
+                $role = $normalizedTransition['role'];
                 if ($role !== '') {
                     $roles[] = $role;
                 }
@@ -325,11 +375,18 @@ class WorkflowStateResolver
         if ($roles === []) {
             $rows = $this->configRepository->findActiveTransitionsForWorkflow(self::DEFAULT_WORKFLOW_CODE);
             foreach ($rows as $row) {
-                if ($row->getAction() !== 'validate' || (string) $row->getFromStatus() !== $status) {
+                $normalizedTransition = $this->normalizeTransition(
+                    (string) $row->getAction(),
+                    (string) $row->getFromStatus(),
+                    (string) $row->getToStatus(),
+                    (string) $row->getRequiredRole(),
+                );
+
+                if ($normalizedTransition['action'] !== 'validate' || $normalizedTransition['fromStatus'] !== $status) {
                     continue;
                 }
 
-                $role = strtoupper(trim((string) $row->getRequiredRole()));
+                $role = $normalizedTransition['role'];
                 if ($role !== '') {
                     $roles[] = $role;
                 }
@@ -409,10 +466,17 @@ class WorkflowStateResolver
                 continue;
             }
 
-            $rowAction = (string) ($row['action'] ?? '');
-            $rowFromStatus = (string) ($row['fromStatus'] ?? '');
-            $rowRole = (string) ($row['requiredRole'] ?? '');
-            $rowToStatus = (string) ($row['toStatus'] ?? '');
+            $normalizedTransition = $this->normalizeTransition(
+                (string) ($row['action'] ?? ''),
+                (string) ($row['fromStatus'] ?? ''),
+                (string) ($row['toStatus'] ?? ''),
+                (string) ($row['requiredRole'] ?? ''),
+            );
+
+            $rowAction = $normalizedTransition['action'];
+            $rowFromStatus = $normalizedTransition['fromStatus'];
+            $rowRole = $normalizedTransition['role'];
+            $rowToStatus = $normalizedTransition['toStatus'];
 
             if ($rowAction !== $action || $rowFromStatus !== $status) {
                 continue;
@@ -440,6 +504,48 @@ class WorkflowStateResolver
         $code = strtolower(preg_replace('/^ROLE_/', '', strtoupper($role)) ?? '');
 
         return $code !== '' ? $code : 'service';
+    }
+
+    /**
+     * @return array{action: string, fromStatus: string, toStatus: string, role: string}
+     */
+    private function normalizeTransition(string $action, string $fromStatus, string $toStatus, string $role): array
+    {
+        $normalizedAction = strtolower(trim($action));
+        if ($normalizedAction === 'rufuse') {
+            $normalizedAction = 'refuse';
+        }
+
+        $normalizedFromStatus = str_replace(' ', '_', trim($fromStatus));
+        $normalizedToStatus = str_replace(' ', '_', trim($toStatus));
+        $normalizedRole = strtoupper(trim($role));
+
+        if (
+            $normalizedAction === 'validate'
+            && $normalizedRole === 'ROLE_RH'
+            && $normalizedFromStatus === AccessRequest::STATUS_EN_ATTENTE_RH
+        ) {
+            $normalizedToStatus = AccessRequest::STATUS_EN_ATTENTE_VALIDATION;
+        }
+
+        if (
+            $normalizedRole !== ''
+            && $normalizedRole !== 'ROLE_RH'
+            && str_starts_with($normalizedFromStatus, 'en_attente_')
+        ) {
+            $normalizedFromStatus = AccessRequest::STATUS_EN_ATTENTE_VALIDATION;
+
+            if ($normalizedAction === 'refuse') {
+                $normalizedToStatus = sprintf('refusee_%s', $this->extractRoleCode($normalizedRole));
+            }
+        }
+
+        return [
+            'action' => $normalizedAction,
+            'fromStatus' => $normalizedFromStatus,
+            'toStatus' => $normalizedToStatus,
+            'role' => $normalizedRole,
+        ];
     }
 
     private function isMoreRecentHistory(WorkflowHistory $candidate, WorkflowHistory $reference): bool

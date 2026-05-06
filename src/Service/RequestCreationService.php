@@ -55,14 +55,14 @@ final class RequestCreationService
 
             $activeTransitions = $this->workflowTransitionConfigRepository->findActiveTransitionsForWorkflow(SELF::DEFAULT_WORKFLOW_CODE);
             $workflowSnapshot = array_map(
-                static fn($transition): array => [
+                fn($transition): array => $this->normalizeWorkflowSnapshotRow([
                     'workflowCode' => (string) $transition->getWorkflowCode(),
                     'stepOrder' => (int) $transition->getStepOrder(),
                     'action' => (string) $transition->getAction(),
                     'fromStatus' => (string) $transition->getFromStatus(),
                     'toStatus' => (string) $transition->getToStatus(),
                     'requiredRole' => (string) $transition->getRequiredRole(),
-                ],
+                ]),
                 $activeTransitions
             );
             $newRequest->setWorkflowSnapshot($workflowSnapshot !== [] ? $workflowSnapshot : null);
@@ -164,5 +164,46 @@ final class RequestCreationService
             $this->em->clear();
             throw $e;
         }
+    }
+
+    /**
+     * @param array{workflowCode: string, stepOrder: int, action: string, fromStatus: string, toStatus: string, requiredRole: string} $row
+     * @return array{workflowCode: string, stepOrder: int, action: string, fromStatus: string, toStatus: string, requiredRole: string}
+     */
+    private function normalizeWorkflowSnapshotRow(array $row): array
+    {
+        $row['action'] = strtolower(trim($row['action']));
+        if ($row['action'] === 'rufuse') {
+            $row['action'] = 'refuse';
+        }
+
+        $row['fromStatus'] = str_replace(' ', '_', trim($row['fromStatus']));
+        $row['toStatus'] = str_replace(' ', '_', trim($row['toStatus']));
+        $row['requiredRole'] = strtoupper(trim($row['requiredRole']));
+
+        if (
+            $row['action'] === 'validate'
+            && $row['requiredRole'] === 'ROLE_RH'
+            && $row['fromStatus'] === AccessRequest::STATUS_EN_ATTENTE_RH
+        ) {
+            $row['toStatus'] = AccessRequest::STATUS_EN_ATTENTE_VALIDATION;
+        }
+
+        if (
+            $row['requiredRole'] !== ''
+            && $row['requiredRole'] !== 'ROLE_RH'
+            && str_starts_with($row['fromStatus'], 'en_attente_')
+        ) {
+            $row['fromStatus'] = AccessRequest::STATUS_EN_ATTENTE_VALIDATION;
+
+            if ($row['action'] === 'refuse') {
+                $row['toStatus'] = sprintf(
+                    'refusee_%s',
+                    strtolower(preg_replace('/^ROLE_/', '', $row['requiredRole']) ?? 'service')
+                );
+            }
+        }
+
+        return $row;
     }
 }

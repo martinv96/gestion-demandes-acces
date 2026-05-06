@@ -15,14 +15,14 @@ class WorkflowNotificationService
      */
     private const LABELS = [
         AccessRequest::STATUS_EN_ATTENTE_RH => 'En attente RH',
-        AccessRequest::STATUS_EN_ATTENTE_VALIDATION => 'En attente validations services',
+        AccessRequest::STATUS_EN_ATTENTE_VALIDATION => 'En attente de validations des services',
         AccessRequest::STATUS_EN_ATTENTE_ST => 'En attente ST',
         AccessRequest::STATUS_EN_ATTENTE_DSI => 'En attente DSI',
-        AccessRequest::STATUS_EN_ATTENTE_TRAITEMENT => 'En attente traitement',
-        AccessRequest::STATUS_TRAITEE => 'Traitee',
-        'refusee_rh' => 'Refusee par RH',
-        'refusee_st' => 'Refusee par ST',
-        'refusee_dsi' => 'Refusee par DSI',
+        AccessRequest::STATUS_EN_ATTENTE_TRAITEMENT => 'En attente de traitement',
+        AccessRequest::STATUS_TRAITEE => 'Traitée',
+        'refusee_rh' => 'Refusée par RH',
+        'refusee_st' => 'Refusée par ST',
+        'refusee_dsi' => 'Refusée par DSI',
     ];
 
     public function __construct(

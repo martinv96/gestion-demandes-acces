@@ -131,6 +131,7 @@ class WorkflowActionService
 
         $request->setStatus($newStatus);
         $request->setUpdateDate(new \DateTimeImmutable());
+        $request->addRequestId($history);
 
         $this->em->persist($history);
         $this->em->flush();
