@@ -10,12 +10,14 @@ use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Security\Http\Event\LoginFailureEvent;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 use Symfony\Component\Security\Http\Event\LogoutEvent;
+use App\Service\Security\LoginFailureAlertService;
 
 final class SecurityAuditListener
 {
     public function __construct(
         private EntityManagerInterface $em,
         private ?LoggerInterface $logger = null,
+        private ?LoginFailureAlertService $loginFailureAlertService = null,
     ) {
     }
 
@@ -48,6 +50,7 @@ final class SecurityAuditListener
     {
         $request = $event->getRequest();
         $email = (string) $request->request->get('_username', '');
+        $failureDetail = $this->buildFailureDetail($event->getException()->getMessageKey());
 
         $this->store(
             LoginAudit::EVENT_FAILURE,
@@ -56,8 +59,23 @@ final class SecurityAuditListener
             $request->getClientIp(),
             (string) $request->headers->get('User-Agent', ''),
             method_exists($event, 'getFirewallName') ? $event->getFirewallName() : 'main',
-            $this->buildFailureDetail($event->getException()->getMessageKey())
+            $failureDetail
         );
+
+        try {
+            $this->loginFailureAlertService->sendFailedLoginAlert(
+                $email !== '' ? $email : null,
+                $request->getClientIp(),
+                (string) $request->headers->get('User-Agent', ''),
+                $failureDetail
+            );
+        } catch (\Throwable $e) {
+            $this->logger?->error('Echec envoi alerte login failure.', [
+                'email' => $email,
+                'ip' => $request->getClientIp(),
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     #[AsEventListener(event: LogoutEvent::class)]

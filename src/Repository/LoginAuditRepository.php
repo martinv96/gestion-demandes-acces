@@ -66,4 +66,41 @@ public function findPaginated(int $offset, int $limit): array
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    public function countWithFilters(array $filters): int
+{
+    $qb = $this->createQueryBuilder('a')
+        ->select('COUNT(a.id)');
+
+    $this->applyFilters($qb, $filters);
+
+    return (int) $qb->getQuery()->getSingleScalarResult();
+}
+
+/**
+ * @return list<LoginAudit>
+ */
+public function findPaginatedWithFilters(array $filters, int $offset, int $limit): array
+{
+    $qb = $this->createQueryBuilder('a')
+        ->leftJoin('a.user', 'u')->addSelect('u')
+        ->orderBy('a.occurredAt', 'DESC')
+        ->setFirstResult($offset)
+        ->setMaxResults($limit);
+
+    $this->applyFilters($qb, $filters);
+
+    /** @var list<LoginAudit> $rows */
+    $rows = $qb->getQuery()->getResult();
+
+    return $rows;
+}
+
+private function applyFilters(\Doctrine\ORM\QueryBuilder $qb, array $filters): void
+{
+    if (!empty($filters['eventType'])) {
+        $qb->andWhere('a.eventType = :eventType')
+           ->setParameter('eventType', (string) $filters['eventType']);
+    }
+}
 }

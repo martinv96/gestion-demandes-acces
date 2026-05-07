@@ -79,10 +79,26 @@ final class AdminController extends AbstractController
         if ($auditCurrentPage < 1) {
             $auditCurrentPage = 1;
         }
+
+        $allowedAuditTypes = [
+            LoginAudit::EVENT_SUCCESS,
+            LoginAudit::EVENT_FAILURE,
+            LoginAudit::EVENT_LOGOUT,
+        ];
+
+        $auditEventType = (string) $request->query->get('audit_event_type', '');
+        $auditFilters = [];
+
+        if ($auditEventType !== '' && in_array($auditEventType, $allowedAuditTypes, true)) {
+            $auditFilters['eventType'] = $auditEventType;
+        } else {
+            $auditEventType = '';
+        }
+
         $auditOffset = ($auditCurrentPage - 1) * $auditLimit;
 
-        $audits = $loginAuditRepository->findPaginated($auditOffset, $auditLimit);
-        $totalAudits = $loginAuditRepository->countAll();
+        $audits = $loginAuditRepository->findPaginatedWithFilters($auditFilters, $auditOffset, $auditLimit);
+        $totalAudits = $loginAuditRepository->countWithFilters($auditFilters);
         $auditMaxPages = (int) ceil(max(1, $totalAudits) / $auditLimit);
 
         $liveSuccess = $loginAuditRepository->countByEventType(LoginAudit::EVENT_SUCCESS);
@@ -148,6 +164,9 @@ final class AdminController extends AbstractController
 
 
             'audits' => $audits,
+            'auditFilters' => [
+                'eventType' => $auditEventType,
+            ],
             'auditCurrentPage' => $auditCurrentPage,
             'auditMaxPages' => $auditMaxPages,
             'totalAudits' => $totalAudits,
