@@ -22,3 +22,14 @@
 .request-detail-layout {
     align-items: flex-start;
 }
+
+.container-fluid {
+    left:16%;
+    position:absolute;
+    max-width:167vh !important;
+    padding-bottom: 10px;
+}
+
+.container-login {
+    min-width:35vh !important;
+}

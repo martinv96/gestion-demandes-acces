@@ -79,8 +79,8 @@
 			</aside>
 
 			{# CONTENU PRINCIPAL #}
-			<main class="app-main flex-grow-1 p-4 d-flex flex-column">
-				<div class="flex-grow-1 d-flex flex-column">
+			<main class="app-main flex-grow-1 p-4 d-flex flex-column d-flex flex-column align-items-center">
+				<div class="flex-grow-1 d-flex flex-column" class="flex-grow-1 d-flex flex-column">
 					{% if app.request and app.request.hasSession %}
 						{% for type, messages in app.flashes(['success', 'warning', 'danger', 'info']) %}
 							{% for message in messages %}
@@ -147,7 +147,7 @@
 					button.classList.remove('btn-outline-light');
 					button.classList.add('btn-success');
 				} else {
-					window.prompt('Copie manuelle: Ctrl+C puis Entree', textToCopy);
+					window.prompt('Copie manuelle: Ctrl+C puis Entrée', textToCopy);
 				}
 			});
 		</script>

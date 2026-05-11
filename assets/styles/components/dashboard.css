@@ -35,3 +35,10 @@
 	.titreH6 {
 		color: #147540;
 	}
+
+	.container {
+		max-width:167vh !important;
+		position:absolute;
+		left:20%;
+		
+	}

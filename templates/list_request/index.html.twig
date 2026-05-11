@@ -130,6 +130,7 @@
 									<th scope="col">Type</th>
 									<th scope="col">Statut</th>
 									<th scope="col">Date d'arrivée</th>
+									<th scope="col">Date de départ</th>
 									<th scope="col">Créée le</th>
 									<th scope="col">Etat courant</th>
 									<th scope="col" class="text-center">Action</th>
@@ -181,7 +182,8 @@
 											<span class="badge text-bg-{{ cfg[0] }}">{{ cfg[1] }}</span>
 										</td>
 										<td>{{ request.arrivalDate ? request.arrivalDate|date('d/m/Y') : '-' }}</td>
-										<td>{{ request.creationDate ? request.creationDate|date('d/m/Y H:i') : '-' }}</td>
+										<td>{{ request.departureDate ? request.departureDate|date('d/m/Y') : '-'}}</td>
+										<td>{{ request.creationDate ? request.creationDate|date('d/m/Y à H:i') : '-' }}</td>
 										<td>
 											<span class="badge text-bg-{{ request.currentStateBadgeClass }}">
 												{{ request.currentStateLabel }}

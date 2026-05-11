@@ -74,7 +74,7 @@ final class AdminController extends AbstractController
         $usersOffset = ($usersCurrentPage - 1) * $userLimit;
         $softwareOffset = ($softwareCurrentPage - 1) * $softwareLimit;
         
-        $auditLimit = 20;
+        $auditLimit = 15;
         $auditCurrentPage = $request->query->getInt('audit_page', 1);
         if ($auditCurrentPage < 1) {
             $auditCurrentPage = 1;

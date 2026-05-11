@@ -4,6 +4,7 @@
     padding: 15px 45px 15px 70px;
     margin-bottom: 20px;
     border: 1px solid #ddd;
+    z-index:100;
     border-radius: 4px;
     background-color: #fff;
     color: #333;
@@ -60,7 +61,7 @@
 .alert .close, .alert .btn-close {
     position: absolute;
     top: 40%;
-    right: 15px;
+    right: 3px;
     transform: translateY(-50%);
     opacity:0.5;
     cursor: pointer;

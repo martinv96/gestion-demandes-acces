@@ -11,3 +11,5 @@ Pour la config Mail :
 Modifier le fichier: /.env.prod
 MAILER_DSN=smtp://no-reply%40leplessistrevise.fr:Leplessis94%2A@mail.infomaniak.com:587
 MAILER_FROM=no-reply@leplessistrevise.fr
+
+

@@ -1,9 +1,10 @@
 /* Timeline de validation */
 
 .validation-journey-card {
-    position: sticky;
-    top: 1.5rem;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    position:fixed;
+    top:110px;
+    left:76%;
+    min-width: 28vh;
 }
 
 .validation-journey-eyebrow {
@@ -140,6 +141,13 @@
     border-radius: 50%;
     background: #94a3b8;
     transform: translate(-50%, -50%);
+}
+
+aside {
+    position:fixed;
+    top:0;
+    left:0;
+    height:100vh;
 }
 
 @media (max-width: 1199.98px) {

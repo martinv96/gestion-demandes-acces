@@ -442,12 +442,12 @@
 							</div>
 						</div>
 
-						{% if canEditRequestInfo %}
-							<div class="col-12">
-								<div class="d-flex justify-content-end gap-2">
-									<button type="submit" class="btn btn-warning">Enregistrer les modifications</button>
-								</div>
+						{% if canEditRequestInfo and requestEntity.status != constant('App\\Entity\\Request::STATUS_TRAITEE') and not currentUserHasValidated %}
+						<div class="col-12">
+							<div class="d-flex justify-content-end gap-2">
+								<button type="submit" class="btn btn-warning">Enregistrer les modifications</button>
 							</div>
+						</div>
 						{% endif %}
 
 						{% if canEditRequestInfo %}

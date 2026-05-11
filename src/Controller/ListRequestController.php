@@ -227,6 +227,7 @@ final class ListRequestController extends AbstractController
             'availableServices' => $canEditRequestInfo
                 ? $serviceRepository->findBy([], ['name' => 'ASC'])
                 : [],
+            'allServices' => $serviceRepository->findBy([], ['name' => 'ASC']),
             'availableLogiciels' => $canEditRequestInfo
                 ? $allLogiciels
                 : [],
@@ -462,6 +463,12 @@ final class ListRequestController extends AbstractController
         $user = $this->getUser();
         if (!$user instanceof User) {
             throw $this->createAccessDeniedException();
+        }
+
+        $status = (string) ($requestEntity->getStatus() ?? '');
+        if ($status === AccessRequest::STATUS_TRAITEE) {
+            $this->addRequestFlash($httpRequest, 'warning', 'La demande est validée. Modification impossible.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
         if (!$this->isGranted(RequestVoter::EDIT_INFO, $requestEntity)) {

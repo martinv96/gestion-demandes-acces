@@ -189,3 +189,28 @@ Pour les filtres:
     </a>
 </div>
 
+ListRequestController.php
+updateInfo avant le check isGranted
+<?php
+$status = (string) ($requestEntity->getStatus() ?? '');
+if ($status === AccessRequest::STATUS_TRAITEE) {
+    $this->addRequestFlash($httpRequest, 'warning', 'La demande est validée. Modification impossible.');
+    return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+}
+
+show html twig : changer:
+{% if canEditRequestInfo %}
+    <div class="col-12">
+        <div class="d-flex justify-content-end gap-2">
+            <button type="submit" class="btn btn-warning">Enregistrer les modifications</button>
+        </div>
+    </div>
+{% endif %}
+
+par:{% if canEditRequestInfo and requestEntity.status != constant('App\\Entity\\Request::STATUS_TRAITEE') %}
+    <div class="col-12">
+        <div class="d-flex justify-content-end gap-2">
+            <button type="submit" class="btn btn-warning">Enregistrer les modifications</button>
+        </div>
+    </div>
+{% endif %}
