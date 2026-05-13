@@ -145,8 +145,10 @@
         {# accès logiciels #}
 		<div class="card request-form-card mb-4" id="logiciels-card">
 			<div class="card-header">Accès logiciels</div>
-			<div class="card-body request-checkbox-grid">
-				{{ form_widget(form.logiciels) }}
+            <div class="card-body request-resource-body">
+                <div class="request-checkbox-grid request-resource-grid">
+                    {{ form_widget(form.logiciels) }}
+                </div>
 				<div class="field-errors">{{ form_errors(form.logiciels) }}</div>
 			</div>
 		</div>
@@ -155,12 +157,12 @@
 
         <div class="card request-form-card mb-4" id="materiel-card">
             <div class="card-header">Matériel</div>
-            <div class="card-body">
+            <div class="card-body request-resource-body">
                 
                 {# SECTION TECHNIQUE : Affichée SEULEMENT pour le Service Technique #}
                 {% if hasTechniqueAccess %}
                     <h6 class="mb-2">Service technique (EPI, badge, jeu de clés)</h6>
-                    <div class="request-checkbox-grid mb-3">
+                    <div class="request-checkbox-grid request-resource-grid mb-3">
                         {% for child in form.materiels %}
                             {% set materialName = (child.vars.label ?? '')|lower %}
                             {% set isStMaterial = 'badge' in materialName
@@ -177,7 +179,7 @@
                                 or 'masque' in materialName
                                 or 'protection' in materialName %}
                             {% if isStMaterial %}
-                                {{ form_row(child) }}
+                                {{ form_widget(child) }}
                             {% endif %}
                         {% endfor %}
                     </div>
@@ -186,7 +188,7 @@
 
                 {# SECTION AUTRES MATÉRIELS : Visible par tout le monde #}
                 <h6 class="mb-2">Autres matériels</h6>
-                <div class="request-checkbox-grid">
+                <div class="request-checkbox-grid request-resource-grid">
                     {% for child in form.materiels %}
                         {% set materialName = (child.vars.label ?? '')|lower %}
                         {% set isStMaterial = 'badge' in materialName
@@ -205,7 +207,7 @@
                         
                         {# On affiche ici uniquement ce qui n'appartient PAS à la liste technique ci-dessus #}
                         {% if not isStMaterial %}
-                            {{ form_row(child) }}
+                            {{ form_widget(child) }}
                         {% endif %}
                     {% endfor %}
                 </div>
@@ -214,39 +216,6 @@
                 {% do form.materiels.setRendered %}
             </div>
         </div>
-
-        <style>
-            #materiel-card .request-checkbox-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 0.5rem 0.75rem;
-            }
-
-            #materiel-card .request-checkbox-grid .form-check {
-                margin: 0 !important;
-                min-height: 48px;
-                padding: 0.7rem 0.95rem 0.7rem 2.5rem;
-                display: flex;
-                align-items: center;
-            }
-
-            #materiel-card .request-checkbox-grid .form-check-input {
-                margin-top: 0;
-            }
-
-            #materiel-card h6 {
-                margin-bottom: 0.4rem;
-            }
-
-            #materiel-card hr {
-                margin: 0.55rem 0 0.75rem;
-            }
-
-            @media (max-width: 767.98px) {
-                #materiel-card .request-checkbox-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-        </style>
 
         {# commentaires #}
 		<div class="card request-form-card mb-4">

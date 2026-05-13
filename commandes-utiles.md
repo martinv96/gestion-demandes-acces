@@ -5,6 +5,13 @@ sudo systemctl status nginx php8.3-fpm mysql
 sudo systemctl restart nginx php8.3-fpm
 
 
+cd /opt/apps/gestion-demandes-acces
+sudo chown -R www-data:www-data public/assets
+sudo chmod -R u+rwX,g+rwX public/assets
+sudo -u www-data APP_ENV=prod php bin/console asset-map:compile
+sudo -u www-data APP_ENV=prod php bin/console cache:clear
+sudo -u www-data APP_ENV=prod php bin/console cache:warmup
+
 
 Pour la config Mail :
 

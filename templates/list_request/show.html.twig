@@ -288,7 +288,7 @@
 											<h3 class="resource-status-title">Accès matériels</h3>
 											{% if canEditRequestInfo %}
 												<h6 class="mb-2">Service technique (EPI, badge, jeu de clés)</h6>
-												<div class="row g-2 mb-3">
+												<div class="row row-cols-2 g-2 mb-3">
 													{% for materiel in availableMateriels %}
 														{% set materialName = materiel.name|lower %}
 														{% set isStMaterial = 'badge' in materialName
@@ -305,7 +305,7 @@
 															or 'masque' in materialName
 															or 'protection' in materialName %}
 														{% if isStMaterial %}
-															<div class="col-md-6">
+															<div class="col">
 																<div class="form-check">
 																	<input class="form-check-input" type="checkbox" name="materiel[]" id="inline_materiel_{{ loop.index }}" value="{{ materiel.name }}" {{ materiel.name|lower in selectedMaterialNamesLower ? 'checked' : '' }}>
 																	<label class="form-check-label" for="inline_materiel_{{ loop.index }}">{{ materiel.name }}</label>
@@ -346,7 +346,7 @@
 												</div>
 											{% else %}
 												<h6 class="mb-2">Service technique (EPI, badge, jeu de clés)</h6>
-												<ul class="resource-status-list mb-3">
+												<ul class="resource-status-list resource-status-list--st-two-cols mb-3">
 													{% for materiel in allMateriels %}
 														{% set materialName = materiel.name|lower %}
 														{% set isStMaterial = 'badge' in materialName
