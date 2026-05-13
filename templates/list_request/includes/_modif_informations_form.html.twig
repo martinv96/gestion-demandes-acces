@@ -38,6 +38,16 @@
                             </select>
                         </div>
 
+                        <div class="col-md-3">
+                            <label for="rh_edit_taille_vetements" class="form-label">Taille vêtements</label>
+                            <input type="text" class="form-control" id="rh_edit_taille_vetements" name="taille_vetements" value="{{ requestEntity.agent and requestEntity.agent.clothingSize ? requestEntity.agent.clothingSize : '' }}" maxlength="20" placeholder="Ex: M, L, XL">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="rh_edit_taille_chaussures" class="form-label">Pointure</label>
+                            <input type="text" class="form-control" id="rh_edit_taille_chaussures" name="taille_chaussures" value="{{ requestEntity.agent and requestEntity.agent.shoeSize ? requestEntity.agent.shoeSize : '' }}" maxlength="20" placeholder="Ex: 42">
+                        </div>
+
                         <div class="col-md-4">
                             <label for="rh_edit_fonction" class="form-label">Fonction</label>
                             <input type="text" class="form-control" id="rh_edit_fonction" name="fonction" value="{{ requestEntity.agent ? requestEntity.agent.jobTitle|capitalize : '' }}" required>

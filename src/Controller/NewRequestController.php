@@ -24,13 +24,18 @@ final class NewRequestController extends AbstractController
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
+        $currentUser = $this->getUser();
+        $isServiceTechniqueUser = $currentUser instanceof User
+            && $currentUser->getService()?->getId() === 3;
+
         $canCreateAllRequestTypes = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_RH');
+        $allowedRequestTypes = $canCreateAllRequestTypes
+            ? AccessRequest::TYPES
+            : [AccessRequest::TYPE_OUVERTURE, AccessRequest::TYPE_FERMETURE];
 
         $formData = new NewRequestData();
         $form = $this->createForm(NewRequestType::class, $formData, [
-            'allowed_types' => $canCreateAllRequestTypes
-                ? AccessRequest::TYPES
-                : [AccessRequest::TYPE_FERMETURE],
+            'allowed_types' => $allowedRequestTypes,
         ]);
 
         $form->handleRequest($request);
@@ -39,15 +44,13 @@ final class NewRequestController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $requestType = $formData->getType() ?? AccessRequest::TYPE_OUVERTURE;
 
-            $currentUser = $this->getUser();
-
             // si l'user est null, c'est qu'il n'est pas authentifié, on bloque l'accès
             if (!$currentUser instanceof User) {
                 throw $this->createAccessDeniedException('Utilisateur non authentifié.');
             }
 
-            if (!$canCreateAllRequestTypes && $requestType !== AccessRequest::TYPE_FERMETURE) {
-                throw $this->createAccessDeniedException('Seule une demande de fermeture peut etre creee avec ce compte.');
+            if (!in_array($requestType, $allowedRequestTypes, true)) {
+                throw $this->createAccessDeniedException('Ce type de demande ne peut pas etre cree avec ce compte.');
             }
 
             $initialStatus = $requestType === AccessRequest::TYPE_FERMETURE
@@ -144,6 +147,7 @@ final class NewRequestController extends AbstractController
         return $this->render('new_request/index.html.twig', [
             'saved' => $request->query->getBoolean('saved'),
             'form' => $form->createView(),
+            'isServiceTechniqueUser' => $isServiceTechniqueUser,
         ]);
     }
 

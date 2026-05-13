@@ -256,7 +256,17 @@ final class ListRequestController extends AbstractController
 
         $isStMaterial = str_contains($name, 'cle')
             || str_contains($name, 'clé')
-            || str_contains($name, 'badge');
+            || str_contains($name, 'badge')
+            || str_contains($name, 'casque')
+            || str_contains($name, 'gilet')
+            || str_contains($name, 'chaussure')
+            || str_contains($name, 'pantalon')
+            || str_contains($name, 'veste')
+            || str_contains($name, 'gant')
+            || str_contains($name, 'lunette')
+            || str_contains($name, 'harnais')
+            || str_contains($name, 'masque')
+            || str_contains($name, 'protection');
 
         if ($isDsiMaterial) {
             return 'ROLE_DSI';
@@ -456,7 +466,7 @@ final class ListRequestController extends AbstractController
         EntityManagerInterface $entityManager,
         RequestUpdateInfoService $requestUpdateInfoService,
         WorkflowService $workflowService,
-        MessageBusInterface $messageBus,
+        MessageBusInterface $messageBus
     ): Response {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -515,6 +525,8 @@ final class ListRequestController extends AbstractController
                 'fonction' => (string) $httpRequest->request->get('fonction', ''),
                 'email' => (string) $httpRequest->request->get('email', ''),
                 'service' => (int) $httpRequest->request->get('service', 0),
+                'taille_vetements' => (string) $httpRequest->request->get('taille_vetements', ''),
+                'taille_chaussures' => (string) $httpRequest->request->get('taille_chaussures', ''),
                 'date_arrivee' => (string) $httpRequest->request->get('date_arrivee', ''),
                 'date_depart' => (string) $httpRequest->request->get('date_depart', ''),
                 'commentaire' => (string) $httpRequest->request->get('commentaire', ''),

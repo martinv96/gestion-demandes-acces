@@ -35,6 +35,12 @@ final class NewRequestData
     #[Assert\Length(max: 100, maxMessage: 'La fonction ne doit pas dépasser {{ limit }} caractères.')]
     private ?string $jobTitle = null;
 
+    #[Assert\Length(max: 20, maxMessage: 'La taille du vêtement ne doit pas dépasser {{ limit }} caractères.')]
+    private ?string $clothingSize = null;
+
+    #[Assert\Length(max: 20, maxMessage: 'La taille des chaussures ne peut pas dépasser {{ limit }} caractères.')]
+    private ?string $shoeSize = null;
+
     private ?\DateTime $arrivalDate = null;
 
     private ?\DateTime $departureDate = null;
@@ -180,6 +186,26 @@ final class NewRequestData
     public function setType(?string $type): void
     {
         $this->type = $type;
+    }
+
+    public function getClothingSize(): ?string
+    {
+        return $this->clothingSize;
+    }
+
+    public function setClothingSize(?string $clothingSize): void
+    {
+        $this->clothingSize = $clothingSize;
+    }
+
+    public function getShoeSize(): ?string
+    {
+        return $this->shoeSize;
+    }
+
+    public function setShoeSize(?string $shoeSize): void
+    {
+        $this->shoeSize = $shoeSize;
     }
 
     /**

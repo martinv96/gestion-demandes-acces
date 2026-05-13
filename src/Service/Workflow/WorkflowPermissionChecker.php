@@ -98,7 +98,13 @@ class WorkflowPermissionChecker
         }
 
         if ($this->stateResolver->isParallelServicePhase($status)) {
-            return $this->stateResolver->resolveParallelRoleForUser($request, $user) !== null;
+            $userRole = $this->stateResolver->resolveParallelRoleForUser($request, $user);
+            if ($userRole === null) {
+                return false;
+            }
+
+            // Bloquer l'édition uniquement si CE service a déjà validé (pas les autres)
+            return !$this->stateResolver->hasRoleAlreadyValidated($request, $userRole);
         }
 
         return false;

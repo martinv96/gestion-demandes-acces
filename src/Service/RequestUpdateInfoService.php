@@ -22,6 +22,8 @@ class RequestUpdateInfoService
      * email?: string,
      * fonction?: string,
      * service?: int,
+     * taille_vetements?: string,
+     * taille_chaussures?: string,
      * date_arrivee?: string,
      * date_depart?: string,
      * commentaire?: string,
@@ -47,7 +49,9 @@ class RequestUpdateInfoService
             ->setCivility((string) ($payload['civilite'] ?? $agent->getCivility() ?? 'N/A'))
             ->setFirstname((string) ($payload['prenom'] ?? $agent->getFirstname() ?? ''))
             ->setLastname((string) ($payload['nom'] ?? $agent->getLastname() ?? ''))
-            ->setJobTitle((string) ($payload['fonction'] ?? $agent->getJobTitle() ?? ''));
+            ->setJobTitle((string) ($payload['fonction'] ?? $agent->getJobTitle() ?? ''))
+            ->setClothingSize(trim((string) ($payload['taille_vetements'] ?? $agent->getClothingSize() ?? '')) ?: null)
+            ->setShoeSize(trim((string) ($payload['taille_chaussures'] ?? $agent->getShoeSize() ?? '')) ?: null);
 
         // Logique pour l'email
         $rawEmail = trim((string) ($payload['email'] ?? ''));

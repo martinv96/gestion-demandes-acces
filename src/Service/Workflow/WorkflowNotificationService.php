@@ -92,7 +92,7 @@ class WorkflowNotificationService
                     $email = (new TemplatedEmail())
                         ->from($this->resolveMailerFrom())
                         ->to($emailAddress)
-                        ->subject(sprintf('RAPPEL : Demande #%d(%s)', $request->getId(), $this->getLabel((string) $request->getStatus())))
+                        ->subject($this->buildSubject('RAPPEL', $request))
                         ->htmlTemplate('emails/notification_reminder.html.twig')
                         ->context([
                             'request' => $request,
@@ -136,8 +136,8 @@ class WorkflowNotificationService
                 $email = (new TemplatedEmail())
                     ->from($this->resolveMailerFrom())
                     ->to($emailAddress)
-                    ->subject(sprintf('ESCALADE : Demande #%d(%s)', $request->getId(), $this->getLabel((string) $request->getStatus())))
-                    ->htmlTemplate('email/notification_info.html.twig')
+                    ->subject($this->buildSubject('ESCALADE', $request))
+                    ->htmlTemplate('emails/notification_info.html.twig')
                     ->context([
                         'request' => $request,
                         'status_label' => $this->getLabel((string) $request->getStatus()), 'last_comment' => $message,
@@ -148,7 +148,7 @@ class WorkflowNotificationService
                 $this->logger?->info('Escalade workflow envoyée.',[
                     'request_id' => $request->getId(),
                     'to' => $emailAddress,
-                    'status' => $request->getAgent(),
+                    'status' => $request->getStatus(),
                 ]);
             
 
@@ -171,7 +171,7 @@ class WorkflowNotificationService
         $email = (new TemplatedEmail())
             ->from($this->resolveMailerFrom())
             ->to($to)
-            ->subject(sprintf('%s : Demande #%d (%s)', $subjectTag, $request->getId(), $this->getLabel((string) $request->getStatus())))
+            ->subject($this->buildSubject($subjectTag, $request))
             ->htmlTemplate($template)
             ->context([
                 'request' => $request,
@@ -219,5 +219,29 @@ class WorkflowNotificationService
     private function getLabel(string $status): string
     {
         return self::LABELS[$status] ?? $status;
+    }
+
+    private function buildSubject(string $prefix, AccessRequest $request): string
+    {
+        return sprintf(
+            '%s : %s (%s)',
+            $prefix,
+            $this->getAgentDisplayName($request),
+            $this->getLabel((string) $request->getStatus())
+        );
+    }
+
+    private function getAgentDisplayName(AccessRequest $request): string
+    {
+        $agent = $request->getAgent();
+        if ($agent === null) {
+            return sprintf('Demande #%d', $request->getId());
+        }
+
+        $firstname = trim((string) $agent->getFirstname());
+        $lastname = trim((string) $agent->getLastname());
+        $fullName = trim($firstname . ' ' . mb_strtoupper($lastname));
+
+        return $fullName !== '' ? $fullName : sprintf('Demande #%d', $request->getId());
     }
 }

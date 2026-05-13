@@ -215,6 +215,14 @@
 													<label for="inline_email" class="form-label">Email</label>
 													<input type="email" class="form-control" id="inline_email" name="email" value="{{ requestEntity.agent.email ?? '' }}" maxlength="180" autocomplete="off">
 												</div>
+												<div class="col-md-6">
+													<label for="inline_taille_vetements" class="form-label">Taille vêtements</label>
+													<input type="text" class="form-control" id="inline_taille_vetements" name="taille_vetements" value="{{ requestEntity.agent.clothingSize ?? '' }}" maxlength="20" placeholder="Ex: M, L, XL">
+												</div>
+												<div class="col-md-6">
+													<label for="inline_taille_chaussures" class="form-label">Pointure</label>
+													<input type="text" class="form-control" id="inline_taille_chaussures" name="taille_chaussures" value="{{ requestEntity.agent.shoeSize ?? '' }}" maxlength="20" placeholder="Ex: 42">
+												</div>
 											</div>
 										{% else %}
 											<dl class="row mb-0">
@@ -227,6 +235,10 @@
 												<dd class="col-sm-8">{{ requestEntity.agent.service ? requestEntity.agent.service.name : '-' }}</dd>
 												<dt class="col-sm-4">Email</dt>
 												<dd class="col-sm-8">{{ requestEntity.agent.email ?: '-' }}</dd>
+												<dt class="col-sm-4">Taille vêtements</dt>
+												<dd class="col-sm-8">{{ requestEntity.agent.clothingSize ?: '-' }}</dd>
+												<dt class="col-sm-4">Pointure</dt>
+												<dd class="col-sm-8">{{ requestEntity.agent.shoeSize ?: '-'}}</dd>
 											</dl>
 										{% endif %}
 									{% else %}
@@ -275,28 +287,117 @@
 										<div class="resource-status-block">
 											<h3 class="resource-status-title">Accès matériels</h3>
 											{% if canEditRequestInfo %}
-												<div class="row g-2">
+												<h6 class="mb-2">Service technique (EPI, badge, jeu de clés)</h6>
+												<div class="row g-2 mb-3">
 													{% for materiel in availableMateriels %}
-														<div class="col-md-6">
-															<div class="form-check">
-																<input class="form-check-input" type="checkbox" name="materiel[]" id="inline_materiel_{{ loop.index }}" value="{{ materiel.name }}" {{ materiel.name|lower in selectedMaterialNamesLower ? 'checked' : '' }}>
-																<label class="form-check-label" for="inline_materiel_{{ loop.index }}">{{ materiel.name }}</label>
+														{% set materialName = materiel.name|lower %}
+														{% set isStMaterial = 'badge' in materialName
+															or 'clé' in materialName
+															or 'cle' in materialName
+															or 'casque' in materialName
+															or 'gilet' in materialName
+															or 'chaussure' in materialName
+															or 'pantalon' in materialName
+															or 'veste' in materialName
+															or 'gant' in materialName
+															or 'lunette' in materialName
+															or 'harnais' in materialName
+															or 'masque' in materialName
+															or 'protection' in materialName %}
+														{% if isStMaterial %}
+															<div class="col-md-6">
+																<div class="form-check">
+																	<input class="form-check-input" type="checkbox" name="materiel[]" id="inline_materiel_{{ loop.index }}" value="{{ materiel.name }}" {{ materiel.name|lower in selectedMaterialNamesLower ? 'checked' : '' }}>
+																	<label class="form-check-label" for="inline_materiel_{{ loop.index }}">{{ materiel.name }}</label>
+																</div>
 															</div>
-														</div>
+														{% endif %}
 													{% else %}
 														<p class="text-muted mb-0">Aucun matériel actif configuré.</p>
 													{% endfor %}
 												</div>
+
+												<h6 class="mb-2">Autres matériels</h6>
+												<div class="row g-2">
+													{% for materiel in availableMateriels %}
+														{% set materialName = materiel.name|lower %}
+														{% set isStMaterial = 'badge' in materialName
+															or 'clé' in materialName
+															or 'cle' in materialName
+															or 'casque' in materialName
+															or 'gilet' in materialName
+															or 'chaussure' in materialName
+															or 'pantalon' in materialName
+															or 'veste' in materialName
+															or 'gant' in materialName
+															or 'lunette' in materialName
+															or 'harnais' in materialName
+															or 'masque' in materialName
+															or 'protection' in materialName %}
+														{% if not isStMaterial %}
+															<div class="col-md-6">
+																<div class="form-check">
+																	<input class="form-check-input" type="checkbox" name="materiel[]" id="inline_materiel_other_{{ loop.index }}" value="{{ materiel.name }}" {{ materiel.name|lower in selectedMaterialNamesLower ? 'checked' : '' }}>
+																	<label class="form-check-label" for="inline_materiel_other_{{ loop.index }}">{{ materiel.name }}</label>
+																</div>
+															</div>
+														{% endif %}
+													{% endfor %}
+												</div>
 											{% else %}
+												<h6 class="mb-2">Service technique (EPI, badge, jeu de clés)</h6>
+												<ul class="resource-status-list mb-3">
+													{% for materiel in allMateriels %}
+														{% set materialName = materiel.name|lower %}
+														{% set isStMaterial = 'badge' in materialName
+															or 'clé' in materialName
+															or 'cle' in materialName
+															or 'casque' in materialName
+															or 'gilet' in materialName
+															or 'chaussure' in materialName
+															or 'pantalon' in materialName
+															or 'veste' in materialName
+															or 'gant' in materialName
+															or 'lunette' in materialName
+															or 'harnais' in materialName
+															or 'masque' in materialName
+															or 'protection' in materialName %}
+														{% if isStMaterial %}
+															{% set isAssigned = materiel.id in selectedRessourceIds %}
+															<li class="resource-status-row">
+																<span class="resource-status-name">{{ materiel.name }}</span>
+																<span class="resource-status-pill {{ isAssigned ? 'is-assigned' : 'is-unassigned' }}">{{ isAssigned ? 'attribué' : 'non attribué' }}</span>
+															</li>
+														{% endif %}
+													{% else %}
+														<li class="resource-status-empty">Aucun matériel ST actif configuré.</li>
+													{% endfor %}
+												</ul>
+
+												<h6 class="mb-2">Autres matériels</h6>
 												<ul class="resource-status-list">
 													{% for materiel in allMateriels %}
-														{% set isAssigned = materiel.id in selectedRessourceIds %}
-														<li class="resource-status-row">
-															<span class="resource-status-name">{{ materiel.name }}</span>
-															<span class="resource-status-pill {{ isAssigned ? 'is-assigned' : 'is-unassigned' }}">{{ isAssigned ? 'attribué' : 'non attribué' }}</span>
-														</li>
-													{% else %}
-														<li class="resource-status-empty">Aucun matériel actif configuré.</li>
+														{% set materialName = materiel.name|lower %}
+														{% set isStMaterial = 'badge' in materialName
+															or 'clé' in materialName
+															or 'cle' in materialName
+															or 'casque' in materialName
+															or 'gilet' in materialName
+															or 'chaussure' in materialName
+															or 'pantalon' in materialName
+															or 'veste' in materialName
+															or 'gant' in materialName
+															or 'lunette' in materialName
+															or 'harnais' in materialName
+															or 'masque' in materialName
+															or 'protection' in materialName %}
+														{% if not isStMaterial %}
+															{% set isAssigned = materiel.id in selectedRessourceIds %}
+															<li class="resource-status-row">
+																<span class="resource-status-name">{{ materiel.name }}</span>
+																<span class="resource-status-pill {{ isAssigned ? 'is-assigned' : 'is-unassigned' }}">{{ isAssigned ? 'attribué' : 'non attribué' }}</span>
+															</li>
+														{% endif %}
 													{% endfor %}
 												</ul>
 											{% endif %}

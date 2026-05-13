@@ -86,6 +86,8 @@ final class RequestCreationService
                 ->setFirstname($formData->getFirstname() ?? '')
                 ->setLastname($formData->getLastname() ?? '')
                 ->setJobTitle($formData->getJobTitle() ?? '')
+                ->setClothingSize($formData->getClothingSize())
+                ->setShoeSize($formData->getShoeSize())
                 ->setEmail($formData->getEmail())
                 ->setService($formData->getService());
 

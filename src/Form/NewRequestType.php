@@ -16,9 +16,18 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use App\Entity\Request as AccessRequest;
+use Symfony\Bundle\SecurityBundle\Security;
+
 
 final class NewRequestType extends AbstractType
 {
+    private Security $security;
+
+    public function __construct(Security $security) 
+    {
+        $this->security = $security;
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $requestTypeChoices = [];
@@ -37,6 +46,11 @@ final class NewRequestType extends AbstractType
                 $requestTypeChoices['Fermeture - Départ du collaborateur'] = AccessRequest::TYPE_FERMETURE;
             }
         }
+
+        $user = $this->security->getUser();
+
+        $isTechnique = $user && $user->getService() && ($user->getService()->getCode() === 'ST' || $user->getService()->getId() === 3);
+
 
         $builder
             ->add('civility', ChoiceType::class, [
@@ -74,7 +88,30 @@ final class NewRequestType extends AbstractType
             ])
             ->add('jobTitle', TextType::class, [
                 'label' => 'Fonction *',
+            ]);
+
+            if ($isTechnique) {
+                $builder
+
+
+            ->add('clothingSize', TextType::class, [
+                'label' => 'Taille vêtements',
+                'required' => false,
+                'attr' => [
+                    'placeholder' => 'Ex: M, L, XL',
+                    'maxLength' => 20,
+                ],
             ])
+            ->add('shoeSize', TextType::class, [
+                'label' => 'Taille chaussures',
+                'required' => false,
+                'attr' => [
+                    'placeholder' => 'Ex: 42',
+                    'maxLength' => 20,
+                ],
+            ]);
+            }
+            $builder
             ->add('arrivalDate', DateType::class, [
                 'label' => 'Date d’arrivée *',
                 'widget' => 'single_text',
@@ -150,6 +187,8 @@ final class NewRequestType extends AbstractType
                         'data-lastname'             => $agent ? ($agent->getLastname() ?? '') : '',
                         'data-email'                => $agent ? ($agent->getEmail() ?? '') : '',
                         'data-job-title'            => $agent ? ($agent->getJobTitle() ?? '') : '',
+                        'data-clothing-size'        => $agent ? ($agent->getClothingSize() ?? '') : '',
+                        'data-shoe-size'            => $agent ? ($agent->getShoeSize() ?? '') : '',
                         'data-service-id'           => ($agent && $agent->getService()) ? (string) ($agent->getService()->getId() ?? '') : '',
                         'data-arrival-date-input'   => $request->getArrivalDate()?->format('Y-m-d') ?? '',
                         'data-departure-date-input' => $request->getDepartureDate()?->format('Y-m-d') ?? '',

@@ -33,6 +33,12 @@ class Agent
     #[ORM\ManyToOne(inversedBy: 'serviceId')]
     private ?Service $service;
 
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $clothingSize = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $shoeSize = null;
+
     /**
      * @var Collection<int, Request>
      */
@@ -120,6 +126,32 @@ class Agent
 
         return $this;
     }
+
+    public function getClothingSize(): ?string
+    {
+        return $this->clothingSize;
+    }
+
+    public function setClothingSize(?string $clothingSize): static
+    {
+        $this->clothingSize = $clothingSize;
+
+        return $this;
+    }
+
+    public function getShoeSize(): ?string
+    {
+        return $this->shoeSize;
+    }
+
+    public function setShoeSize(?string $shoeSize): static
+    {
+        $this->shoeSize = $shoeSize;
+
+        return $this;
+    }
+
+
 
     /**
      * @return Collection<int, Request>

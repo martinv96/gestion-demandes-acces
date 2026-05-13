@@ -1,3 +1,4 @@
+{% apply inline_css %}
 <style>
     body { margin: 0; padding: 0; background-color: #f6f6f6; }
     .sidebar { background-color: #a35233; width: 260px; min-width: 260px; padding: 40px 20px; text-align: center; vertical-align: top; }
@@ -16,7 +17,7 @@
 <table width="100%" border="0" cellspacing="0" cellpadding="0">
     <tr>
         <td class="sidebar">
-            <img src="https://www.leplessistrevise.fr/wp-content/themes/leplessistrevise/img/logo.svg" alt="logog" width="75">
+            <img src="https://www.leplessistrevise.fr/wp-content/themes/leplessistrevise/img/logo.svg" alt="logo" width="75">
             <h4>Le Plessis-Trévise</h4>
             <p>Gestion des accès</p>
         </td>
@@ -31,7 +32,7 @@
                 <div class="label">Agent</div>
                 <div class="value">{{ request.agent.firstname|capitalize }} {{ request.agent.lastname|upper }}</div>
                 <div class="label">Statut actuel</div>
-                <div class="value">{{ statut_label }}</div>
+                <div class="value">{{ status_label }}</div>
             </div>
             <div style="text-align: center">
                 <a href="{{ url('app_request_show', {id:request.id}) }}" class="btn-primary">Voir la demande</a>
@@ -41,7 +42,7 @@
     <tr>
         <td colspan="2" class="footer">
             <p>Ceci est un rappel automatique envoyé par GDAP (la plateforme de gestion des accès).<br>
-            <strong>Mairie du Plessis-Trévise</strong> & copy; {{"nov"|date("Y") }}</p>
+            <strong>Mairie du Plessis-Trévise</strong> &copy; {{"nov"|date("Y") }}</p>
         </td>
     </tr>
 </table>

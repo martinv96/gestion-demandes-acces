@@ -86,6 +86,14 @@
 					<div class="col-md-6">
 						{{ form_row(form.jobTitle) }}
 					</div>
+                    {% if isServiceTechniqueUser|default(false) %}
+                    <div class="col-md-6">
+                        {{ form_row(form.clothingSize) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form_row(form.shoeSize) }}
+                    </div>
+                    {% endif %}
 					<div class="col-md-6">
 						{{ form_row(form.arrivalDate) }}
 					</div>
@@ -143,14 +151,102 @@
 			</div>
 		</div>
 
-        {# accès matériel #}
-		<div class="card request-form-card mb-4" id="materiel-card">
-			<div class="card-header">Matériel</div>
-			<div class="card-body request-checkbox-grid">
-				{{ form_widget(form.materiels) }}
-				<div class="field-errors">{{ form_errors(form.materiels) }}</div>
-			</div>
-		</div>
+        {% set hasTechniqueAccess = isServiceTechniqueUser|default(false) %}
+
+        <div class="card request-form-card mb-4" id="materiel-card">
+            <div class="card-header">Matériel</div>
+            <div class="card-body">
+                
+                {# SECTION TECHNIQUE : Affichée SEULEMENT pour le Service Technique #}
+                {% if hasTechniqueAccess %}
+                    <h6 class="mb-2">Service technique (EPI, badge, jeu de clés)</h6>
+                    <div class="request-checkbox-grid mb-3">
+                        {% for child in form.materiels %}
+                            {% set materialName = (child.vars.label ?? '')|lower %}
+                            {% set isStMaterial = 'badge' in materialName
+                                or 'clé' in materialName
+                                or 'cle' in materialName
+                                or 'casque' in materialName
+                                or 'gilet' in materialName
+                                or 'chaussure' in materialName
+                                or 'pantalon' in materialName
+                                or 'veste' in materialName
+                                or 'gant' in materialName
+                                or 'lunette' in materialName
+                                or 'harnais' in materialName
+                                or 'masque' in materialName
+                                or 'protection' in materialName %}
+                            {% if isStMaterial %}
+                                {{ form_row(child) }}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <hr> {# Une petite barre de séparation si le reste suit #}
+                {% endif %}
+
+                {# SECTION AUTRES MATÉRIELS : Visible par tout le monde #}
+                <h6 class="mb-2">Autres matériels</h6>
+                <div class="request-checkbox-grid">
+                    {% for child in form.materiels %}
+                        {% set materialName = (child.vars.label ?? '')|lower %}
+                        {% set isStMaterial = 'badge' in materialName
+                            or 'clé' in materialName
+                            or 'cle' in materialName
+                            or 'casque' in materialName
+                            or 'gilet' in materialName
+                            or 'chaussure' in materialName
+                            or 'pantalon' in materialName
+                            or 'veste' in materialName
+                            or 'gant' in materialName
+                            or 'lunette' in materialName
+                            or 'harnais' in materialName
+                            or 'masque' in materialName
+                            or 'protection' in materialName %}
+                        
+                        {# On affiche ici uniquement ce qui n'appartient PAS à la liste technique ci-dessus #}
+                        {% if not isStMaterial %}
+                            {{ form_row(child) }}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <div class="field-errors">{{ form_errors(form.materiels) }}</div>
+                {% do form.materiels.setRendered %}
+            </div>
+        </div>
+
+        <style>
+            #materiel-card .request-checkbox-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.5rem 0.75rem;
+            }
+
+            #materiel-card .request-checkbox-grid .form-check {
+                margin: 0 !important;
+                min-height: 48px;
+                padding: 0.7rem 0.95rem 0.7rem 2.5rem;
+                display: flex;
+                align-items: center;
+            }
+
+            #materiel-card .request-checkbox-grid .form-check-input {
+                margin-top: 0;
+            }
+
+            #materiel-card h6 {
+                margin-bottom: 0.4rem;
+            }
+
+            #materiel-card hr {
+                margin: 0.55rem 0 0.75rem;
+            }
+
+            @media (max-width: 767.98px) {
+                #materiel-card .request-checkbox-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
 
         {# commentaires #}
 		<div class="card request-form-card mb-4">
@@ -201,6 +297,8 @@
     const fieldArrivalDate   = document.getElementById('{{ form.arrivalDate.vars.id }}');
     const fieldDepartureDate = document.getElementById('{{ form.departureDate.vars.id }}');
     const fieldCommentary    = document.getElementById('{{ form.commentary.vars.id }}');
+    const fieldClothingSize  = document.getElementById('{{ form.clothingSize.vars.id }}');
+    const fieldShoeSize      = document.getElementById('{{ form.shoeSize.vars.id }}');
 
     const summaryAgent = document.getElementById('summary-agent');
     const summaryService = document.getElementById('summary-service');
@@ -254,7 +352,7 @@
     function disableAgentSection(disabled) {
         // Griser chaque champ individuellement (sauf departureDate)
         [fieldCivility, fieldFirstname, fieldLastname, fieldEmail,
-         fieldService, fieldJobTitle, fieldArrivalDate].forEach(el => {
+         fieldService, fieldJobTitle, fieldArrivalDate, fieldClothingSize, fieldShoeSize].forEach(el => {
             if (el) el.disabled = disabled;
             setFieldOpacity(el, disabled);
         });
@@ -275,6 +373,8 @@
         if (fieldEmail)         fieldEmail.value         = d.email || '';
         if (fieldService)       fieldService.value       = d.serviceId || '';
         if (fieldJobTitle)      fieldJobTitle.value      = d.jobTitle || '';
+        if (fieldClothingSize)  fieldClothingSize.value  = d.clothingSize || '';
+        if (fieldShoeSize)      fieldShoeSize.value      = d.shoeSize || '';
         if (fieldArrivalDate)   fieldArrivalDate.value   = d.arrivalDateInput || '';
         if (fieldDepartureDate) fieldDepartureDate.value = d.departureDateInput || '';
         if (fieldCommentary)    fieldCommentary.value    = d.commentary || '';
