@@ -20,3 +20,20 @@ MAILER_DSN=smtp://no-reply%40leplessistrevise.fr:Leplessis94%2A@mail.infomaniak.
 MAILER_FROM=no-reply@leplessistrevise.fr
 
 
+
+pour reconnecter github si besoin :
+
+git config --global --unset-all credential.helper
+git config --global credential.helper store
+
+unset GIT_ASKPASS SSH_ASKPASS VSCODE_GIT_ASKPASS_NODE VSCODE_GIT_ASKPASS_MAIN VSCODE_GIT_IPC_HANDLE
+
+
+git remote -v
+
+git push -u origin master
+
+martinv96
+
+refaire un token si expirer
+TOKEN_GITHUB_A_REMPLACER (date d'expiration du dernier token au 11 aout)
