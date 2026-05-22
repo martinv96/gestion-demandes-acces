@@ -1,0 +1,201 @@
+.form-control,
+.form-select,
+.form-check-input,
+.input-group-text,
+.request-form .form-control,
+.request-form .form-select {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+    border-color: var(--theme-border) !important;
+}
+
+.form-control::placeholder,
+.form-select::placeholder,
+.request-form .form-control::placeholder,
+.request-form .form-select::placeholder {
+    color: var(--theme-text-muted) !important;
+}
+ 
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus,
+.request-form .form-control:focus,
+.request-form .form-select:focus {
+    border-color: var(--theme-primary) !important;
+    box-shadow: var(--theme-ring) !important;
+}
+
+.form-check-input:checked,
+.request-form .form-check-input:checked {
+    background-color: var(--theme-primary) !important;
+    border-color: var(--theme-primary) !important;
+}
+
+.request-form .form-label,
+.request-form .form-check-label,
+#logiciels-card .request-checkbox-grid .form-check-label,
+#materiel-card .request-checkbox-grid .form-check-label {
+    color: var(--theme-text) !important;
+}
+
+.request-form .field-errors {
+    color: var(--theme-danger) !important;
+}
+
+.request-form .card-header,
+.request-form-card .card-header {
+    background: var(--theme-surface-alt) !important;
+    color: var(--theme-text) !important;
+    border-bottom-color: var(--theme-border) !important;
+}
+
+.request-form .request-choice-group .form-check,
+.request-form .request-checkbox-grid .form-check {
+    background: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+}
+
+.request-form .request-choice-group .form-check:hover,
+.request-form .request-checkbox-grid .form-check:hover {
+    background: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-strong) !important;
+}
+
+#materiel-card hr {
+    border-color: var(--theme-border) !important;
+}
+
+.resource-status-block {
+    border-color: var(--theme-border) !important;
+}
+
+.btn,
+.btn-primary,
+.btn-outline-light,
+.btn-outline-secondary,
+.btn-outline-primary.btn-sm,
+.btn-workflow,
+.workflow-secondary-button {
+    border-radius: 10px;
+}
+
+.btn-primary {
+    background-color: var(--theme-primary) !important;
+    border-color: var(--theme-primary) !important;
+    color: var(--theme-primary-contrast) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--theme-primary-hover) !important;
+    border-color: var(--theme-primary-hover) !important;
+    color: var(--theme-primary-contrast) !important;
+}
+
+.btn-outline-light,
+.btn-outline-secondary,
+.btn-outline-primary.btn-sm,
+.workflow-secondary-button {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text) !important;
+}
+
+.btn-outline-light:hover,
+.btn-outline-light:focus,
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus,
+.btn-outline-primary.btn-sm:hover,
+.btn-outline-primary.btn-sm:focus,
+.workflow-secondary-button:hover {
+    background-color: var(--theme-surface-alt) !important;
+    border-color: var(--theme-border-strong) !important;
+    color: var(--theme-text) !important;
+}
+
+.btn-workflow {
+    background-color: var(--theme-surface);
+    border-color: var(--theme-border);
+    color: var(--theme-text);
+}
+
+.btn-workflow-disabled {
+    background-color: var(--theme-surface-muted);
+    border-color: var(--theme-border);
+    color: var(--theme-text-muted);
+}
+
+.btn-icon {
+    color: var(--theme-text-muted);
+}
+
+.btn-icon:hover {
+    color: var(--theme-text);
+    background-color: var(--theme-surface-alt);
+}
+
+.btn-icon.text-danger:hover {
+    color: var(--theme-danger) !important;
+    background-color: rgba(192, 57, 43, 0.12) !important;
+}
+
+.workflow-actions-card {
+    background: linear-gradient(180deg, var(--theme-surface) 0%, var(--theme-surface-alt) 100%) !important;
+    box-shadow: var(--theme-shadow-soft);
+}
+
+.workflow-action-trigger,
+.workflow-submit-button {
+    box-shadow: var(--theme-shadow-soft);
+}
+
+.workflow-action-trigger:hover,
+.workflow-submit-button:hover {
+    box-shadow: var(--theme-shadow);
+}
+
+.workflow-action-icon {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.workflow-action-trigger--validate,
+.workflow-submit-button--validate {
+    background-color: rgba(47, 158, 68, 0.14);
+    border-color: rgba(47, 158, 68, 0.28);
+    color: var(--theme-success);
+}
+
+.workflow-action-trigger--validate:hover,
+.workflow-submit-button--validate:hover {
+    background-color: rgba(47, 158, 68, 0.22);
+    border-color: rgba(47, 158, 68, 0.38);
+    color: var(--theme-success);
+}
+
+.workflow-action-trigger--refuse,
+.workflow-submit-button--refuse {
+    background-color: rgba(192, 57, 43, 0.14);
+    border-color: rgba(192, 57, 43, 0.28);
+    color: var(--theme-danger);
+}
+
+.workflow-action-trigger--refuse:hover,
+.workflow-submit-button--refuse:hover {
+    background-color: rgba(192, 57, 43, 0.22);
+    border-color: rgba(192, 57, 43, 0.38);
+    color: var(--theme-danger);
+}
+
+.workflow-action-trigger--undo,
+.workflow-submit-button--undo {
+    background-color: rgba(100, 116, 139, 0.16);
+    border-color: rgba(100, 116, 139, 0.28);
+    color: var(--theme-text-soft);
+}
+
+.workflow-action-trigger--undo:hover,
+.workflow-submit-button--undo:hover {
+    background-color: rgba(100, 116, 139, 0.24);
+    border-color: rgba(100, 116, 139, 0.38);
+    color: var(--theme-text);
+}

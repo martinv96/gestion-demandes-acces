@@ -1,0 +1,126 @@
+:root {
+    color-scheme: light;
+    --theme-bg: #f4f7fb;
+    --theme-bg-soft: #eef3f8;
+    --theme-surface: #ffffff;
+    --theme-surface-alt: #f8fafc;
+    --theme-surface-muted: #f1f5f9;
+    --theme-border: #dbe3ec;
+    --theme-border-strong: #c3cfdb;
+    --theme-text: #15202b;
+    --theme-text-soft: #5b6b7c;
+    --theme-text-muted: #7b8794;
+    --theme-primary: #17623f;
+    --theme-primary-hover: #114d32;
+    --theme-primary-contrast: #ffffff;
+    --theme-success: #2f9e44;
+    --theme-info: #1d70b8;
+    --theme-warning: #d98b18;
+    --theme-danger: #c0392b;
+    --theme-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    --theme-shadow-soft: 0 4px 14px rgba(15, 23, 42, 0.06);
+    --theme-ring: 0 0 0 3px rgba(23, 98, 63, 0.18);
+
+    
+    --bs-body-bg: var(--theme-bg);
+    --bs-body-color: var(--theme-text);
+    --bs-border-color: var(--theme-border);
+    --bs-secondary-color: var(--theme-text-soft);
+    --bs-secondary-bg: var(--theme-surface-muted);
+    --bs-tertiary-bg: var(--theme-surface-alt);
+    --bs-card-bg: var(--theme-surface);
+    --bs-card-border-color: var(--theme-border);
+    --bs-light: var(--theme-surface-alt);
+    --bs-light-rgb: 248, 250, 252;
+    --bs-dark: var(--theme-text);
+    --bs-primary: var(--theme-primary);
+    --bs-primary-rgb: 23, 98, 63;
+    --bs-link-color: var(--theme-primary);
+    --bs-link-hover-color: var(--theme-primary-hover);
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --theme-bg: #0f1720;
+    --theme-bg-soft: #16212c;
+    --theme-surface: #182431;
+    --theme-surface-alt: #21303d;
+    --theme-surface-muted: #243543;
+    --theme-border: #33485a;
+    --theme-border-strong: #496174;
+    --theme-text: #e6edf3;
+    --theme-text-soft: #b6c3ce;
+    --theme-text-muted: #94a5b4;
+    --theme-primary: #5fb588;
+    --theme-primary-hover: #7dc69f;
+    --theme-primary-contrast: #08120d;
+    --theme-success: #4cc96c;
+    --theme-info: #65a9ff;
+    --theme-warning: #f0b24c;
+    --theme-danger: #f07167;
+    --theme-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+    --theme-shadow-soft: 0 8px 22px rgba(0, 0, 0, 0.24);
+    --theme-ring: 0 0 0 3px rgba(95, 181, 136, 0.22);
+
+    --bs-body-bg: var(--theme-bg);
+    --bs-body-color: var(--theme-text);
+    --bs-border-color: var(--theme-border);
+    --bs-secondary-color: var(--theme-text-soft);
+    --bs-secondary-bg: var(--theme-surface-muted);
+    --bs-tertiary-bg: var(--theme-surface-alt);
+    --bs-card-bg: var(--theme-surface);
+    --bs-card-border-color: var(--theme-border);
+    --bs-light: var(--theme-surface-alt);
+    --bs-light-rgb: 33, 48, 61;
+    --bs-dark: var(--theme-text);
+    --bs-primary: var(--theme-primary);
+    --bs-primary-rgb: 95, 181, 136;
+    --bs-link-color: var(--theme-primary);
+    --bs-link-hover-color: var(--theme-primary-hover);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --theme-bg: #0f1720;
+        --theme-bg-soft: #16212c;
+        --theme-surface: #182431;
+        --theme-surface-alt: #21303d;
+        --theme-surface-muted: #243543;
+        --theme-border: #33485a;
+        --theme-border-strong: #496174;
+        --theme-text: #e6edf3;
+        --theme-text-soft: #b6c3ce;
+        --theme-text-muted: #94a5b4;
+        --theme-primary: #5fb588;
+        --theme-primary-hover: #7dc69f;
+        --theme-primary-contrast: #08120d;
+        --theme-success: #4cc96c;
+        --theme-info: #65a9ff;
+        --theme-warning: #f0b24c;
+        --theme-danger: #f07167;
+        --theme-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+        --theme-shadow-soft: 0 8px 22px rgba(0, 0, 0, 0.24);
+        --theme-ring: 0 0 0 3px rgba(95, 181, 136, 0.22);
+
+        --bs-body-bg: var(--theme-bg);
+        --bs-body-color: var(--theme-text);
+        --bs-border-color: var(--theme-border);
+        --bs-secondary-color: var(--theme-text-soft);
+        --bs-secondary-bg: var(--theme-surface-muted);
+        --bs-tertiary-bg: var(--theme-surface-alt);
+        --bs-card-bg: var(--theme-surface);
+        --bs-card-border-color: var(--theme-border);
+        --bs-light: var(--theme-surface-alt);
+        --bs-light-rgb: 33, 48, 61;
+        --bs-dark: var(--theme-text);
+        --bs-primary: var(--theme-primary);
+        --bs-primary-rgb: 95, 181, 136;
+        --bs-link-color: var(--theme-primary);
+        --bs-link-hover-color: var(--theme-primary-hover);
+    }
+}

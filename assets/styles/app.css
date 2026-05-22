@@ -10,4 +10,7 @@
 @import "components/dashboard.css";
 @import "components/alert.css";
 @import "components/pagination.css";
-@import 'components/aside.css';
+@import "components/tokens.css";
+@import "components/forms-buttons.css";
+@import "components/feedback-widgets.css";
+@import "components/base.css";

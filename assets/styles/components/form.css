@@ -152,50 +152,6 @@
     margin-top: 0.1rem;
 }
 
-
-#logiciels-card .request-checkbox-grid,
-#materiel-card .request-checkbox-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.25rem 3.25rem;
-}
-
-#logiciels-card .request-checkbox-grid .form-check,
-#materiel-card .request-checkbox-grid .form-check {
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    margin: 0;
-    min-height: 30px;
-    padding: 0.2rem 0 0.2rem 1.45rem;
-    display: flex;
-    align-items: center;
-}
-
-#logiciels-card .request-checkbox-grid .form-check-input,
-#materiel-card .request-checkbox-grid .form-check-input {
-    margin-left: -1.45rem;
-    margin-right: 0.55rem;
-    margin-top: 0.1rem;
-}
-
-#logiciels-card .request-checkbox-grid .form-check-label,
-#materiel-card .request-checkbox-grid .form-check-label {
-    font-size: 0.9rem;
-    color: #111827;
-}
-
-#materiel-card h6 {
-    margin-bottom: 0.45rem;
-    margin-top: 0.2rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-#materiel-card hr {
-    margin: 0.45rem 0 0.65rem;
-    border-color: #d6dae0;
-}
-
 .request-form .request-actions {
     display: flex;
     align-items: center;
@@ -222,11 +178,6 @@
     }
 
     .request-form .request-checkbox-grid {
-        grid-template-columns: 1fr;
-    }
-
-    #logiciels-card .request-checkbox-grid,
-    #materiel-card .request-checkbox-grid {
         grid-template-columns: 1fr;
     }
 
@@ -280,15 +231,6 @@
     justify-items: start;
 }
 
-.resource-status-list--st-two-cols {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 0.8rem;
-}
-
-.resource-status-list--st-two-cols .resource-status-row {
-    width: 100%;
-}
-
 .resource-status-row {
     display: flex;
     align-items: center;
@@ -337,8 +279,76 @@
     padding: 0.45rem 0.2rem;
 }
 
-@media (max-width: 767.98px) {
-    .resource-status-list--st-two-cols {
-        grid-template-columns: 1fr;
+/* Surcharge uniquement pour le mode sombre */
+:root[data-theme="dark"] .resource-status-block {
+    border-color: var(--theme-border);
+    background: var(--theme-surface);
+    box-shadow: var(--theme-shadow-soft);
+}
+
+:root[data-theme="dark"] .resource-status-title {
+    color: var(--theme-text);
+}
+
+:root[data-theme="dark"] .resource-status-row {
+    background: var(--theme-surface-alt);
+    border: 1px solid var(--theme-border);
+}
+
+:root[data-theme="dark"] .resource-status-name {
+    color: var(--theme-text);
+}
+
+:root[data-theme="dark"] .resource-status-pill.is-assigned {
+    color: #b9f2c7;
+    background: rgba(76, 201, 108, 0.18);
+    border-color: rgba(76, 201, 108, 0.38);
+}
+
+:root[data-theme="dark"] .resource-status-pill.is-unassigned {
+    color: #ffd59a;
+    background: rgba(240, 178, 76, 0.18);
+    border-color: rgba(240, 178, 76, 0.38);
+}
+
+:root[data-theme="dark"] .resource-status-empty {
+    color: var(--theme-text-muted);
+}
+
+/* Cas "thème système sombre" quand aucun thème explicite n'est choisi */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .resource-status-block {
+        border-color: var(--theme-border);
+        background: var(--theme-surface);
+        box-shadow: var(--theme-shadow-soft);
+    }
+
+    :root:not([data-theme="light"]) .resource-status-title {
+        color: var(--theme-text);
+    }
+
+    :root:not([data-theme="light"]) .resource-status-row {
+        background: var(--theme-surface-alt);
+        border: 1px solid var(--theme-border);
+    }
+
+    :root:not([data-theme="light"]) .resource-status-name {
+        color: var(--theme-text);
+    }
+
+    :root:not([data-theme="light"]) .resource-status-pill.is-assigned {
+        color: #b9f2c7;
+        background: rgba(76, 201, 108, 0.18);
+        border-color: rgba(76, 201, 108, 0.38);
+    }
+
+    :root:not([data-theme="light"]) .resource-status-pill.is-unassigned {
+        color: #ffd59a;
+        background: rgba(240, 178, 76, 0.18);
+        border-color: rgba(240, 178, 76, 0.38);
+    }
+
+    :root:not([data-theme="light"]) .resource-status-empty {
+        color: var(--theme-text-muted);
     }
 }
