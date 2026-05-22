@@ -40,5 +40,13 @@
 		max-width:167vh !important;
 		position:absolute;
 		left:20%;
-		
+	}
+
+	.guide-user a{
+		color: green;
+		border: 1px solid green;
+	}
+
+	.guide-user a:hover {
+		background-color: rgb(5, 107, 5) !important;
 	}
