@@ -212,7 +212,12 @@
                     {% endfor %}
                 </div>
 
+                <div id="phone-type-wrapper" class="mt-3 d-none">
+                    {{ form_row(form.phoneTypes) }}
+                </div>
+
                 <div class="field-errors">{{ form_errors(form.materiels) }}</div>
+                <div class="field-errors">{{ form_errors(form.phoneTypes) }}</div>
                 {% do form.materiels.setRendered %}
             </div>
         </div>
@@ -268,6 +273,9 @@
     const fieldCommentary    = document.getElementById('{{ form.commentary.vars.id }}');
     const fieldClothingSize  = document.getElementById('{{ form.clothingSize.vars.id }}');
     const fieldShoeSize      = document.getElementById('{{ form.shoeSize.vars.id }}');
+    const fieldPhoneTypeName = '{{ form.phoneTypes.vars.full_name }}';
+    const fieldPhoneTypeInputs = document.querySelectorAll(`input[name="${fieldPhoneTypeName}"]`);
+    const phoneTypeWrapper   = document.getElementById('phone-type-wrapper');
 
     const summaryAgent = document.getElementById('summary-agent');
     const summaryService = document.getElementById('summary-service');
@@ -310,6 +318,52 @@
             checkbox.disabled = disabled;
         });
         setCardBodyOpacity(card, disabled);
+        updatePhoneTypeVisibility();
+    }
+
+    function normalizeLabel(value) {
+        return (value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function findTelephoneCheckbox() {
+        if (!materielCard) return null;
+
+        const checkboxes = materielCard.querySelectorAll('input[type="checkbox"]');
+        for (const checkbox of checkboxes) {
+            const label = materielCard.querySelector(`label[for="${checkbox.id}"]`);
+            const labelText = normalizeLabel(label ? label.textContent : '');
+
+            if (labelText.includes('telephone')) {
+                return checkbox;
+            }
+        }
+
+        return null;
+    }
+
+    function updatePhoneTypeVisibility() {
+        if (!phoneTypeWrapper) return;
+
+        const telephoneCheckbox = findTelephoneCheckbox();
+        const hasTelephone = Boolean(telephoneCheckbox && telephoneCheckbox.checked);
+
+        phoneTypeWrapper.classList.toggle('d-none', !hasTelephone);
+
+        if (!hasTelephone) {
+            fieldPhoneTypeInputs.forEach(input => {
+                input.checked = false;
+                input.disabled = false;
+            });
+            return;
+        }
+
+        const shouldDisable = Boolean(telephoneCheckbox && telephoneCheckbox.disabled);
+        fieldPhoneTypeInputs.forEach(input => {
+            input.disabled = shouldDisable;
+        });
     }
 
     function setFieldOpacity(field, disabled) {
@@ -344,9 +398,17 @@
         if (fieldJobTitle)      fieldJobTitle.value      = d.jobTitle || '';
         if (fieldClothingSize)  fieldClothingSize.value  = d.clothingSize || '';
         if (fieldShoeSize)      fieldShoeSize.value      = d.shoeSize || '';
+        if (d.phoneTypes) {
+            const selectedPhoneTypes = splitCsv(d.phoneTypes);
+            fieldPhoneTypeInputs.forEach(input => {
+                input.checked = selectedPhoneTypes.includes(input.value);
+            });
+        }
         if (fieldArrivalDate)   fieldArrivalDate.value   = d.arrivalDateInput || '';
         if (fieldDepartureDate) fieldDepartureDate.value = d.departureDateInput || '';
         if (fieldCommentary)    fieldCommentary.value    = d.commentary || '';
+
+        updatePhoneTypeVisibility();
 
         return {
             logicielIds: splitCsv(d.logicielIds),
@@ -361,6 +423,7 @@
             card.querySelectorAll('input[type="checkbox"]').forEach(c => { c.checked = false; c.disabled = false; });
             setCardBodyOpacity(card, false);
         });
+        updatePhoneTypeVisibility();
     }
 
     function applyTypeUi(typeValue) {
@@ -420,6 +483,14 @@
         });
     }
 
+    if (materielCard) {
+        materielCard.addEventListener('change', function (event) {
+            if (event.target instanceof HTMLInputElement && event.target.type === 'checkbox') {
+                updatePhoneTypeVisibility();
+            }
+        });
+    }
+
     if (confirmParentRequestBtn) {
         confirmParentRequestBtn.addEventListener('click', function () {
             const checked = document.querySelector(`input[name="${typeFieldName}"]:checked`);
@@ -429,5 +500,6 @@
 
     const checkedRadio = document.querySelector(`input[name="${typeFieldName}"]:checked`);
     applyTypeUi(checkedRadio ? checkedRadio.value : 'ouverture');
+    updatePhoneTypeVisibility();
 </script>
 {% endblock %}

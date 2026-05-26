@@ -1,9 +1,10 @@
 /* Timeline de validation */
 
 .validation-journey-card {
-    position: sticky;
-    top: 1.5rem;
-    
+    position: fixed;
+    left: 65%;
+    width:18%;
+    top: 8.5%;
 }
 
 .validation-journey-eyebrow {

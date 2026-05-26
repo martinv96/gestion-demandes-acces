@@ -31,5 +31,6 @@
 }
 
 .container-login {
-    min-width:35vh !important;
+    min-width:40vh !important;
+    align-self: center;
 }

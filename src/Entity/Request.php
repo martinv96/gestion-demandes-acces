@@ -50,6 +50,9 @@ class Request
         self::TYPE_FERMETURE => 'Fermeture',
     ];
 
+    public const PHONE_TYPE_MOBILE = 'mobile';
+    public const PHONE_TYPE_FIXE = 'fixe';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -69,6 +72,9 @@ class Request
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $commentary = null;
+
+    #[ORM\Column(length: 30, nullable: true)]
+    private ?string $phoneType = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $creationDate;
@@ -207,6 +213,49 @@ class Request
     public function setCommentary(?string $commentary): static
     {
         $this->commentary = $commentary;
+
+        return $this;
+    }
+
+    public function getPhoneType(): ?string
+    {
+        return $this->phoneType;
+    }
+
+    public function setPhoneType(?string $phoneType): static
+    {
+        $this->phoneType = $phoneType;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getPhoneTypes(): array
+    {
+        if (!$this->phoneType) {
+            return [];
+        }
+
+        $types = array_map('trim', explode(',', $this->phoneType));
+        $allowed = [self::PHONE_TYPE_MOBILE, self::PHONE_TYPE_FIXE];
+
+        return array_values(array_filter($types, static fn(string $type): bool => in_array($type, $allowed, true)));
+    }
+
+    /**
+     * @param array<int, string> $phoneTypes
+     */
+    public function setPhoneTypes(array $phoneTypes): static
+    {
+        $allowed = [self::PHONE_TYPE_MOBILE, self::PHONE_TYPE_FIXE];
+        $filtered = array_values(array_unique(array_filter(
+            $phoneTypes,
+            static fn(string $type): bool => in_array($type, $allowed, true)
+        )));
+
+        $this->phoneType = $filtered !== [] ? implode(',', $filtered) : null;
 
         return $this;
     }

@@ -224,11 +224,21 @@ class WorkflowNotificationService
     private function buildSubject(string $prefix, AccessRequest $request): string
     {
         return sprintf(
-            '%s : %s (%s)',
+            '%s : %s - %s (%s)',
             $prefix,
+            $this->getRequestTypeLabel($request),
             $this->getAgentDisplayName($request),
             $this->getLabel((string) $request->getStatus())
         );
+    }
+
+    private function getRequestTypeLabel(AccessRequest $request): string
+    {
+        return match ((string) $request->getType()) {
+            AccessRequest::TYPE_FERMETURE => 'Départ',
+            AccessRequest::TYPE_OUVERTURE => 'Arrivée',
+            default => 'Demande',
+        };
     }
 
     private function getAgentDisplayName(AccessRequest $request): string

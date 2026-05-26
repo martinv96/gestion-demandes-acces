@@ -163,6 +163,11 @@
 											<dd class="col-sm-8">{{ requestEntity.arrivalDate ? requestEntity.arrivalDate|date('d/m/Y') : '-' }}</dd>
 											<dt class="col-sm-4">Départ</dt>
 											<dd class="col-sm-8">{{ requestEntity.departureDate ? requestEntity.departureDate|date('d/m/Y') : '-' }}</dd>
+											<dt class="col-sm-4">Téléphone</dt>
+											<dd class="col-sm-8">
+												{% set phoneTypes = requestEntity.phoneTypes %}
+												{{ phoneTypes is not empty ? phoneTypes|map(v => v|capitalize)|join(', ') : '-' }}
+											</dd>
 											<dt class="col-sm-4">Créée le</dt>
 											<dd class="col-sm-8">{{ requestEntity.creationDate ? requestEntity.creationDate|date('d/m/Y H:i') : '-' }}</dd>
 											<dt class="col-sm-4">Mise à jour</dt>

@@ -64,6 +64,12 @@ final class NewRequestData
      */
     private array $materiels = [];
 
+    /**
+     * @var array<int, string>
+     */
+    #[Assert\Choice(choices: ['mobile', 'fixe'], multiple: true, message: 'Le type de téléphone doit être mobile ou fixe.')]
+    private array $phoneTypes = [];
+
     #[Assert\NotBlank(message: 'Le commentaire est obligatoire.')]
     private ?string $commentary = null;
 
@@ -94,6 +100,13 @@ final class NewRequestData
             $context
                 ->buildViolation('La demande d’origine est obligatoire pour une modification ou une fermeture.')
                 ->atPath('parentRequest')
+                ->addViolation();
+        }
+
+        if ($this->type !== AccessRequest::TYPE_FERMETURE && $this->hasTelephoneSelected() && $this->phoneTypes === []) {
+            $context
+            ->buildViolation('Veuillez préciser au moins un type de téléphone (mobile et/ou fixe).')
+            ->atPath('phoneTypes')
                 ->addViolation();
         }
     }
@@ -240,6 +253,22 @@ final class NewRequestData
         $this->materiels = $materiels;
     }
 
+    /**
+     * @return array<int, string>
+     */
+    public function getPhoneTypes(): array
+    {
+        return $this->phoneTypes;
+    }
+
+    /**
+     * @param array<int, string> $phoneTypes
+     */
+    public function setPhoneTypes(array $phoneTypes): void
+    {
+        $this->phoneTypes = array_values(array_unique(array_filter($phoneTypes)));
+    }
+
     public function getCommentary(): ?string
     {
         return $this->commentary;
@@ -258,5 +287,21 @@ final class NewRequestData
     public function setParentRequest(?AccessRequest $parentRequest): void
     {
         $this->parentRequest = $parentRequest;
+    }
+
+    private function hasTelephoneSelected(): bool
+    {
+        foreach ($this->materiels as $materiel) {
+            if (!$materiel instanceof Ressource) {
+                continue;
+            }
+
+            $name = mb_strtolower((string) ($materiel->getName() ?? ''));
+            if (str_contains($name, 'téléphone') || str_contains($name, 'telephone')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -192,6 +192,7 @@ final class NewRequestType extends AbstractType
                         'data-service-id'           => ($agent && $agent->getService()) ? (string) ($agent->getService()->getId() ?? '') : '',
                         'data-arrival-date-input'   => $request->getArrivalDate()?->format('Y-m-d') ?? '',
                         'data-departure-date-input' => $request->getDepartureDate()?->format('Y-m-d') ?? '',
+                        'data-phone-types'          => implode(',', $request->getPhoneTypes()),
                         'data-commentary'           => $request->getCommentary() ?? '',
                         'data-logiciel-ids'         => implode(',', $logicielIds),
                         'data-materiel-ids'         => implode(',', $materielIds),
@@ -238,6 +239,16 @@ final class NewRequestType extends AbstractType
                     ->setParameter('category', 'materiel')
                     ->setParameter('active', true)
                     ->orderBy('r.name', 'ASC'),
+            ])
+            ->add('phoneTypes', ChoiceType::class, [
+                'label' => 'Type(s) de téléphone',
+                'required' => false,
+                'expanded' => true,
+                'multiple' => true,
+                'choices' => [
+                    'Mobile' => 'mobile',
+                    'Fixe' => 'fixe',
+                ],
             ])
             ->add('commentary', TextareaType::class, [
                 'label' => 'Commentaires',

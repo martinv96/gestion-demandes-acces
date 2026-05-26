@@ -45,6 +45,7 @@ final class RequestCreationService
                 ->setType($requestType)
                 ->setStatus($initialStatus)
                 ->setCommentary($formData->getCommentary())
+                ->setPhoneTypes($formData->getPhoneTypes())
                 ->setCreationDate(new \DateTimeImmutable())
                 ->setUpdateDate(new \DateTimeImmutable())
                 ->setAuthor($currentUser);

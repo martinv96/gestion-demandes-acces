@@ -43,12 +43,27 @@ b,
     color: var(--theme-text) !important;
 }
 
+.imageLogo {
+    width: 55px;
+    height: 55px;
+    object-fit: contain;
+    border-radius: 5rem;
+    position: relative;
+    bottom: 8px;
+}
+
 .titreH6 {
     color: #147540 !important;
+    font-size: 20px;
+}
+
+.logo-subtitle {
+    font-size: 1rem;
 }
  
 .logo-subtitle b {
     color: #147540 !important;
+    font-size: 1rem;
 }
 
 :root[data-theme="dark"] .titreH6 {
@@ -118,6 +133,7 @@ hr {
 
 .nav-link {
     color: var(--theme-text-soft) !important;
+    font-size: 18px;
 }
 
 .nav-link:hover,
