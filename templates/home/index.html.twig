@@ -4,13 +4,12 @@
 {% endblock %}
 
 {% block body %}
-
-	<div class="container mt-5">
+	<div class="dashboard-page mt-4">
 
 		<h1 class="mb-2">Tableau de bord</h1>
 		<p class="text-muted mb-4">Vue d'ensemble des demandes d'accès</p>
 
-		<div class="row mb-4">
+		<div class="row mb-4 g-3">
 
 			{% for stat in stats %}
 				<div class="col-md-4">
@@ -28,99 +27,109 @@
 
 		</div>
 
-		<div class="card">
-
-			<div class="card-header d-flex justify-content-between">
-
-				<h5>Demandes récentes</h5>
-
-				<a href="{{ path('app_history') }}" class="btn btn-outline-primary btn-sm">
-					Voir toutes les demandes
-				</a>
-
+		<div class="dashboard-grid mb-4">
+			<div class="card shadow-sm dashboard-panel">
+				<div class="card-body">
+					<h5 class="dashboard-panel-title">Repartition par type</h5>
+					<div class="dashboard-type-list">
+						{% for item in typeDistribution %}
+							<div class="dashboard-type-item">
+								<div class="dashboard-type-header">
+									<span>{{ item.label }}</span>
+									<span>{{ item.count }}</span>
+								</div>
+								<div class="dashboard-type-track">
+									<div class="dashboard-type-fill dashboard-type-fill--{{ item.type }}" style="width: {{ item.percent }}%;"></div>
+								</div>
+							</div>
+						{% endfor %}
+					</div>
+				</div>
 			</div>
 
-			<div class="card-body">
+			<div class="card shadow-sm dashboard-panel">
+				<div class="card-body">
+					<h5 class="dashboard-panel-title">Statistiques du mois</h5>
+					<p class="text-muted dashboard-panel-subtitle">Comparaison avec le mois precedent</p>
 
-				<table class="table">
-
-					<thead>
-
-						<tr>
-							<th>N° Demande</th>
-							<th>Agent</th>
-							<th>Service</th>
-							<th>Type</th>
-							<th>Statut</th>
-							<th>Date</th>
-							<th class="text-center">Action</th>
-						</tr>
-
-					</thead>
-
-					<tbody>
-
-						{% for request in recentRequests %}
-
-							<tr>
-
-								<td>{{ request.reference }}</td>
-								<td>
-									{% if request.agent %}
-										{{ request.agent.firstname|capitalize }}
-										{{ request.agent.lastname|capitalize }}
-									{% else %}
-										-
-									{% endif %}
-								</td>
-								<td>
-									{% if request.agent and request.agent.service %}
-										{{ request.agent.service.name }}
-									{% else %}
-										-
-									{% endif %}
-								</td>
-								<td>{{ request.type|capitalize }}</td>
-								<td>
-									{% set statusMap = {
-										'en_attente_rh':  {'label': 'En attente RH', 'color': 'info'},
-										'en_attente_validation':  {'label': 'En attente validation', 'color': 'warning'},
-										'en_attente_traitement': {'label': 'En attente traitement', 'color': 'warning'},
-										'traitee':        {'label': 'Traitée', 'color': 'success'},
-										'refusee_rh':     {'label': 'Refusée RH', 'color': 'danger'},
-										'refusee_st':     {'label': 'Refusée DGA-ST', 'color': 'danger'},
-										'refusee_dsi':    {'label': 'Refusée DSI', 'color': 'danger'}
-									} %}
-									{% if request.status in statusMap|keys %}
-												{% set cfg = statusMap[request.status] %}
-											{% elseif request.status starts with 'en_attente_' %}
-												{% set roleLabel = request.status|replace({'en_attente_': ''})|upper %}
-											{% set cfg = {'label': 'En attente ' ~ roleLabel, 'color': 'secondary'} %}
-											{% elseif request.status starts with 'refusee_' %}
-												{% set roleLabel = request.status|replace({'refusee_': ''})|upper %}
-											{% set cfg = {'label': 'Refusée ' ~ roleLabel, 'color': 'danger'} %}
-											{% else %}
-											{% set cfg = {'label': request.status|replace({'_': ' '})|capitalize, 'color': 'secondary'} %}
-											{% endif %}
-										<span class="badge text-bg-{{ cfg.color }}">{{ cfg.label }}</span>
-								</td>
-								<td>{{ request.creationDate ? request.creationDate|date('d/m/Y') : '-' }}</td>
-
-								<td class="text-center">
-									<a href="{{ path('app_request_show', {id: request.id}) }}">
-										<img src="{{ asset('images/icones/chercher1.png') }}" alt="Voir" style="width:24px;height:24px;object-fit:contain;">
-									</a>
-								</td>
-							</tr>
-
-						{% else %}
-							<tr>
-								<td colspan="7" class="text-center text-muted">Aucune demande recente</td>
-							</tr>
+					<div class="dashboard-monthly-list">
+						{% for card in monthlyCards %}
+							<div class="dashboard-monthly-item">
+								<div class="dashboard-monthly-top">
+									<span class="dashboard-monthly-title">{{ card.title }}</span>
+									<span class="dashboard-trend {{ card.trend.positive ? 'is-positive' : 'is-negative' }}">{{ card.trend.label }}</span>
+								</div>
+								<div class="dashboard-monthly-values">
+									<div class="dashboard-monthly-col">
+										<span class="dashboard-month-label">{{ previousMonthLabel }}</span>
+										<strong>{{ card.previous }}</strong>
+									</div>
+									<div class="dashboard-monthly-col is-current">
+										<span class="dashboard-month-label">{{ currentMonthLabel }}</span>
+										<strong>{{ card.current }}</strong>
+									</div>
+								</div>
+							</div>
 						{% endfor %}
+					</div>
+				</div>
+			</div>
+		</div>
 
-					</tbody>
-				</table>
+		<div class="dashboard-recent mb-4">
+			<div class="dashboard-recent-header">
+				<h5 class="mb-0">Demandes recentes</h5>
+				<a href="{{ path('app_list_request') }}" class="btn btn-outline-primary btn-sm">Voir tout</a>
+			</div>
+
+			<div class="dashboard-recent-list">
+				{% for request in recentRequests %}
+					{% set statusMap = {
+						'en_attente_rh': 'En attente RH',
+						'en_attente_validation': 'En attente validation',
+						'en_attente_st': 'En attente ST',
+						'en_attente_dsi': 'En attente DSI',
+						'en_attente_traitement': 'En attente traitement',
+						'traitee': 'Validee',
+						'refusee_rh': 'Refusee RH',
+						'refusee_st': 'Refusee ST',
+						'refusee_dsi': 'Refusee DSI'
+					} %}
+					{% set statusLabel = statusMap[request.status]|default(request.status|replace({'_': ' '})|capitalize) %}
+					{% set statusClass = request.status starts with 'refusee_' ? 'is-danger' : (request.status == 'traitee' ? 'is-success' : 'is-warning') %}
+
+					<a href="{{ path('app_request_show', {id: request.id}) }}" class="dashboard-recent-row">
+						<div class="dashboard-recent-ref">
+							<strong>{{ request.reference }}</strong>
+							<span>{{ request.creationDate ? request.creationDate|date('d/m/Y') : '-' }}</span>
+						</div>
+
+						<div class="dashboard-recent-agent">
+							<strong>
+								{% if request.agent %}
+									{{ request.agent.firstname|capitalize }} {{ request.agent.lastname|capitalize }}
+								{% else %}
+									-
+								{% endif %}
+							</strong>
+							<span>
+								{% if request.agent and request.agent.service %}
+									{{ request.agent.service.name }}
+								{% else %}
+									-
+								{% endif %}
+							</span>
+						</div>
+
+						<div class="dashboard-recent-meta">
+							<span class="dashboard-recent-type">{{ request.type|capitalize }}</span>
+							<span class="dashboard-recent-status {{ statusClass }}">{{ statusLabel }}</span>
+							<img src="{{ asset('images/icones/chercher1.png') }}" alt="Voir" class="dashboard-recent-icon">
+						</div>
+					</a>
+				{% else %}
+					<div class="dashboard-empty">Aucune demande recente</div>
+				{% endfor %}
 			</div>
 		</div>
 	</div>

@@ -246,6 +246,60 @@ class RequestRepository extends ServiceEntityRepository
     }
 
     /**
+     * @return array<string, int>
+     */
+    public function countCurrentByType(): array
+    {
+        $qb = $this->createQueryBuilder('r')
+            ->select('r.type AS requestType, COUNT(r.id) AS total')
+            ->groupBy('r.type');
+
+        $this->applyCurrentScope($qb);
+
+        /** @var list<array{requestType: string, total: string}> $rows */
+        $rows = $qb->getQuery()->getArrayResult();
+
+        $result = [
+            Request::TYPE_OUVERTURE => 0,
+            Request::TYPE_MODIFICATION => 0,
+            Request::TYPE_FERMETURE => 0,
+        ];
+
+        foreach ($rows as $row) {
+            $type = $row['requestType'];
+            if (!array_key_exists($type, $result)) {
+                continue;
+            }
+            $result[$type] = (int) $row['total'];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param list<string> $statuses
+     */
+    public function countCurrentCreatedInPeriod(\DateTimeInterface $start, \DateTimeInterface $end, array $statuses = []): int
+    {
+        $qb = $this->createQueryBuilder('r')
+            ->select('COUNT(r.id)')
+            ->andWhere('r.creationDate >= :start')
+            ->andWhere('r.creationDate < :end')
+            ->setParameter('start', $start)
+            ->setParameter('end', $end);
+
+        if ($statuses !== []) {
+            $qb
+                ->andWhere('r.status IN (:statuses)')
+                ->setParameter('statuses', $statuses);
+        }
+
+        $this->applyCurrentScope($qb);
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    /**
      * @return list<Request>
      */
 
