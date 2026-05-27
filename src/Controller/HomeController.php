@@ -105,7 +105,7 @@ class HomeController extends AbstractController
         $buildTrend = static function (int $previous, int $current, bool $reverse = false): array {
             if ($previous === 0) {
                 return [
-                    'label' => $current === 0 ? '0%' : 'n/a',
+                    'label' => $current === 0 ? '0%' : '—',
                     'positive' => $reverse ? $current === 0 : $current > 0,
                 ];
             }
@@ -127,13 +127,13 @@ class HomeController extends AbstractController
                 'trend' => $buildTrend($newPrevious, $newCurrent),
             ],
             [
-                'title' => 'Demandes validees',
+                'title' => 'Demandes validées',
                 'previous' => $validatedPrevious,
                 'current' => $validatedCurrent,
                 'trend' => $buildTrend($validatedPrevious, $validatedCurrent),
             ],
             [
-                'title' => 'Demandes rejetees',
+                'title' => 'Demandes rejetées',
                 'previous' => $rejectedPrevious,
                 'current' => $rejectedCurrent,
                 'trend' => $buildTrend($rejectedPrevious, $rejectedCurrent, true),
