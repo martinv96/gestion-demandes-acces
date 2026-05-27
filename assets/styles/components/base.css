@@ -124,6 +124,7 @@ hr {
 .app-sidebar {
     background: linear-gradient(180deg, var(--theme-surface) 0%, var(--theme-surface-alt) 100%) !important;
     border-right: 1px solid var(--theme-border) !important;
+    z-index: 1;
 }
 
 .app-main {

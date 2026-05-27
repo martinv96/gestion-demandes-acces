@@ -3,43 +3,79 @@
 {% block title %}Connexion{% endblock %}
 
 {% block body %}
-<div class="container-login py-5" style="max-width: 460px; align-self: anchor-center;">
-    <div class="card shadow-sm">
-        <div class="card-body p-4">
-            <h1 class="h4 mb-4">Connexion</h1>
+<style>
+    .login-page {
+        position: relative;
+        min-height: 100vh;
+        margin: -1.5rem;
+        padding: clamp(2rem, 4vw, 3rem) 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        isolation: isolate;
+    }
 
-            {% if error %}
-                <div class="alert alert-danger" role="alert">
-                    {{ error.messageKey|trans(error.messageData, 'security') }}
+    .login-page::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(rgba(246, 249, 247, 0.82), rgba(246, 249, 247, 0.82)), url('{{ asset('images/hotel.jpg') }}') center center / cover no-repeat;
+    }
+
+    .login-page__content {
+        width: min(100%, 460px);
+    }
+
+    .login-card {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        backdrop-filter: blur(6px);
+    }
+</style>
+
+<div class="login-page">
+    <div class="login-page__content">
+        <div class="container-login">
+            <div class="card shadow-sm login-card">
+                <div class="card-body p-4">
+                    <h1 class="h4 mb-4">Connexion</h1>
+
+                    {% if error %}
+                        <div class="alert alert-danger" role="alert">
+                            {{ error.messageKey|trans(error.messageData, 'security') }}
+                        </div>
+                    {% endif %}
+
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Email</label>
+                            <input type="email" id="username" name="_username" value="{{ last_username }}" class="form-control" autocomplete="username" required autofocus>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Mot de passe</label>
+                            <input type="password" id="password" name="_password" class="form-control" autocomplete="current-password" required>
+                        </div>
+
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                        <button class="btn btn-primary w-100" type="submit">Se connecter</button>
+                    </form>
                 </div>
-            {% endif %}
+            </div>
 
-            <form method="post">
-                <div class="mb-3">
-                    <label for="username" class="form-label">Email</label>
-                    <input type="email" id="username" name="_username" value="{{ last_username }}" class="form-control" autocomplete="username" required autofocus>
-                </div>
-
-                <div class="mb-3">
-                    <label for="password" class="form-label">Mot de passe</label>
-                    <input type="password" id="password" name="_password" class="form-control" autocomplete="current-password" required>
-                </div>
-
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-
-                <button class="btn btn-primary w-100" type="submit">Se connecter</button>
-            </form>
+            <div class="guide-user text-center mt-4">
+                <a href="/GuideUtilisateurGDAP.docx" download class="btn btn-outline-secondary btn-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download me-2" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                    </svg>
+                    Guide utilisateur
+                </a>
+            </div>
         </div>
     </div>
-</div>
-
-<div class="guide-user text-center mt-4">
-    <a href="/GuideUtilisateurGDAP.docx" download class="btn btn-outline-secondary btn-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download me-2" viewBox="0 0 16 16">
-            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-        </svg>
-        Guide utilisateur
-    </a>
 </div>
 {% endblock %}
