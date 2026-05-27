@@ -30,6 +30,12 @@
     padding-bottom: 10px;
 }
 
+.request-detail-container {
+    position: static;
+    left: auto;
+    max-width: 100% !important;
+}
+
 .container-login {
     min-width:40vh !important;
     align-self: center;

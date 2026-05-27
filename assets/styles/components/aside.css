@@ -1,6 +1,7 @@
-aside {
-    position:fixed;
-    top:0;
-    left:0;
-    height:100vh;
+.app-sidebar {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    z-index: 3;
 }

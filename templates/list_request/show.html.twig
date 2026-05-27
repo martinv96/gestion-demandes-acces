@@ -10,7 +10,7 @@
 
 	{# Contenu principal #}
 	<div
-		class="container-fluid">
+		class="container-fluid request-detail-container">
 
 		{# Historique des changements #}
 		{% set history = requestEntity.requestId|sort((a, b) => a.date <=> b.date) %}
