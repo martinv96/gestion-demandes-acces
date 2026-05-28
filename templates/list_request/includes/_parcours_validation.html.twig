@@ -46,9 +46,26 @@
 
                     {# Build a map of service code to service name for quick lookup #}
                     {% set servicesByCode = {} %}
+                    {% set financeStepDone = false %}
+                    {% set financeValidatedAt = null %}
                     {% for service in allServices %}
                         {% if service.code %}
                             {% set servicesByCode = servicesByCode|merge({(service.code|upper): service.name}) %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {# Recherche de la validation Finance dans l'historique #}
+                    {% for entry in history|default([]) %}
+                        {% set entryRoles = entry.user ? entry.user.roles : [] %}
+                        {% set isFinance = false %}
+                        {% for role in entryRoles %}
+                            {% if role == 'ROLE_FIN' %}
+                                {% set isFinance = true %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if isFinance and (entry.commentary is not defined or not (entry.commentary starts with 'Annulation de décision')) %}
+                            {% set financeStepDone = true %}
+                            {% set financeValidatedAt = entry.date %}
                         {% endif %}
                     {% endfor %}
 
@@ -65,12 +82,16 @@
                                     {% set stepDate = stValidatedAt %}
                                 {% elseif requiredRole == 'ROLE_DSI' %}
                                     {% set stepDate = dsiValidatedAt %}
+                                {% elseif requiredRole == 'ROLE_FIN' %}
+                                    {% set stepDate = financeValidatedAt %}
                                 {% elseif fromStatus == 'en_attente_rh' %}
                                     {% set stepDate = rhValidatedAt %}
                                 {% elseif fromStatus == 'en_attente_st' %}
                                     {% set stepDate = stValidatedAt %}
                                 {% elseif fromStatus == 'en_attente_dsi' %}
                                     {% set stepDate = dsiValidatedAt %}
+                                {% elseif fromStatus == 'en_attente_fin' %}
+                                    {% set stepDate = financeValidatedAt %}
                                 {% else %}
                                     {% set stepDate = null %}
                                 {% endif %}
@@ -92,11 +113,28 @@
                                 {% endif %}
                                 {% set isParallelCurrent = requestEntity.status starts with 'en_attente_' and requestEntity.status != 'en_attente_rh' and fromStatus starts with 'en_attente_' and fromStatus != 'en_attente_rh' %}
 
+
+                                {# Détection d'annulation de décision pour le service de l'étape #}
+                                {% set undoAfterValidation = false %}
+                                {% set lastAction = null %}
+                                {% for entry in history|default([]) %}
+                                    {% set entryRoles = entry.user ? entry.user.roles : [] %}
+                                    {% if requiredRole in entryRoles or (roleCode is defined and roleCode in entryRoles) %}
+                                        {% if entry.commentary is defined and entry.commentary starts with 'Annulation de décision' %}
+                                            {% set lastAction = 'undo' %}
+                                        {% elseif entry.newStatus in ['en_attente_validation', 'en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi', 'refusee_fin', 'en_attente_traitement'] %}
+                                            {% set lastAction = 'validate' %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+
                                 {% set isComplete = false %}
                                 {% set isCurrent = false %}
                                 {% set isRefused = false %}
 
-                                {% if stepDate or requestEntity.status == 'traitee' or requestEntity.status == toStatus or (toStatus == 'traitee' and requestEntity.status == 'traitee') %}
+                                {% if lastAction == 'undo' %}
+                                    {% set isCurrent = true %}
+                                {% elseif stepDate or requestEntity.status == 'traitee' or requestEntity.status == toStatus or (toStatus == 'traitee' and requestEntity.status == 'traitee') %}
                                     {% set isComplete = true %}
                                 {% elseif isParallelCurrent %}
                                     {% set isCurrent = true %}
@@ -125,6 +163,8 @@
                                         <p class="validation-step-meta mb-0">
                                             {% if isRefused %}
                                                 Refusée
+                                            {% elseif lastAction == 'undo' %}
+                                                Etape en cours
                                             {% elseif stepDate %}
                                                 Validée le {{ stepDate|date('d/m/Y') }}
                                             {% elseif not isComplete and not isCurrent %}

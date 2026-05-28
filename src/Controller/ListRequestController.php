@@ -213,6 +213,29 @@ final class ListRequestController extends AbstractController
             }
         }
 
+        // Calcul si l'utilisateur courant a déjà validé la demande
+        $currentUserHasValidated = false;
+        if ($currentUser instanceof User) {
+            foreach ($requestEntity->getRequestId() as $history) {
+                if (
+                    $history->getUser() &&
+                    $history->getUser()->getId() === $currentUser->getId() &&
+                    in_array($history->getNewStatus(), [
+                        AccessRequest::STATUS_EN_ATTENTE_ST,
+                        AccessRequest::STATUS_EN_ATTENTE_DSI,
+                        AccessRequest::STATUS_EN_ATTENTE_TRAITEMENT,
+                        AccessRequest::STATUS_TRAITEE,
+                        AccessRequest::STATUS_REFUSEE_RH,
+                        AccessRequest::STATUS_REFUSEE_ST,
+                        AccessRequest::STATUS_REFUSEE_DSI
+                    ], true)
+                ) {
+                    $currentUserHasValidated = true;
+                    break;
+                }
+            }
+        }
+
         return $this->render('list_request/show.html.twig', [
             'requestEntity' => $requestEntity,
 
@@ -243,6 +266,7 @@ final class ListRequestController extends AbstractController
             'closureUntrackedMateriels' => $closureUntrackedMateriels,
             'closureManageableMaterielIds' => $closureManageableMaterielIds,
             'closureOwnerById' => $closureOwnerById,
+            'currentUserHasValidated' => $currentUserHasValidated,
         ]);
     }
 
