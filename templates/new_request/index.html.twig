@@ -274,42 +274,37 @@
 	</div>
 
 	<script>
-		const typeFieldName = '{{ form.type.vars.full_name }}';
-const typeRadios = document.querySelectorAll (`input[name="${typeFieldName}"]`);
-const logicielsCard = document.getElementById('logiciels-card');
-const materielCard = document.getElementById('materiel-card');
-const parentRequestInput = document.getElementById('{{ form.parentRequest.vars.id }}');
-const confirmParentRequestBtn = document.getElementById('confirmParentRequestBtn');
-const modalElement = document.getElementById('parentRequestModal');
-const requestForm = document.querySelector('.request-form');
+		const typeFieldName      = '{{ form.type.vars.full_name }}';
+        const typeRadios         = document.querySelectorAll(`input[name="${typeFieldName}"]`);
+        const logicielsCard      = document.getElementById('logiciels-card');
+        const materielCard       = document.getElementById('materiel-card');
+        const parentRequestInput = document.getElementById('{{ form.parentRequest.vars.id }}');
+        const confirmParentRequestBtn = document.getElementById('confirmParentRequestBtn');
+        const modalElement       = document.getElementById('parentRequestModal');
+        const requestForm        = document.querySelector('.request-form');
 
-const fieldCivility = document.getElementById('{{ form.civility.vars.id }}');
-const fieldFirstname = document.getElementById('{{ form.firstname.vars.id }}');
-const fieldLastname = document.getElementById('{{ form.lastname.vars.id }}');
-const fieldEmail = document.getElementById('{{ form.email.vars.id }}');
-const fieldService = document.getElementById('{{ form.service.vars.id }}');
-const fieldJobTitle = document.getElementById('{{ form.jobTitle.vars.id }}');
-const fieldArrivalDate = document.getElementById('{{ form.arrivalDate.vars.id }}');
-const fieldDepartureDate = document.getElementById('{{ form.departureDate.vars.id }}');
-const fieldCommentary = document.getElementById('{{ form.commentary.vars.id }}');{% if form.clothingSize is defined %}
-const fieldClothingSize = document.getElementById('{{ form.clothingSize.vars.id }}');
-{% else %}
-const fieldClothingSize = null;{% endif %}
-{% if form.shoeSize is defined %}
-const fieldShoeSize = document.getElementById('{{ form.shoeSize.vars.id }}');
-{% else %}
-const fieldShoeSize = null;{% endif %}
-const fieldPhoneTypeName = '{{ form.phoneTypes.vars.full_name }}';
-const fieldPhoneTypeInputs = document.querySelectorAll (`input[name="${fieldPhoneTypeName}"]`);
-const phoneTypeWrapper = document.getElementById('phone-type-wrapper');
+        const fieldCivility      = document.getElementById('{{ form.civility.vars.id }}');
+        const fieldFirstname     = document.getElementById('{{ form.firstname.vars.id }}');
+        const fieldLastname      = document.getElementById('{{ form.lastname.vars.id }}');
+        const fieldEmail         = document.getElementById('{{ form.email.vars.id }}');
+        const fieldService       = document.getElementById('{{ form.service.vars.id }}');
+        const fieldJobTitle      = document.getElementById('{{ form.jobTitle.vars.id }}');
+        const fieldArrivalDate   = document.getElementById('{{ form.arrivalDate.vars.id }}');
+        const fieldDepartureDate = document.getElementById('{{ form.departureDate.vars.id }}');
+        const fieldCommentary    = document.getElementById('{{ form.commentary.vars.id }}');
+        const fieldClothingSize  = document.getElementById('{{ form.clothingSize.vars.id }}');
+        const fieldShoeSize      = document.getElementById('{{ form.shoeSize.vars.id }}');
+        const fieldPhoneTypeName = '{{ form.phoneTypes.vars.full_name }}';
+        const fieldPhoneTypeInputs = document.querySelectorAll(`input[name="${fieldPhoneTypeName}"]`);
+        const phoneTypeWrapper   = document.getElementById('phone-type-wrapper');
 
-const summaryAgent = document.getElementById('summary-agent');
-const summaryService = document.getElementById('summary-service');
-const summaryArrival = document.getElementById('summary-arrival');
-const summaryDeparture = document.getElementById('summary-departure');
-const summaryCommentary = document.getElementById('summary-commentary');
-const summaryLogiciels = document.getElementById('summary-logiciels');
-const summaryMateriels = document.getElementById('summary-materiels');
+        const summaryAgent = document.getElementById('summary-agent');
+        const summaryService = document.getElementById('summary-service');
+        const summaryArrival = document.getElementById('summary-arrival');
+        const summaryDeparture = document.getElementById('summary-departure');
+        const summaryCommentary = document.getElementById('summary-commentary');
+        const summaryLogiciels = document.getElementById('summary-logiciels');
+        const summaryMateriels = document.getElementById('summary-materiels');
 
 let parentModal = null;
 if (window.bootstrap && modalElement) {
