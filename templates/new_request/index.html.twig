@@ -225,7 +225,7 @@
 		</div>
 
 		<div class="card request-form-card mb-4">
-    <div class="card-header">Pièce jointe</div>
+    <div class="card-header">Pièce jointe (optionnel)</div>
     <div class="card-body">
         <div class="custom-file-wrapper mb-2">
             {{ form_widget(form.pieceJointe, {
@@ -269,7 +269,6 @@
 			</div>
 		</div>
 
-
 		{{ form_end(form) }}
 	</div>
 
@@ -306,291 +305,291 @@
         const summaryLogiciels = document.getElementById('summary-logiciels');
         const summaryMateriels = document.getElementById('summary-materiels');
 
-let parentModal = null;
-if (window.bootstrap && modalElement) {
-parentModal = new window.bootstrap.Modal(modalElement);
-}
+		let parentModal = null;
+		if (window.bootstrap && modalElement) {
+		parentModal = new window.bootstrap.Modal(modalElement);
+		}
 
-function isTypeRequiringParent(typeValue) {
-return typeValue === 'modification' || typeValue === 'fermeture';
-}
-
-function splitCsv(value) {
-if (! value) 
-return [];
-
-return value.split(',').map(v => v.trim()).filter(Boolean);
-}
-
-function getSelectedParentOption() {
-if (! parentRequestInput) 
-return null;
-
-const option = parentRequestInput.options[parentRequestInput.selectedIndex];
-return(option && option.value) ? option : null;
-}
-
-function setCardBodyOpacity(card, disabled) {
-if (! card) 
-return;
-
-const body = card.querySelector('.card-body');
-if (body) 
-body.classList.toggle('opacity-50', disabled);
-
-}
-
-function setResourceCheckboxes(card, selectedIds, disabled) {
-if (! card) 
-return;
-
-card.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-checkbox.checked = selectedIds.includes(checkbox.value);
-checkbox.disabled = disabled;
-});
-setCardBodyOpacity(card, disabled);
-updatePhoneTypeVisibility();
-}
-
-function normalizeLabel(value) {
-return(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
-function findTelephoneCheckbox() {
-if (! materielCard) 
-return null;
-
-
-const checkboxes = materielCard.querySelectorAll('input[type="checkbox"]');
-for (const checkbox of checkboxes) {
-const label = materielCard.querySelector (`label[for="${
-checkbox.id
-}"]`);
-const labelText = normalizeLabel(label ? label.textContent : '');
-
-if (labelText.includes('telephone')) {
-return checkbox;
-}
-}
-
-return null;
-}
-
-function updatePhoneTypeVisibility() {
-if (! phoneTypeWrapper) 
-return;
-
-
-const telephoneCheckbox = findTelephoneCheckbox();
-const hasTelephone = Boolean(telephoneCheckbox && telephoneCheckbox.checked);
-
-phoneTypeWrapper.classList.toggle('d-none', ! hasTelephone);
+		function isTypeRequiringParent(typeValue) {
+		return typeValue === 'modification' || typeValue === 'fermeture';
+		}
+
+		function splitCsv(value) {
+		if (! value) 
+		return [];
+
+		return value.split(',').map(v => v.trim()).filter(Boolean);
+		}
+
+		function getSelectedParentOption() {
+		if (! parentRequestInput) 
+		return null;
+
+		const option = parentRequestInput.options[parentRequestInput.selectedIndex];
+		return(option && option.value) ? option : null;
+		}
+
+		function setCardBodyOpacity(card, disabled) {
+		if (! card) 
+		return;
+
+		const body = card.querySelector('.card-body');
+		if (body) 
+		body.classList.toggle('opacity-50', disabled);
+
+		}
+
+		function setResourceCheckboxes(card, selectedIds, disabled) {
+		if (! card) 
+		return;
+
+		card.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+		checkbox.checked = selectedIds.includes(checkbox.value);
+		checkbox.disabled = disabled;
+		});
+		setCardBodyOpacity(card, disabled);
+		updatePhoneTypeVisibility();
+		}
+
+		function normalizeLabel(value) {
+		return(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+		}
+
+		function findTelephoneCheckbox() {
+		if (! materielCard) 
+		return null;
+
+
+		const checkboxes = materielCard.querySelectorAll('input[type="checkbox"]');
+		for (const checkbox of checkboxes) {
+		const label = materielCard.querySelector (`label[for="${
+		checkbox.id
+		}"]`);
+		const labelText = normalizeLabel(label ? label.textContent : '');
+
+		if (labelText.includes('telephone')) {
+		return checkbox;
+		}
+		}
+
+		return null;
+		}
+
+		function updatePhoneTypeVisibility() {
+		if (! phoneTypeWrapper) 
+		return;
+
+
+		const telephoneCheckbox = findTelephoneCheckbox();
+		const hasTelephone = Boolean(telephoneCheckbox && telephoneCheckbox.checked);
+
+		phoneTypeWrapper.classList.toggle('d-none', ! hasTelephone);
 
-if (! hasTelephone) {
-fieldPhoneTypeInputs.forEach(input => {
-input.checked = false;
-input.disabled = false;
-});
-return;
-}
-
-const shouldDisable = Boolean(telephoneCheckbox && telephoneCheckbox.disabled);
-fieldPhoneTypeInputs.forEach(input => {
-input.disabled = shouldDisable;
-});
-}
-
-function setFieldOpacity(field, disabled) {
-if (! field) 
-return;
-
-const col = field.closest('.col-md-6') || field.closest('.col-12') || field.parentElement;
-if (col) 
-col.classList.toggle('opacity-50', disabled);
-
-}
-
-function disableAgentSection(disabled) { // Griser chaque champ individuellement (sauf departureDate)
-[
-fieldCivility,
-fieldFirstname,
-fieldLastname,
-fieldEmail,
-fieldService,
-fieldJobTitle,
-fieldArrivalDate,
-fieldClothingSize,
-fieldShoeSize
-].forEach(el => {
-if (el) 
-el.disabled = disabled;
-
-setFieldOpacity(el, disabled);
-});
+		if (! hasTelephone) {
+		fieldPhoneTypeInputs.forEach(input => {
+		input.checked = false;
+		input.disabled = false;
+		});
+		return;
+		}
+
+		const shouldDisable = Boolean(telephoneCheckbox && telephoneCheckbox.disabled);
+		fieldPhoneTypeInputs.forEach(input => {
+		input.disabled = shouldDisable;
+		});
+		}
+
+		function setFieldOpacity(field, disabled) {
+		if (! field) 
+		return;
+
+		const col = field.closest('.col-md-6') || field.closest('.col-12') || field.parentElement;
+		if (col) 
+		col.classList.toggle('opacity-50', disabled);
+
+		}
+
+		function disableAgentSection(disabled) { // Griser chaque champ individuellement (sauf departureDate)
+		[
+		fieldCivility,
+		fieldFirstname,
+		fieldLastname,
+		fieldEmail,
+		fieldService,
+		fieldJobTitle,
+		fieldArrivalDate,
+		fieldClothingSize,
+		fieldShoeSize
+		].forEach(el => {
+		if (el) 
+		el.disabled = disabled;
+
+		setFieldOpacity(el, disabled);
+		});
 
-if (fieldCommentary) 
-fieldCommentary.disabled = disabled;
+		if (fieldCommentary) 
+		fieldCommentary.disabled = disabled;
 
-setCardBodyOpacity(fieldCommentary ? fieldCommentary.closest('.card') : null, disabled);
-}
+		setCardBodyOpacity(fieldCommentary ? fieldCommentary.closest('.card') : null, disabled);
+		}
 
-// Pré-remplir les champs et cocher les ressources associées en fonction de la demande parent sélectionnée
-function prefillFromParent() {
-const option = getSelectedParentOption();
-if (! option) 
-return null;
-
-const d = option.dataset;
-
-if (fieldCivility) 
-fieldCivility.value = d.civility || '';
-
-if (fieldFirstname) 
-fieldFirstname.value = d.firstname || '';
-
-if (fieldLastname) 
-fieldLastname.value = d.lastname || '';
-
-if (fieldEmail) 
-fieldEmail.value = d.email || '';
-
-if (fieldService) 
-fieldService.value = d.serviceId || '';
-
-if (fieldJobTitle) 
-fieldJobTitle.value = d.jobTitle || '';
-
-if (fieldClothingSize) 
-fieldClothingSize.value = d.clothingSize || '';
-
-if (fieldShoeSize) 
-fieldShoeSize.value = d.shoeSize || '';
-
-if (d.phoneTypes) {
-const selectedPhoneTypes = splitCsv(d.phoneTypes);
-fieldPhoneTypeInputs.forEach(input => {
-input.checked = selectedPhoneTypes.includes(input.value);
-});
-}
-if (fieldArrivalDate) 
-fieldArrivalDate.value = d.arrivalDateInput || '';
-
-if (fieldDepartureDate) 
-fieldDepartureDate.value = d.departureDateInput || '';
-
-if (fieldCommentary) 
-fieldCommentary.value = d.commentary || '';
-
-
-updatePhoneTypeVisibility();
-
-return {
-logicielIds: splitCsv(d.logicielIds),
-materielIds: splitCsv(d.materielIds)
-};
-}
-
-function resetToEditable() {
-disableAgentSection(false);
-[logicielsCard, materielCard].forEach(card => {
-if (!card) 
-return;
-
-card.querySelectorAll('input[type="checkbox"]').forEach(c => {
-c.checked = false;
-c.disabled = false;
-});
-setCardBodyOpacity(card, false);
-});
-updatePhoneTypeVisibility();
-}
-
-function applyTypeUi(typeValue) {
-const isFermeture = typeValue === 'fermeture';
-const needsParent = isFermeture || typeValue === 'modification';
-
-if (parentRequestInput) 
-parentRequestInput.required = needsParent;
-
-
-if (! needsParent) {
-resetToEditable();
-return;
-}
-
-if (! getSelectedParentOption()) {
-if (parentModal) 
-parentModal.show();
-
-return;
-}
-
-const parentData = prefillFromParent();
-
-if (isFermeture) { // Griser tout sauf la date de départ
-disableAgentSection(true);
-if (fieldDepartureDate) 
-fieldDepartureDate.disabled = false;
-
-if (fieldCommentary) 
-fieldCommentary.disabled = false;
-
-setCardBodyOpacity(fieldCommentary ? fieldCommentary.closest('.card') : null, false);
-setResourceCheckboxes(logicielsCard, parentData ? parentData.logicielIds : [], true);
-setResourceCheckboxes(materielCard, parentData ? parentData.materielIds : [], true);
-} else { // Modification : pré-remplir, tout laisser éditable
-disableAgentSection(false);
-if (parentData) {
-setResourceCheckboxes(logicielsCard, parentData.logicielIds, false);
-setResourceCheckboxes(materielCard, parentData.materielIds, false);
-}
-}
-}
-
-// Re-enable les champs disabled avant soumission
-// (les champs disabled ne sont pas inclus dans le POST sinon)
-if (requestForm) {
-requestForm.addEventListener('submit', function () {
-requestForm.querySelectorAll('input:disabled, select:disabled, textarea:disabled').forEach(el => {
-el.disabled = false;
-});
-});
-}
-
-typeRadios.forEach(radio => {
-radio.addEventListener('change', function () {
-applyTypeUi(this.value);
-});
-});
-
-if (parentRequestInput) {
-parentRequestInput.addEventListener('change', function () {
-const checked = document.querySelector (`input[name="${typeFieldName}"]:checked`);
-if (checked) 
-applyTypeUi(checked.value);
-
-});
-}
-
-if (materielCard) {
-materielCard.addEventListener('change', function (event) {
-if (event.target instanceof HTMLInputElement && event.target.type === 'checkbox') {
-updatePhoneTypeVisibility();
-}
-});
-}
-
-if (confirmParentRequestBtn) {
-confirmParentRequestBtn.addEventListener('click', function () {
-const checked = document.querySelector (`input[name="${typeFieldName}"]:checked`);
-if (checked) 
-applyTypeUi(checked.value);
-
-});
-}
-
-const checkedRadio = document.querySelector (`input[name="${typeFieldName}"]:checked`);
-applyTypeUi(checkedRadio ? checkedRadio.value : 'ouverture');
-updatePhoneTypeVisibility();
+		// Pré-remplir les champs et cocher les ressources associées en fonction de la demande parent sélectionnée
+		function prefillFromParent() {
+		const option = getSelectedParentOption();
+		if (! option) 
+		return null;
+
+		const d = option.dataset;
+
+		if (fieldCivility) 
+		fieldCivility.value = d.civility || '';
+
+		if (fieldFirstname) 
+		fieldFirstname.value = d.firstname || '';
+
+		if (fieldLastname) 
+		fieldLastname.value = d.lastname || '';
+
+		if (fieldEmail) 
+		fieldEmail.value = d.email || '';
+
+		if (fieldService) 
+		fieldService.value = d.serviceId || '';
+
+		if (fieldJobTitle) 
+		fieldJobTitle.value = d.jobTitle || '';
+
+		if (fieldClothingSize) 
+		fieldClothingSize.value = d.clothingSize || '';
+
+		if (fieldShoeSize) 
+		fieldShoeSize.value = d.shoeSize || '';
+
+		if (d.phoneTypes) {
+		const selectedPhoneTypes = splitCsv(d.phoneTypes);
+		fieldPhoneTypeInputs.forEach(input => {
+		input.checked = selectedPhoneTypes.includes(input.value);
+		});
+		}
+		if (fieldArrivalDate) 
+		fieldArrivalDate.value = d.arrivalDateInput || '';
+
+		if (fieldDepartureDate) 
+		fieldDepartureDate.value = d.departureDateInput || '';
+
+		if (fieldCommentary) 
+		fieldCommentary.value = d.commentary || '';
+
+
+		updatePhoneTypeVisibility();
+
+		return {
+		logicielIds: splitCsv(d.logicielIds),
+		materielIds: splitCsv(d.materielIds)
+		};
+		}
+
+		function resetToEditable() {
+		disableAgentSection(false);
+		[logicielsCard, materielCard].forEach(card => {
+		if (!card) 
+		return;
+
+		card.querySelectorAll('input[type="checkbox"]').forEach(c => {
+		c.checked = false;
+		c.disabled = false;
+		});
+		setCardBodyOpacity(card, false);
+		});
+		updatePhoneTypeVisibility();
+		}
+
+		function applyTypeUi(typeValue) {
+		const isFermeture = typeValue === 'fermeture';
+		const needsParent = isFermeture || typeValue === 'modification';
+
+		if (parentRequestInput) 
+		parentRequestInput.required = needsParent;
+
+
+		if (! needsParent) {
+		resetToEditable();
+		return;
+		}
+
+		if (! getSelectedParentOption()) {
+		if (parentModal) 
+		parentModal.show();
+
+		return;
+		}
+
+		const parentData = prefillFromParent();
+
+		if (isFermeture) { // Griser tout sauf la date de départ
+		disableAgentSection(true);
+		if (fieldDepartureDate) 
+		fieldDepartureDate.disabled = false;
+
+		if (fieldCommentary) 
+		fieldCommentary.disabled = false;
+
+		setCardBodyOpacity(fieldCommentary ? fieldCommentary.closest('.card') : null, false);
+		setResourceCheckboxes(logicielsCard, parentData ? parentData.logicielIds : [], true);
+		setResourceCheckboxes(materielCard, parentData ? parentData.materielIds : [], true);
+		} else { // Modification : pré-remplir, tout laisser éditable
+		disableAgentSection(false);
+		if (parentData) {
+		setResourceCheckboxes(logicielsCard, parentData.logicielIds, false);
+		setResourceCheckboxes(materielCard, parentData.materielIds, false);
+		}
+		}
+		}
+
+		// Re-enable les champs disabled avant soumission
+		// (les champs disabled ne sont pas inclus dans le POST sinon)
+		if (requestForm) {
+		requestForm.addEventListener('submit', function () {
+		requestForm.querySelectorAll('input:disabled, select:disabled, textarea:disabled').forEach(el => {
+		el.disabled = false;
+		});
+		});
+		}
+
+		typeRadios.forEach(radio => {
+		radio.addEventListener('change', function () {
+		applyTypeUi(this.value);
+		});
+		});
+
+		if (parentRequestInput) {
+		parentRequestInput.addEventListener('change', function () {
+		const checked = document.querySelector (`input[name="${typeFieldName}"]:checked`);
+		if (checked) 
+		applyTypeUi(checked.value);
+
+		});
+		}
+
+		if (materielCard) {
+		materielCard.addEventListener('change', function (event) {
+		if (event.target instanceof HTMLInputElement && event.target.type === 'checkbox') {
+		updatePhoneTypeVisibility();
+		}
+		});
+		}
+
+		if (confirmParentRequestBtn) {
+		confirmParentRequestBtn.addEventListener('click', function () {
+		const checked = document.querySelector (`input[name="${typeFieldName}"]:checked`);
+		if (checked) 
+		applyTypeUi(checked.value);
+
+		});
+		}
+
+		const checkedRadio = document.querySelector (`input[name="${typeFieldName}"]:checked`);
+		applyTypeUi(checkedRadio ? checkedRadio.value : 'ouverture');
+		updatePhoneTypeVisibility();
 	</script>
 {% endblock %}
