@@ -106,6 +106,9 @@ class Request
     #[ORM\JoinColumn(nullable: false)]
     private ?User $author = null;
 
+  
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    private ?string $pieceJointe = null;
     /**
      * @var Collection<int, Ressource>
      */
@@ -500,6 +503,15 @@ class Request
     {
         $this->escalatedAt = $escalatedAt;
 
+        return $this;
+    }
+
+    public function getPieceJointe() {
+        return $this->pieceJointe;
+    }
+
+    public function setPieceJointe(?string $pieceJointe) {
+        $this->pieceJointe = $pieceJointe;
         return $this;
     }
 }

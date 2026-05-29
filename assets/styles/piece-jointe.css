@@ -1,0 +1,28 @@
+.custom-file-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.custom-file-label-btn {
+  background: #222f3e;
+  color: #fff;
+  padding: 0.4em 1.2em;
+  margin-left:10px;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  border: 1px solid #495057;
+  transition: background 0.2s;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.custom-file-label-btn:hover {
+  background: #34495e;
+}
+
+.custom-file-label-text {
+  color: #b0b8c1;
+  font-size: 0.97em;
+}

@@ -1,3 +1,7 @@
+###> uploads pièces jointes (ne pas versionner les fichiers uploadés) ###
+/public/uploads/pieces_jointes/*
+!/public/uploads/pieces_jointes/.gitkeep
+###< uploads pièces jointes ###
 
 ###> symfony/framework-bundle ###
 /.env.local

@@ -8,8 +8,8 @@
 		{% if saved %}
 			<div class="alert alert-success" role="alert">
 				La demande a été créée et les ressources sélectionnées ont été associées.
-                <button type="button" class="close">X</button>
-            </div>
+				<button type="button" class="close">X</button>
+			</div>
 		{% endif %}
 
 		<div class="mb-4">
@@ -23,7 +23,7 @@
 			<p class="text-muted mb-0">Créer une demande d'accès pour un agent</p>
 		</div>
 
-		{{ form_start(form, {'attr': {'class': 'request-form'}}) }}
+		{{ form_start(form, {'attr': {'class': 'request-form', 'enctype': 'multipart/form-data'}}) }}
 
 		{% if form.vars.errors|length > 0 %}
 			<div class="alert alert-danger form-errors-global">
@@ -32,7 +32,7 @@
 		{% endif %}
 
 
-             {# type de demande #}
+		{# type de demande #}
 		<div class="card request-form-card mb-4">
 			<div class="card-header">Type de demande</div>
 			<div class="card-body request-choice-group">
@@ -40,7 +40,7 @@
 			</div>
 		</div>
 
-        {# modal: demande d'origine #}
+		{# modal: demande d'origine #}
 		<div class="modal fade" id="parentRequestModal" tabindex="-1" aria-labelledby="parentRequestModalLabel" aria-hidden="true">
 			<div class="modal-dialog">
 				<div class="modal-content">
@@ -63,7 +63,7 @@
 		</div>
 
 
-        {# informations agent #}
+		{# informations agent #}
 		<div class="card request-form-card mb-4">
 			<div class="card-header">Informations agent</div>
 			<div class="card-body">
@@ -86,14 +86,14 @@
 					<div class="col-md-6">
 						{{ form_row(form.jobTitle) }}
 					</div>
-                    {% if isServiceTechniqueUser|default(false) %}
-                    <div class="col-md-6">
-                        {{ form_row(form.clothingSize) }}
-                    </div>
-                    <div class="col-md-6">
-                        {{ form_row(form.shoeSize) }}
-                    </div>
-                    {% endif %}
+					{% if isServiceTechniqueUser|default(false) %}
+						<div class="col-md-6">
+							{{ form_row(form.clothingSize) }}
+						</div>
+						<div class="col-md-6">
+							{{ form_row(form.shoeSize) }}
+						</div>
+					{% endif %}
 					<div class="col-md-6">
 						{{ form_row(form.arrivalDate) }}
 					</div>
@@ -104,8 +104,8 @@
 			</div>
 		</div>
 
-   
-        {# récapitulatif demande d'origine #}
+
+		{# récapitulatif demande d'origine #}
 		<div class="card request-form-card mb-4 d-none" id="parent-request-summary-card">
 			<div class="card-header">Récapitulatif demande d’origine</div>
 			<div class="card-body">
@@ -142,30 +142,31 @@
 			</div>
 		</div>
 
-        {# accès logiciels #}
+		{# accès logiciels #}
 		<div class="card request-form-card mb-4" id="logiciels-card">
 			<div class="card-header">Accès logiciels</div>
-            <div class="card-body request-resource-body">
-                <div class="request-checkbox-grid request-resource-grid">
-                    {{ form_widget(form.logiciels) }}
-                </div>
+			<div class="card-body request-resource-body">
+				<div class="request-checkbox-grid request-resource-grid">
+					{{ form_widget(form.logiciels) }}
+				</div>
 				<div class="field-errors">{{ form_errors(form.logiciels) }}</div>
 			</div>
 		</div>
 
-        {% set hasTechniqueAccess = isServiceTechniqueUser|default(false) %}
+		{% set hasTechniqueAccess = isServiceTechniqueUser|default(false) %}
 
-        <div class="card request-form-card mb-4" id="materiel-card">
-            <div class="card-header">Matériel</div>
-            <div class="card-body request-resource-body">
-                
-                {# SECTION TECHNIQUE : Affichée SEULEMENT pour le Service Technique #}
-                {% if hasTechniqueAccess %}
-                    <h6 class="mb-2">Service technique (EPI, badge, jeu de clés)</h6>
-                    <div class="request-checkbox-grid request-resource-grid mb-3">
-                        {% for child in form.materiels %}
-                            {% set materialName = (child.vars.label ?? '')|lower %}
-                            {% set isStMaterial = 'badge' in materialName
+		<div class="card request-form-card mb-4" id="materiel-card">
+			<div class="card-header">Matériel</div>
+			<div
+				class="card-body request-resource-body">
+
+				{# SECTION TECHNIQUE : Affichée SEULEMENT pour le Service Technique #}
+				{% if hasTechniqueAccess %}
+					<h6 class="mb-2">Service technique (EPI, badge, jeu de clés)</h6>
+					<div class="request-checkbox-grid request-resource-grid mb-3">
+						{% for child in form.materiels %}
+							{% set materialName = (child.vars.label ?? '')|lower %}
+							{% set isStMaterial = 'badge' in materialName
                                 or 'clé' in materialName
                                 or 'cle' in materialName
                                 or 'casque' in materialName
@@ -178,20 +179,21 @@
                                 or 'harnais' in materialName
                                 or 'masque' in materialName
                                 or 'protection' in materialName %}
-                            {% if isStMaterial %}
-                                {{ form_widget(child) }}
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                    <hr> {# Une petite barre de séparation si le reste suit #}
-                {% endif %}
+							{% if isStMaterial %}
+								{{ form_widget(child) }}
+							{% endif %}
+						{% endfor %}
+					</div>
+					<hr>
+					{# Une petite barre de séparation si le reste suit #}
+				{% endif %}
 
-                {# SECTION AUTRES MATÉRIELS : Visible par tout le monde #}
-                <h6 class="mb-2">Autres matériels</h6>
-                <div class="request-checkbox-grid request-resource-grid">
-                    {% for child in form.materiels %}
-                        {% set materialName = (child.vars.label ?? '')|lower %}
-                        {% set isStMaterial = 'badge' in materialName
+				{# SECTION AUTRES MATÉRIELS : Visible par tout le monde #}
+				<h6 class="mb-2">Autres matériels</h6>
+				<div class="request-checkbox-grid request-resource-grid">
+					{% for child in form.materiels %}
+						{% set materialName = (child.vars.label ?? '')|lower %}
+						{% set isStMaterial = 'badge' in materialName
                             or 'clé' in materialName
                             or 'cle' in materialName
                             or 'casque' in materialName
@@ -204,25 +206,43 @@
                             or 'harnais' in materialName
                             or 'masque' in materialName
                             or 'protection' in materialName %}
-                        
-                        {# On affiche ici uniquement ce qui n'appartient PAS à la liste technique ci-dessus #}
-                        {% if not isStMaterial %}
-                            {{ form_widget(child) }}
-                        {% endif %}
-                    {% endfor %}
-                </div>
 
-                <div id="phone-type-wrapper" class="mt-3 d-none">
-                    {{ form_row(form.phoneTypes) }}
-                </div>
+						{# On affiche ici uniquement ce qui n'appartient PAS à la liste technique ci-dessus #}
+						{% if not isStMaterial %}
+							{{ form_widget(child) }}
+						{% endif %}
+					{% endfor %}
+				</div>
 
-                <div class="field-errors">{{ form_errors(form.materiels) }}</div>
-                <div class="field-errors">{{ form_errors(form.phoneTypes) }}</div>
-                {% do form.materiels.setRendered %}
-            </div>
+				<div id="phone-type-wrapper" class="mt-3 d-none">
+					{{ form_row(form.phoneTypes) }}
+				</div>
+
+				<div class="field-errors">{{ form_errors(form.materiels) }}</div>
+				<div class="field-errors">{{ form_errors(form.phoneTypes) }}</div>
+				{% do form.materiels.setRendered %}
+			</div>
+		</div>
+
+		<div class="card request-form-card mb-4">
+    <div class="card-header">Pièce jointe</div>
+    <div class="card-body">
+        <div class="custom-file-wrapper mb-2">
+            {{ form_widget(form.pieceJointe, {
+                'attr': {
+                    'class': 'custom-file-input',
+                    'style': 'display:none;',
+                    'onchange': "document.getElementById('file-name').textContent = this.files[0] ? this.files[0].name : 'Aucun fichier sélectionné';"
+                }
+            }) }}
+            <label for="{{ form.pieceJointe.vars.id }}" class="custom-file-label-btn">Sélectionner un fichier</label>
+            <span id="file-name" class="custom-file-label-text">Aucun fichier sélectionné</span>
         </div>
+        {{ form_errors(form.pieceJointe) }}
+    </div>
+</div>
 
-        {# commentaires #}
+		{# commentaires #}
 		<div class="card request-form-card mb-4">
 			<div class="card-header">Commentaires</div>
 			<div class="card-body">
@@ -230,7 +250,7 @@
 			</div>
 		</div>
 
-        {# parcours de validation #}
+		{# parcours de validation #}
 		<div class="card request-form-card mb-4">
 			<div class="card-body">
 				<div class="request-actions">
@@ -249,257 +269,333 @@
 			</div>
 		</div>
 
+
 		{{ form_end(form) }}
 	</div>
 
-<script>
-    const typeFieldName      = '{{ form.type.vars.full_name }}';
-    const typeRadios         = document.querySelectorAll(`input[name="${typeFieldName}"]`);
-    const logicielsCard      = document.getElementById('logiciels-card');
-    const materielCard       = document.getElementById('materiel-card');
-    const parentRequestInput = document.getElementById('{{ form.parentRequest.vars.id }}');
-    const confirmParentRequestBtn = document.getElementById('confirmParentRequestBtn');
-    const modalElement       = document.getElementById('parentRequestModal');
-    const requestForm        = document.querySelector('.request-form');
+	<script>
+		const typeFieldName = '{{ form.type.vars.full_name }}';
+const typeRadios = document.querySelectorAll (`input[name="${typeFieldName}"]`);
+const logicielsCard = document.getElementById('logiciels-card');
+const materielCard = document.getElementById('materiel-card');
+const parentRequestInput = document.getElementById('{{ form.parentRequest.vars.id }}');
+const confirmParentRequestBtn = document.getElementById('confirmParentRequestBtn');
+const modalElement = document.getElementById('parentRequestModal');
+const requestForm = document.querySelector('.request-form');
 
-    const fieldCivility      = document.getElementById('{{ form.civility.vars.id }}');
-    const fieldFirstname     = document.getElementById('{{ form.firstname.vars.id }}');
-    const fieldLastname      = document.getElementById('{{ form.lastname.vars.id }}');
-    const fieldEmail         = document.getElementById('{{ form.email.vars.id }}');
-    const fieldService       = document.getElementById('{{ form.service.vars.id }}');
-    const fieldJobTitle      = document.getElementById('{{ form.jobTitle.vars.id }}');
-    const fieldArrivalDate   = document.getElementById('{{ form.arrivalDate.vars.id }}');
-    const fieldDepartureDate = document.getElementById('{{ form.departureDate.vars.id }}');
-    const fieldCommentary    = document.getElementById('{{ form.commentary.vars.id }}');
-    const fieldClothingSize  = document.getElementById('{{ form.clothingSize.vars.id }}');
-    const fieldShoeSize      = document.getElementById('{{ form.shoeSize.vars.id }}');
-    const fieldPhoneTypeName = '{{ form.phoneTypes.vars.full_name }}';
-    const fieldPhoneTypeInputs = document.querySelectorAll(`input[name="${fieldPhoneTypeName}"]`);
-    const phoneTypeWrapper   = document.getElementById('phone-type-wrapper');
+const fieldCivility = document.getElementById('{{ form.civility.vars.id }}');
+const fieldFirstname = document.getElementById('{{ form.firstname.vars.id }}');
+const fieldLastname = document.getElementById('{{ form.lastname.vars.id }}');
+const fieldEmail = document.getElementById('{{ form.email.vars.id }}');
+const fieldService = document.getElementById('{{ form.service.vars.id }}');
+const fieldJobTitle = document.getElementById('{{ form.jobTitle.vars.id }}');
+const fieldArrivalDate = document.getElementById('{{ form.arrivalDate.vars.id }}');
+const fieldDepartureDate = document.getElementById('{{ form.departureDate.vars.id }}');
+const fieldCommentary = document.getElementById('{{ form.commentary.vars.id }}');{% if form.clothingSize is defined %}
+const fieldClothingSize = document.getElementById('{{ form.clothingSize.vars.id }}');
+{% else %}
+const fieldClothingSize = null;{% endif %}
+{% if form.shoeSize is defined %}
+const fieldShoeSize = document.getElementById('{{ form.shoeSize.vars.id }}');
+{% else %}
+const fieldShoeSize = null;{% endif %}
+const fieldPhoneTypeName = '{{ form.phoneTypes.vars.full_name }}';
+const fieldPhoneTypeInputs = document.querySelectorAll (`input[name="${fieldPhoneTypeName}"]`);
+const phoneTypeWrapper = document.getElementById('phone-type-wrapper');
 
-    const summaryAgent = document.getElementById('summary-agent');
-    const summaryService = document.getElementById('summary-service');
-    const summaryArrival = document.getElementById('summary-arrival');
-    const summaryDeparture = document.getElementById('summary-departure');
-    const summaryCommentary = document.getElementById('summary-commentary');
-    const summaryLogiciels = document.getElementById('summary-logiciels');
-    const summaryMateriels = document.getElementById('summary-materiels');
+const summaryAgent = document.getElementById('summary-agent');
+const summaryService = document.getElementById('summary-service');
+const summaryArrival = document.getElementById('summary-arrival');
+const summaryDeparture = document.getElementById('summary-departure');
+const summaryCommentary = document.getElementById('summary-commentary');
+const summaryLogiciels = document.getElementById('summary-logiciels');
+const summaryMateriels = document.getElementById('summary-materiels');
 
-    let parentModal = null;
-    if (window.bootstrap && modalElement) {
-        parentModal = new window.bootstrap.Modal(modalElement);
-    }
+let parentModal = null;
+if (window.bootstrap && modalElement) {
+parentModal = new window.bootstrap.Modal(modalElement);
+}
 
-    function isTypeRequiringParent(typeValue) {
-        return typeValue === 'modification' || typeValue === 'fermeture';
-    }
+function isTypeRequiringParent(typeValue) {
+return typeValue === 'modification' || typeValue === 'fermeture';
+}
 
-    function splitCsv(value) {
-        if (!value) return [];
-        return value.split(',').map(v => v.trim()).filter(Boolean);
-    }
+function splitCsv(value) {
+if (! value) 
+return [];
 
-    function getSelectedParentOption() {
-        if (!parentRequestInput) return null;
-        const option = parentRequestInput.options[parentRequestInput.selectedIndex];
-        return (option && option.value) ? option : null;
-    }
+return value.split(',').map(v => v.trim()).filter(Boolean);
+}
 
-    function setCardBodyOpacity(card, disabled) {
-        if (!card) return;
-        const body = card.querySelector('.card-body');
-        if (body) body.classList.toggle('opacity-50', disabled);
-    }
+function getSelectedParentOption() {
+if (! parentRequestInput) 
+return null;
 
-    function setResourceCheckboxes(card, selectedIds, disabled) {
-        if (!card) return;
-        card.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = selectedIds.includes(checkbox.value);
-            checkbox.disabled = disabled;
-        });
-        setCardBodyOpacity(card, disabled);
-        updatePhoneTypeVisibility();
-    }
+const option = parentRequestInput.options[parentRequestInput.selectedIndex];
+return(option && option.value) ? option : null;
+}
 
-    function normalizeLabel(value) {
-        return (value || '')
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '');
-    }
+function setCardBodyOpacity(card, disabled) {
+if (! card) 
+return;
 
-    function findTelephoneCheckbox() {
-        if (!materielCard) return null;
+const body = card.querySelector('.card-body');
+if (body) 
+body.classList.toggle('opacity-50', disabled);
 
-        const checkboxes = materielCard.querySelectorAll('input[type="checkbox"]');
-        for (const checkbox of checkboxes) {
-            const label = materielCard.querySelector(`label[for="${checkbox.id}"]`);
-            const labelText = normalizeLabel(label ? label.textContent : '');
+}
 
-            if (labelText.includes('telephone')) {
-                return checkbox;
-            }
-        }
+function setResourceCheckboxes(card, selectedIds, disabled) {
+if (! card) 
+return;
 
-        return null;
-    }
+card.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+checkbox.checked = selectedIds.includes(checkbox.value);
+checkbox.disabled = disabled;
+});
+setCardBodyOpacity(card, disabled);
+updatePhoneTypeVisibility();
+}
 
-    function updatePhoneTypeVisibility() {
-        if (!phoneTypeWrapper) return;
+function normalizeLabel(value) {
+return(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
 
-        const telephoneCheckbox = findTelephoneCheckbox();
-        const hasTelephone = Boolean(telephoneCheckbox && telephoneCheckbox.checked);
+function findTelephoneCheckbox() {
+if (! materielCard) 
+return null;
 
-        phoneTypeWrapper.classList.toggle('d-none', !hasTelephone);
 
-        if (!hasTelephone) {
-            fieldPhoneTypeInputs.forEach(input => {
-                input.checked = false;
-                input.disabled = false;
-            });
-            return;
-        }
+const checkboxes = materielCard.querySelectorAll('input[type="checkbox"]');
+for (const checkbox of checkboxes) {
+const label = materielCard.querySelector (`label[for="${
+checkbox.id
+}"]`);
+const labelText = normalizeLabel(label ? label.textContent : '');
 
-        const shouldDisable = Boolean(telephoneCheckbox && telephoneCheckbox.disabled);
-        fieldPhoneTypeInputs.forEach(input => {
-            input.disabled = shouldDisable;
-        });
-    }
+if (labelText.includes('telephone')) {
+return checkbox;
+}
+}
 
-    function setFieldOpacity(field, disabled) {
-        if (!field) return;
-        const col = field.closest('.col-md-6') || field.closest('.col-12') || field.parentElement;
-        if (col) col.classList.toggle('opacity-50', disabled);
-    }
+return null;
+}
 
-    function disableAgentSection(disabled) {
-        // Griser chaque champ individuellement (sauf departureDate)
-        [fieldCivility, fieldFirstname, fieldLastname, fieldEmail,
-         fieldService, fieldJobTitle, fieldArrivalDate, fieldClothingSize, fieldShoeSize].forEach(el => {
-            if (el) el.disabled = disabled;
-            setFieldOpacity(el, disabled);
-        });
+function updatePhoneTypeVisibility() {
+if (! phoneTypeWrapper) 
+return;
 
-        if (fieldCommentary) fieldCommentary.disabled = disabled;
-        setCardBodyOpacity(fieldCommentary ? fieldCommentary.closest('.card') : null, disabled);
-    }
 
-    // Pré-remplir les champs et cocher les ressources associées en fonction de la demande parent sélectionnée
-    function prefillFromParent() {
-        const option = getSelectedParentOption();
-        if (!option) return null;
-        const d = option.dataset;
+const telephoneCheckbox = findTelephoneCheckbox();
+const hasTelephone = Boolean(telephoneCheckbox && telephoneCheckbox.checked);
 
-        if (fieldCivility)      fieldCivility.value      = d.civility || '';
-        if (fieldFirstname)     fieldFirstname.value     = d.firstname || '';
-        if (fieldLastname)      fieldLastname.value      = d.lastname || '';
-        if (fieldEmail)         fieldEmail.value         = d.email || '';
-        if (fieldService)       fieldService.value       = d.serviceId || '';
-        if (fieldJobTitle)      fieldJobTitle.value      = d.jobTitle || '';
-        if (fieldClothingSize)  fieldClothingSize.value  = d.clothingSize || '';
-        if (fieldShoeSize)      fieldShoeSize.value      = d.shoeSize || '';
-        if (d.phoneTypes) {
-            const selectedPhoneTypes = splitCsv(d.phoneTypes);
-            fieldPhoneTypeInputs.forEach(input => {
-                input.checked = selectedPhoneTypes.includes(input.value);
-            });
-        }
-        if (fieldArrivalDate)   fieldArrivalDate.value   = d.arrivalDateInput || '';
-        if (fieldDepartureDate) fieldDepartureDate.value = d.departureDateInput || '';
-        if (fieldCommentary)    fieldCommentary.value    = d.commentary || '';
+phoneTypeWrapper.classList.toggle('d-none', ! hasTelephone);
 
-        updatePhoneTypeVisibility();
+if (! hasTelephone) {
+fieldPhoneTypeInputs.forEach(input => {
+input.checked = false;
+input.disabled = false;
+});
+return;
+}
 
-        return {
-            logicielIds: splitCsv(d.logicielIds),
-            materielIds: splitCsv(d.materielIds),
-        };
-    }
+const shouldDisable = Boolean(telephoneCheckbox && telephoneCheckbox.disabled);
+fieldPhoneTypeInputs.forEach(input => {
+input.disabled = shouldDisable;
+});
+}
 
-    function resetToEditable() {
-        disableAgentSection(false);
-        [logicielsCard, materielCard].forEach(card => {
-            if (!card) return;
-            card.querySelectorAll('input[type="checkbox"]').forEach(c => { c.checked = false; c.disabled = false; });
-            setCardBodyOpacity(card, false);
-        });
-        updatePhoneTypeVisibility();
-    }
+function setFieldOpacity(field, disabled) {
+if (! field) 
+return;
 
-    function applyTypeUi(typeValue) {
-        const isFermeture  = typeValue === 'fermeture';
-        const needsParent  = isFermeture || typeValue === 'modification';
+const col = field.closest('.col-md-6') || field.closest('.col-12') || field.parentElement;
+if (col) 
+col.classList.toggle('opacity-50', disabled);
 
-        if (parentRequestInput) parentRequestInput.required = needsParent;
+}
 
-        if (!needsParent) {
-            resetToEditable();
-            return;
-        }
+function disableAgentSection(disabled) { // Griser chaque champ individuellement (sauf departureDate)
+[
+fieldCivility,
+fieldFirstname,
+fieldLastname,
+fieldEmail,
+fieldService,
+fieldJobTitle,
+fieldArrivalDate,
+fieldClothingSize,
+fieldShoeSize
+].forEach(el => {
+if (el) 
+el.disabled = disabled;
 
-        if (!getSelectedParentOption()) {
-            if (parentModal) parentModal.show();
-            return;
-        }
+setFieldOpacity(el, disabled);
+});
 
-        const parentData = prefillFromParent();
+if (fieldCommentary) 
+fieldCommentary.disabled = disabled;
 
-        if (isFermeture) {
-            // Griser tout sauf la date de départ
-            disableAgentSection(true);
-            if (fieldDepartureDate) fieldDepartureDate.disabled = false;
-			if (fieldCommentary) fieldCommentary.disabled = false;
-			setCardBodyOpacity(fieldCommentary ? fieldCommentary.closest('.card') : null, false);
-            setResourceCheckboxes(logicielsCard, parentData ? parentData.logicielIds : [], true);
-            setResourceCheckboxes(materielCard,  parentData ? parentData.materielIds : [], true);
-        } else {
-            // Modification : pré-remplir, tout laisser éditable
-            disableAgentSection(false);
-            if (parentData) {
-                setResourceCheckboxes(logicielsCard, parentData.logicielIds, false);
-                setResourceCheckboxes(materielCard,  parentData.materielIds, false);
-            }
-        }
-    }
+setCardBodyOpacity(fieldCommentary ? fieldCommentary.closest('.card') : null, disabled);
+}
 
-    // Re-enable les champs disabled avant soumission
-    // (les champs disabled ne sont pas inclus dans le POST sinon)
-    if (requestForm) {
-        requestForm.addEventListener('submit', function () {
-            requestForm.querySelectorAll('input:disabled, select:disabled, textarea:disabled').forEach(el => {
-                el.disabled = false;
-            });
-        });
-    }
+// Pré-remplir les champs et cocher les ressources associées en fonction de la demande parent sélectionnée
+function prefillFromParent() {
+const option = getSelectedParentOption();
+if (! option) 
+return null;
 
-    typeRadios.forEach(radio => {
-        radio.addEventListener('change', function () { applyTypeUi(this.value); });
-    });
+const d = option.dataset;
 
-    if (parentRequestInput) {
-        parentRequestInput.addEventListener('change', function () {
-            const checked = document.querySelector(`input[name="${typeFieldName}"]:checked`);
-            if (checked) applyTypeUi(checked.value);
-        });
-    }
+if (fieldCivility) 
+fieldCivility.value = d.civility || '';
 
-    if (materielCard) {
-        materielCard.addEventListener('change', function (event) {
-            if (event.target instanceof HTMLInputElement && event.target.type === 'checkbox') {
-                updatePhoneTypeVisibility();
-            }
-        });
-    }
+if (fieldFirstname) 
+fieldFirstname.value = d.firstname || '';
 
-    if (confirmParentRequestBtn) {
-        confirmParentRequestBtn.addEventListener('click', function () {
-            const checked = document.querySelector(`input[name="${typeFieldName}"]:checked`);
-            if (checked) applyTypeUi(checked.value);
-        });
-    }
+if (fieldLastname) 
+fieldLastname.value = d.lastname || '';
 
-    const checkedRadio = document.querySelector(`input[name="${typeFieldName}"]:checked`);
-    applyTypeUi(checkedRadio ? checkedRadio.value : 'ouverture');
-    updatePhoneTypeVisibility();
-</script>
+if (fieldEmail) 
+fieldEmail.value = d.email || '';
+
+if (fieldService) 
+fieldService.value = d.serviceId || '';
+
+if (fieldJobTitle) 
+fieldJobTitle.value = d.jobTitle || '';
+
+if (fieldClothingSize) 
+fieldClothingSize.value = d.clothingSize || '';
+
+if (fieldShoeSize) 
+fieldShoeSize.value = d.shoeSize || '';
+
+if (d.phoneTypes) {
+const selectedPhoneTypes = splitCsv(d.phoneTypes);
+fieldPhoneTypeInputs.forEach(input => {
+input.checked = selectedPhoneTypes.includes(input.value);
+});
+}
+if (fieldArrivalDate) 
+fieldArrivalDate.value = d.arrivalDateInput || '';
+
+if (fieldDepartureDate) 
+fieldDepartureDate.value = d.departureDateInput || '';
+
+if (fieldCommentary) 
+fieldCommentary.value = d.commentary || '';
+
+
+updatePhoneTypeVisibility();
+
+return {
+logicielIds: splitCsv(d.logicielIds),
+materielIds: splitCsv(d.materielIds)
+};
+}
+
+function resetToEditable() {
+disableAgentSection(false);
+[logicielsCard, materielCard].forEach(card => {
+if (!card) 
+return;
+
+card.querySelectorAll('input[type="checkbox"]').forEach(c => {
+c.checked = false;
+c.disabled = false;
+});
+setCardBodyOpacity(card, false);
+});
+updatePhoneTypeVisibility();
+}
+
+function applyTypeUi(typeValue) {
+const isFermeture = typeValue === 'fermeture';
+const needsParent = isFermeture || typeValue === 'modification';
+
+if (parentRequestInput) 
+parentRequestInput.required = needsParent;
+
+
+if (! needsParent) {
+resetToEditable();
+return;
+}
+
+if (! getSelectedParentOption()) {
+if (parentModal) 
+parentModal.show();
+
+return;
+}
+
+const parentData = prefillFromParent();
+
+if (isFermeture) { // Griser tout sauf la date de départ
+disableAgentSection(true);
+if (fieldDepartureDate) 
+fieldDepartureDate.disabled = false;
+
+if (fieldCommentary) 
+fieldCommentary.disabled = false;
+
+setCardBodyOpacity(fieldCommentary ? fieldCommentary.closest('.card') : null, false);
+setResourceCheckboxes(logicielsCard, parentData ? parentData.logicielIds : [], true);
+setResourceCheckboxes(materielCard, parentData ? parentData.materielIds : [], true);
+} else { // Modification : pré-remplir, tout laisser éditable
+disableAgentSection(false);
+if (parentData) {
+setResourceCheckboxes(logicielsCard, parentData.logicielIds, false);
+setResourceCheckboxes(materielCard, parentData.materielIds, false);
+}
+}
+}
+
+// Re-enable les champs disabled avant soumission
+// (les champs disabled ne sont pas inclus dans le POST sinon)
+if (requestForm) {
+requestForm.addEventListener('submit', function () {
+requestForm.querySelectorAll('input:disabled, select:disabled, textarea:disabled').forEach(el => {
+el.disabled = false;
+});
+});
+}
+
+typeRadios.forEach(radio => {
+radio.addEventListener('change', function () {
+applyTypeUi(this.value);
+});
+});
+
+if (parentRequestInput) {
+parentRequestInput.addEventListener('change', function () {
+const checked = document.querySelector (`input[name="${typeFieldName}"]:checked`);
+if (checked) 
+applyTypeUi(checked.value);
+
+});
+}
+
+if (materielCard) {
+materielCard.addEventListener('change', function (event) {
+if (event.target instanceof HTMLInputElement && event.target.type === 'checkbox') {
+updatePhoneTypeVisibility();
+}
+});
+}
+
+if (confirmParentRequestBtn) {
+confirmParentRequestBtn.addEventListener('click', function () {
+const checked = document.querySelector (`input[name="${typeFieldName}"]:checked`);
+if (checked) 
+applyTypeUi(checked.value);
+
+});
+}
+
+const checkedRadio = document.querySelector (`input[name="${typeFieldName}"]:checked`);
+applyTypeUi(checkedRadio ? checkedRadio.value : 'ouverture');
+updatePhoneTypeVisibility();
+	</script>
 {% endblock %}

@@ -13,6 +13,7 @@ use App\Form\Model\NewRequestData;
 use App\Repository\AgentRepository;
 use App\Repository\WorkflowTransitionConfigRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class RequestCreationService
 {
@@ -33,6 +34,7 @@ final class RequestCreationService
         string $requestType,
         string $initialStatus,
         ?AccessRequest $effectiveParentRequest,
+        ?UploadedFile $pieceJointeFile = null,
         ?callable $failureHook = null,
     ): AccessRequest {
         $connection = $this->em->getConnection();
@@ -154,6 +156,23 @@ final class RequestCreationService
 
             if ($failureHook !== null) {
                 $failureHook('after_history');
+            }
+
+
+            if ($pieceJointeFile instanceof UploadedFile) {
+                $originalFilename = pathinfo($pieceJointeFile->getClientOriginalName(), PATHINFO_FILENAME);
+                $safeFilename = transliterator_transliterate('Any-Latin; Latin-ASCII; [^A-Za-z0-9_] remove; Lower()', $originalFilename);
+                $newFilename = $safeFilename . '-' . uniqid() . '.' . $pieceJointeFile->guessExtension();
+
+                try {
+                    $pieceJointeFile->move(
+                        __DIR__ . '/../../public/uploads/pieces_jointes',
+                        $newFilename
+                    );
+                    $newRequest->setPieceJointe($newFilename);
+                } catch (\Exception $e) {
+                    throw new \RuntimeException('Erreur upload pièce jointe : ' . $e->getMessage());
+                }
             }
 
             $this->em->flush();

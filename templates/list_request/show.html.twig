@@ -175,6 +175,17 @@
 										</dl>
 									{% endif %}
 								</div>
+								{% if requestEntity.pieceJointe %}
+									<div class="custom-file-wrapper mt-2">
+										<a href="{{ asset('uploads/pieces_jointes/' ~ requestEntity.pieceJointe) }}" target="_blank" class="custom-file-label-btn" download>
+											<i class="bi bi-paperclip me-1"></i> Télécharger la pièce jointe
+										</a>
+										<span class="custom-file-label-text">{{ requestEntity.pieceJointe }}</span>
+									</div>
+									</a>
+								{% else %}
+									<span class="text-muted">Aucune pièce jointe</span>
+								{% endif %}
 							</div>
 						</div>
 

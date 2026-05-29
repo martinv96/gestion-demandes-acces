@@ -40,6 +40,8 @@ final class NewRequestController extends AbstractController
 
         $form->handleRequest($request);
 
+        $pieceJointeFile = $form->get('pieceJointe')->getData();
+
         // Si le formulaire est soumis et valide, créer la demande d'accès
         if ($form->isSubmitted() && $form->isValid()) {
             $requestType = $formData->getType() ?? AccessRequest::TYPE_OUVERTURE;
@@ -126,7 +128,8 @@ final class NewRequestController extends AbstractController
                     $currentUser,
                     $requestType,
                     $initialStatus,
-                    $effectiveParentRequest
+                    $effectiveParentRequest,
+                    $pieceJointeFile,
                 );
 
                 $messageBus->dispatch(new WorkflowNotificationMessage(

@@ -17,6 +17,8 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use App\Entity\Request as AccessRequest;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Validator\Constraints\File;
 
 
 final class NewRequestType extends AbstractType
@@ -88,6 +90,21 @@ final class NewRequestType extends AbstractType
             ])
             ->add('jobTitle', TextType::class, [
                 'label' => 'Fonction *',
+            ])
+            ->add('pieceJointe', FileType::class, [
+                'label' => 'Pièce jointe (PDF ou DOCX)',
+                'mapped' => false,
+                'required' => false,
+                'constraints' => [
+                    new File ([
+                        'maxSize' => '5M',
+                        'mimeTypes' => [
+                            'application/pdf',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        ],
+                        'mimeTypesMessage' => 'Merci d\'uploader un PDF ou DOCX valide',
+                    ])
+                ],
             ]);
 
             if ($isTechnique) {
