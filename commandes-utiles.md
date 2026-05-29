@@ -4,6 +4,10 @@ sudo rm -rf var/cache/* && sudo -u www-data APP_ENV=prod php bin/console cache:w
 sudo systemctl status nginx php8.3-fpm mysql
 sudo systemctl restart nginx php8.3-fpm
 
+commande pour la migration:
+sudo -u www-data APP_ENV=prod php bin/console doctrine:migrations:migrate --no-interaction
+
+
 
 cd /opt/apps/gestion-demandes-acces
 sudo chown -R www-data:www-data public/assets
