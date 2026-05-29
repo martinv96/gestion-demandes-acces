@@ -78,7 +78,7 @@
 					{% if app.user %}
 						<div class="mb-3 px-2">
 							<p class="text-sm text-muted mb-0">Connecté en tant que :</p>
-							<p class="text-sm fw-medium mb-0">{{ app.user.displayName }}</p>
+							<p class="text-sm fw-medium mb-0" style="margin-left: 14px;">{{ app.user.displayName }}</p>
 						</div>
 						<form action="{{ path('app_logout') }}" method="POST">
 							<button type="submit" class="btn btn-light w-100 d-flex align-items-center justify-content-center gap-2">

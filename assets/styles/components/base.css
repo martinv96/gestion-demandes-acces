@@ -36,6 +36,11 @@ a:hover {
     color: var(--theme-text-soft) !important;
 }
 
+.text-muted {
+    margin-left: 15px;
+    margin-bottom: 10px;
+}
+
 b,
 .workflow-actions-title,
 .validation-step-title,
