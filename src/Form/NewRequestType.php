@@ -69,9 +69,15 @@ final class NewRequestType extends AbstractType
             ])
             ->add('firstname', TextType::class, [
                 'label' => 'Prénom *',
+                'attr' => [
+                    'placeholder' => 'Marie'
+                ],
             ])
             ->add('lastname', TextType::class, [
                 'label' => 'Nom *',
+                'attr' => [
+                    'placeholder' => 'Dupont'
+                ],
             ])
             ->add('email', EmailType::class, [
                 'label' => 'Email *',
@@ -90,6 +96,9 @@ final class NewRequestType extends AbstractType
             ])
             ->add('jobTitle', TextType::class, [
                 'label' => 'Fonction *',
+                'attr' => [
+                    'placeholder' => 'Saisissez la fonction de l\'agent'
+                ],
             ])
             ->add('pieceJointe', FileType::class, [
                 'label' => 'Pièce jointe (PDF ou DOCX)',
