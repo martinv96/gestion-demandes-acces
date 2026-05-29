@@ -90,10 +90,10 @@
 						'en_attente_st': 'En attente ST',
 						'en_attente_dsi': 'En attente DSI',
 						'en_attente_traitement': 'En attente traitement',
-						'traitee': 'Validee',
-						'refusee_rh': 'Refusee RH',
-						'refusee_st': 'Refusee ST',
-						'refusee_dsi': 'Refusee DSI'
+						'traitee': 'Validée',
+						'refusee_rh': 'Refusée RH',
+						'refusee_st': 'Refusée ST',
+						'refusee_dsi': 'Refusée DSI'
 					} %}
 					{% set statusLabel = statusMap[request.status]|default(request.status|replace({'_': ' '})|capitalize) %}
 					{% set statusClass = request.status starts with 'refusee_' ? 'is-danger' : (request.status == 'traitee' ? 'is-success' : 'is-warning') %}
