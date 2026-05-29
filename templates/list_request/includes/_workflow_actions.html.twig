@@ -1,120 +1,236 @@
-{% if canValidate or canRefuse or canUndo or canUnblock %}
+{# Interface spéciale pour ADMIN : liste verticale de validation/refus par service #}
+{% if 'ROLE_ADMIN' in app.user.roles %}
     <div class="validationCard row mt-4">
         <div class="col-12">
             <div class="card border-0 workflow-actions-card" id="workflowActionsCard">
                 <div class="card-body">
                     <div class="workflow-actions-header mb-3">
-                        <p class="workflow-actions-eyebrow mb-1">Decisions</p>
-                        <h3 class="workflow-actions-title mb-0 text-secondary">Statuer sur la demande :</h3>
+                        <p class="workflow-actions-eyebrow mb-1">Décisions administrateur</p>
+                        <h3 class="workflow-actions-title mb-0 text-secondary">Valider ou refuser chaque étape :</h3>
                     </div>
-                    <div class="d-flex flex-wrap gap-3 align-items-start" id="workflowActionButtons">
-                        {% if canValidate %}
-                            <div data-workflow-action="validate">
-                                <button class="btn workflow-action-trigger workflow-action-trigger--validate" type="button" data-workflow-open="validate">
-                                    <span class="workflow-action-icon">✓</span>
-                                    <span>Valider la demande</span>
-                                </button>
-                            </div>
-                        {% endif %}
-
-                        {% if canRefuse %}
-                            <div data-workflow-action="refuse">
-                                <button class="btn workflow-action-trigger workflow-action-trigger--refuse" type="button" data-workflow-open="refuse">
-                                    <span class="workflow-action-icon">x</span>
-                                    <span>Refuser la demande</span>
-                                </button>
-                            </div>
-                        {% endif %}
-
-                        {% if canUndo %}
-                            <div data-workflow-action="undo">
-                                <button class="btn workflow-action-trigger workflow-action-trigger--undo" type="button" data-workflow-open="undo">
-                                    <span class="workflow-action-icon">↺</span>
-                                    <span>Annuler la derniere decision</span>
-                                </button>
-                            </div>
-                        {% endif %}
-
-                        {% if canUnblock %}
-                            <div data-workflow-action="unblock">
-                                <button class="btn workflow-action-trigger workflow-action-trigger--undo" type="button" data-workflow-open="unblock">
-                                    <span class="workflow-action-icon">↻</span>
-                                    <span>Debloquer la demande (RH)</span>
-                                </button>
-                            </div>
-                        {% endif %}
-
-                    </div>
-
-                    {% if canValidate %}
-                        <div class="mt-3 d-none" data-workflow-panel="validate">
-                            <form method="post" action="{{ path('app_request_validate', {id: requestEntity.id}) }}">
-                                <input type="hidden" name="_token" value="{{ csrf_token('workflow_' ~ requestEntity.id) }}">
-                                <input type="hidden" name="version" value="{{requestEntity.version}}" >
-                                <div class="mb-2">
-                                    <label class="form-label fw-semibold">Commentaire obligatoire *</label>
-                                    <textarea name="comment" class="form-control" rows="3" placeholder="Indiquer un commentaire de validation..." required></textarea>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn workflow-submit-button workflow-submit-button--validate">Confirmer la validation</button>
-                                    <button type="button" class="btn workflow-secondary-button" data-workflow-cancel>Fermer</button>
-                                </div>
-                            </form>
-                        </div>
-                    {% endif %}
-
-                    {% if canRefuse %}
-                        <div class="mt-3 d-none" data-workflow-panel="refuse">
-                            <form method="post" action="{{ path('app_request_refuse', {id: requestEntity.id}) }}">
-                                <input type="hidden" name="_token" value="{{ csrf_token('workflow_' ~ requestEntity.id) }}">
-                                <input type="hidden" name="version" value="{{requestEntity.version}}">
-                                <div class="mb-2">
-                                    <label class="form-label fw-semibold">Commentaire obligatoire *</label>
-                                    <textarea name="comment" class="form-control" rows="3" placeholder="Indiquer la raison du refus..." required></textarea>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn workflow-submit-button workflow-submit-button--refuse justify-content-center">Confirmer le refus</button>
-                                    <button type="button" class="btn workflow-secondary-button" data-workflow-cancel>Fermer</button>
-                                </div>
-                            </form>
-                        </div>
-                    {% endif %}
-
-                    {% if canUndo %}
-                        <div class="mt-3 d-none" data-workflow-panel="undo">
-                            <form method="post" action="{{ path('app_request_undo_decision', {id: requestEntity.id}) }}">
-                                <input type="hidden" name="_token" value="{{ csrf_token('workflow_undo_' ~ requestEntity.id) }}">
-                                <input type="hidden" name="version" value="{{ requestEntity.version }}">
-                                <div class="mb-2">
-                                    <label class="form-label fw-semibold">Motif d'annulation *</label>
-                                    <textarea name="comment" class="form-control" rows="3" placeholder="Expliquer pourquoi la derniere decision doit etre annulee..." required></textarea>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn workflow-submit-button workflow-submit-button--undo">Confirmer l'annulation</button>
-                                    <button type="button" class="btn workflow-secondary-button" data-workflow-cancel>Fermer</button>
-                                </div>
-                            </form>
-                        </div>
-                    {% endif %}
-
-                    {% if canUnblock %}
-                        <div class="mt-3 d-none" data-workflow-panel="unblock">
-                            <form method="post" action="{{ path('app_request_unblock', {id: requestEntity.id}) }}">
-                                <input type="hidden" name="_token" value="{{ csrf_token('workflow_unblock_' ~ requestEntity.id) }}">
-                                <input type="hidden" name="version" value="{{ requestEntity.version }}">
-                                <div class="mb-2">
-                                    <label class="form-label fw-semibold">Motif du deblocage *</label>
-                                    <textarea name="comment" class="form-control" rows="3" placeholder="Expliquer pourquoi RH doit debloquer cette etape..." required></textarea>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn workflow-submit-button workflow-submit-button--undo">Confirmer le deblocage</button>
-                                    <button type="button" class="btn workflow-secondary-button" data-workflow-cancel>Fermer</button>
-                                </div>
-                            </form>
-                        </div>
-                    {% endif %}
+                    <ul class="list-group mb-3">
+                        {# Mapping services #}
+                        {% set labelMap = {
+                            'RH': 'Ressources humaines',
+                            'ROLE_RH': 'Ressources humaines',
+                            'ST': 'Service technique',
+                            'ROLE_ST': 'Service technique',
+                            'DSI': 'Direction des Services Informatiques',
+                            'ROLE_DSI': 'Direction des Services Informatiques',
+                            'FIN': 'Finances',
+                            'ROLE_FIN': 'Finances',
+                            'COM': 'Communication',
+                            'ROLE_COM': 'Communication',
+                            'ADMIN': 'Administration générale',
+                            'ROLE_ADMIN': 'Administration générale',
+                            'CABINET': 'Cabinet du maire',
+                            'ROLE_CABINET': 'Cabinet du maire',
+                            'COMMANDE': 'Commande publique',
+                            'ROLE_COMMANDE': 'Commande publique',
+                            'DGS': 'Direction Générale des services',
+                            'ROLE_DGS': 'Direction Générale des services',
+                            'EDUCATION': 'Education',
+                            'ROLE_EDUCATION': 'Education',
+                            'PARCS': 'Parcs et jardins',
+                            'ROLE_PARCS': 'Parcs et jardins',
+                            'PERISCOLAIRE': 'Périscolaire',
+                            'ROLE_PERISCOLAIRE': 'Périscolaire',
+                            'PETITE_ENFANCE': 'Petite enfance',
+                            'ROLE_PETITE_ENFANCE': 'Petite enfance',
+                            'PMI': 'Protection Maternelle et Infantile',
+                            'ROLE_PMI': 'PMI',
+                            'POLICE': 'Police Municipale',
+                            'ROLE_POLICE': 'Police Municipale',
+                            'RESTAURATION': 'Restauration',
+                            'ROLE_RESTAURATION': 'Restauration',
+                            'RPA': 'Résidence des Personnes Agées',
+                            'ROLE_RPA': 'Résidence des Personnnes Agées',
+                            'SOLIDARITE': 'Solidarité et développement social',
+                            'ROLE_SOLIDARITE': 'Solidarité et développement social',
+                            'SPORT': 'Sport et vie associative',
+                            'ROLE_SPORT': 'Sport et vie associative',
+                            'URBANISME': 'Urbanisme',
+                            'ROLE_URBANISME': 'Urbanisme',
+                        } %}
+                        {# Pour l'affichage, on utilise labelMap pour tout #}
+                        {% for step in workflowSteps %}
+                            {% if not step.stepDone %}
+                                {% set serviceLabel = labelMap[step.label] is defined ? labelMap[step.label] : step.label %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Étape {{ serviceLabel }}</span>
+                                    <div class="d-flex gap-2">
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-success btn-sm" onclick="toggleCommentBox(this, 'validate')">Validé pour {{ serviceLabel|lower }}</button>
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="toggleCommentBox(this, 'refuse')">Refuser pour {{ serviceLabel|lower }}</button>
+                                        </div>
+                                        <div class="comment-box position-absolute shadow rounded p-3 bg-white border mt-2"
+                                             style="display:none; min-width:320px; max-width:420px; z-index:10; right:0;"
+                                             data-action-validate="{{ path('app_request_validate', {id: requestEntity.id, service: step.role }) }}"
+                                             data-action-refuse="{{ path('app_request_refuse', {id: requestEntity.id, service: step.role }) }}">
+                                            <form method="post" action="" class="mb-0">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('workflow_' ~ requestEntity.id) }}">
+                                                <input type="hidden" name="version" value="{{ requestEntity.version }}">
+                                                <input type="hidden" name="admin_service" value="{{ step.role }}">
+                                                <label class="form-label mb-1" for="comment-{{ step.role }}">Commentaire <span class="text-danger">*</span></label>
+                                                <textarea id="comment-{{ step.role }}" name="comment" class="form-control mb-2" rows="3" placeholder="Saisir un commentaire..." required style="resize:vertical;"></textarea>
+                                                <div class="d-flex gap-2 justify-content-end">
+                                                    <button type="submit" class="btn btn-success btn-sm" style="display:none;">Valider</button>
+                                                    <button type="submit" class="btn btn-danger btn-sm" style="display:none;">Refuser</button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleCommentBox(this, null, true)">Annuler</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    {% block javascripts %}
+                                    <script>
+                                    function toggleCommentBox(btn, action, cancel = false) {
+                                        // Ferme toutes les autres zones
+                                        document.querySelectorAll('.comment-box').forEach(function(box) {
+                                            box.style.display = 'none';
+                                            var form = box.querySelector('form');
+                                            if (form) {
+                                                form.action = '';
+                                                var valBtn = form.querySelector('button.btn-success');
+                                                var refBtn = form.querySelector('button.btn-danger');
+                                                if (valBtn) valBtn.style.display = 'none';
+                                                if (refBtn) refBtn.style.display = 'none';
+                                            }
+                                        });
+                                        if (cancel) return;
+                                        // Trouve la bonne box
+                                        var li = btn.closest('li');
+                                        var box = li.querySelector('.comment-box');
+                                        var form = box.querySelector('form');
+                                        var valBtn = form.querySelector('button.btn-success');
+                                        var refBtn = form.querySelector('button.btn-danger');
+                                        if (action === 'validate') {
+                                            var validateUrl = box.getAttribute('data-action-validate');
+                                            form.action = validateUrl;
+                                            valBtn.style.display = '';
+                                            refBtn.style.display = 'none';
+                                        } else {
+                                            var refuseUrl = box.getAttribute('data-action-refuse');
+                                            form.action = refuseUrl;
+                                            valBtn.style.display = 'none';
+                                            refBtn.style.display = '';
+                                        }
+                                        box.style.display = '';
+                                        form.querySelector('textarea').focus();
+                                    }
+                                    </script>
+                                    {% endblock %}
+                                    </div>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
+{% else %}
+    {# Interface classique pour les autres utilisateurs #}
+    {% if canValidate or canRefuse or canUndo or canUnblock %}
+        <div class="validationCard row mt-4">
+            <div class="col-12">
+                <div class="card border-0 workflow-actions-card service-user" id="workflowActionsCard">
+                    <div class="card-body">
+                        <div class="workflow-actions-header mb-3">
+                            <p class="workflow-actions-eyebrow mb-1">Décisions</p>
+                            <h3 class="workflow-actions-title mb-0 text-secondary">Statuer sur la demande :</h3>
+                        </div>
+                        <div class="d-flex flex-wrap gap-3 align-items-start" id="workflowActionButtons">
+                            {% if canValidate %}
+                                <button id="showValidateBtn" class="btn btn-success btn-sm" type="button" onclick="toggleServiceCommentBox('validate')">
+                                    <span class="workflow-action-icon">✓</span>
+                                    <span>Valider la demande</span>
+                                </button>
+                            {% endif %}
+                            {% if canRefuse %}
+                                <button id="showRefuseBtn" class="btn btn-danger btn-sm" type="button" onclick="toggleServiceCommentBox('refuse')">
+                                    <span class="workflow-action-icon">x</span>
+                                    <span>Refuser la demande</span>
+                                </button>
+                            {% endif %}
+                        </div>
+                        <div id="serviceCommentBox" style="display:none; margin-top:1rem; width:100%;">
+                            <form id="serviceActionForm" method="post" action="" style="width:100%; padding:0; margin:0; display:flex; flex-direction:column; align-items:flex-start;">
+                                <input type="hidden" name="_token" value="{{ csrf_token('workflow_' ~ requestEntity.id) }}">
+                                <input type="hidden" name="version" value="{{ requestEntity.version }}">
+                                <textarea name="comment" class="form-control form-control-sm" placeholder="Commentaire obligatoire" required style="width:100%; min-width:100%; max-width:100%; margin-bottom:0.5rem;"></textarea>
+                                <div style="display:flex; gap:0.5rem;">
+                                    <button id="serviceValidateBtn" class="btn btn-success btn-sm" type="submit" style="display:none;">
+                                        <span class="workflow-action-icon">✓</span>
+                                        <span>Confirmer la validation</span>
+                                    </button>
+                                    <button id="serviceRefuseBtn" class="btn btn-danger btn-sm" type="submit" style="display:none;">
+                                        <span class="workflow-action-icon">x</span>
+                                        <span>Confirmer le refus</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        <script>
+                        function toggleServiceCommentBox(action, cancel = false) {
+                            var box = document.getElementById('serviceCommentBox');
+                            var form = document.getElementById('serviceActionForm');
+                            var valBtn = document.getElementById('serviceValidateBtn');
+                            var refBtn = document.getElementById('serviceRefuseBtn');
+                            var showValidateBtn = document.getElementById('showValidateBtn');
+                            var showRefuseBtn = document.getElementById('showRefuseBtn');
+                            if (cancel) {
+                                box.style.display = 'none';
+                                form.action = '';
+                                valBtn.style.display = 'none';
+                                refBtn.style.display = 'none';
+                                if (showValidateBtn) showValidateBtn.style.display = '';
+                                if (showRefuseBtn) showRefuseBtn.style.display = '';
+                                return;
+                            }
+                            if (action === 'validate') {
+                                form.action = "{{ path('app_request_validate', {id: requestEntity.id}) }}";
+                                valBtn.style.display = '';
+                                refBtn.style.display = 'none';
+                                if (showValidateBtn) showValidateBtn.style.display = 'none';
+                                if (showRefuseBtn) showRefuseBtn.style.display = 'none';
+                            } else if (action === 'refuse') {
+                                form.action = "{{ path('app_request_refuse', {id: requestEntity.id}) }}";
+                                valBtn.style.display = 'none';
+                                refBtn.style.display = '';
+                                if (showValidateBtn) showValidateBtn.style.display = 'none';
+                                if (showRefuseBtn) showRefuseBtn.style.display = 'none';
+                            }
+                            box.style.display = '';
+                            form.querySelector('textarea').focus();
+                        }
+                        </script>
+                        {# Undo et autres actions restent inchangés #}
+                        <div class="row mt-2 LastDecisionB">
+                            <div class="col-12 px-0" style="display:flex; flex-direction:column; align-items:flex-start;">
+                                {% if canUndo %}
+                                    <form method="post" action="{{ path('app_request_undo_decision', {id: requestEntity.id}) }}" style="width:auto;">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('workflow_undo_' ~ requestEntity.id) }}">
+                                        <input type="hidden" name="version" value="{{ requestEntity.version }}">
+                                        <button class="btn btn-warning btn-sm mt-2" type="submit">
+                                            <span class="workflow-action-icon">↺</span>
+                                            <span>Annuler la dernière décision</span>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                {% if canUnblock %}
+                                    <form method="post" action="{{ path('app_request_unblock', {id: requestEntity.id}) }}" class="d-flex align-items-center gap-2 mb-2">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('workflow_unblock_' ~ requestEntity.id) }}">
+                                    <input type="hidden" name="version" value="{{ requestEntity.version }}">
+                                    
+                                    <button class="btn btn-secondary btn-sm" type="submit">
+                                        <span class="workflow-action-icon">↻</span>
+                                        <span>Débloquer la demande (RH)</span>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 {% endif %}

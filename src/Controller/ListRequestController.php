@@ -131,6 +131,7 @@ final class ListRequestController extends AbstractController
     public function show(
         AccessRequest $requestEntity,
         WorkflowService $workflowService,
+        \App\Service\Workflow\WorkflowStateResolver $workflowStateResolver,
         RessourceRepository $ressourceRepository,
         ServiceRepository $serviceRepository
     ): Response {
@@ -236,8 +237,38 @@ final class ListRequestController extends AbstractController
             }
         }
 
+        // --- Construction dynamique des étapes du workflow pour l'admin ---
+        $workflowSteps = [];
+        // Récupère tous les rôles/services qui doivent valider cette demande
+        $requiredRoles = $workflowStateResolver->getParallelRequiredRoles($requestEntity);
+        // Ajoute RH si la première étape est RH
+        $status = $requestEntity->getStatus();
+        if ($status === AccessRequest::STATUS_EN_ATTENTE_RH || $status === AccessRequest::STATUS_EN_ATTENTE_VALIDATION) {
+            $workflowSteps[] = [
+                'label' => 'RH',
+                'role' => 'ROLE_RH',
+                'stepDone' => $status !== AccessRequest::STATUS_EN_ATTENTE_RH
+            ];
+        }
+        foreach ($requiredRoles as $role) {
+            // Label lisible
+            $label = match ($role) {
+                'ROLE_ST' => 'ST',
+                'ROLE_DSI' => 'DSI',
+                default => $role,
+            };
+            $stepDone = $workflowStateResolver->hasRoleAlreadyValidated($requestEntity, $role);
+            $workflowSteps[] = [
+                'label' => $label,
+                'role' => $role,
+                'stepDone' => $stepDone
+            ];
+        }
+
         return $this->render('list_request/show.html.twig', [
             'requestEntity' => $requestEntity,
+
+            'workflowStateResolver' => $workflowStateResolver,
 
             'canValidate'   => $this->isGranted(RequestVoter::VALIDATE, $requestEntity),
             'canRefuse'     => $this->isGranted(RequestVoter::REFUSE, $requestEntity),
@@ -258,6 +289,7 @@ final class ListRequestController extends AbstractController
                 ? $allMateriels
                 : [],
             'allLogiciels' => $allLogiciels,
+            'workflowSteps' => $workflowSteps,
             'allMateriels' => $allMateriels,
             'canMarkReturned' => $canMarkReturned,
             'canFinalizeClosure' => $canFinalizeClosure,
@@ -363,8 +395,9 @@ final class ListRequestController extends AbstractController
 
         try {
             $comment = (string) $httpRequest->request->get('comment', '');
+            $adminService = $httpRequest->request->get('admin_service');
             if ($this->isGranted(RequestVoter::VALIDATE, $requestEntity)) {
-                $workflowService->validate($requestEntity, $user, $comment);
+                $workflowService->validate($requestEntity, $user, $comment, $adminService);
             } else {
                 $workflowService->finalizeClosureByAnyUser($requestEntity, $user, $comment);
             }
@@ -385,7 +418,7 @@ final class ListRequestController extends AbstractController
 
         $user = $this->getUser();
         if (!$user instanceof User) {
-            throw $this->createAccessDeniedException();
+            throw $this->createAccessDeniedException(); 
         }
 
         if (!$this->isGranted(RequestVoter::UNDO, $requestEntity)) {
@@ -413,14 +446,70 @@ final class ListRequestController extends AbstractController
         try {
             $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
         } catch (OptimisticLockException) {
-            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a été modifiée entre-temps. Recharger la page puis réessayer.');
-
+            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a été modifiée entre-temps. Rechargez la page puis réessayez.');
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
         try {
             $workflowService->undoLastDecision($requestEntity, $user, (string) $httpRequest->request->get('comment', ''));
             $this->addRequestFlash($httpRequest, 'info', 'La dernière décision a été annulée.');
+        } catch (\InvalidArgumentException | \LogicException $e) {
+            $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+    }
+
+    #[Route('/request/{id}/undo-decision/{role}', name: 'app_request_undo_decision_role', methods: ['POST'], requirements: ['id' => '\d+', 'role' => '.+'])]
+    public function undoDecisionForRole(
+        AccessRequest $requestEntity,
+        string $role,
+        Request $httpRequest,
+        WorkflowService $workflowService,
+        EntityManagerInterface $entityManager
+    ): Response {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        // Permission spécifique undo par service
+        if (!$workflowService->canUndoLastDecisionForRole($requestEntity, $user, $role)) {
+            $entityManager->refresh($requestEntity);
+            if (!$workflowService->canUndoLastDecisionForRole($requestEntity, $user, $role)) {
+                $this->addRequestFlash($httpRequest, 'warning', 'Impossible d\'annuler cette décision pour ce service. Recharger la page.');
+                return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+            }
+        }
+
+        if (!$this->isCsrfTokenValid('workflow_undo_' . $requestEntity->getId() . '_' . $role, (string) $httpRequest->request->get('_token'))) {
+            $this->addRequestFlash($httpRequest, 'danger', 'Token de sécurité invalide.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        $submittedVersion = (int) $httpRequest->request->get('version', 0);
+        if ($submittedVersion <= 0) {
+            $this->addRequestFlash($httpRequest, 'danger', 'Version de la demande invalide.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        try {
+            $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
+        } catch (OptimisticLockException) {
+            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a été modifiée entre-temps. Rechargez la page puis réessayez.');
+            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+        }
+
+        try {
+            $workflowService->undoLastDecisionForRole(
+                $requestEntity,
+                $user,
+                $role,
+                (string) $httpRequest->request->get('comment', '')
+            );
+            $this->addRequestFlash($httpRequest, 'info', 'La dernière décision pour ce service a été annulée.');
         } catch (\InvalidArgumentException | \LogicException $e) {
             $this->addRequestFlash($httpRequest, 'danger', $e->getMessage());
         }

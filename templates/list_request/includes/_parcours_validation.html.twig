@@ -54,15 +54,19 @@
                         {% endif %}
                     {% endfor %}
 
-                    {# Recherche de la validation Finance dans l'historique #}
+                    {# Recherche de la validation Finance dans l'historique (prend en compte validatedRole) #}
                     {% for entry in history|default([]) %}
                         {% set entryRoles = entry.user ? entry.user.roles : [] %}
                         {% set isFinance = false %}
-                        {% for role in entryRoles %}
-                            {% if role == 'ROLE_FIN' %}
-                                {% set isFinance = true %}
-                            {% endif %}
-                        {% endfor %}
+                        {% if entry.validatedRole is defined and entry.validatedRole == 'ROLE_FIN' %}
+                            {% set isFinance = true %}
+                        {% else %}
+                            {% for role in entryRoles %}
+                                {% if role == 'ROLE_FIN' %}
+                                    {% set isFinance = true %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
                         {% if isFinance and (entry.commentary is not defined or not (entry.commentary starts with 'Annulation de décision')) %}
                             {% set financeStepDone = true %}
                             {% set financeValidatedAt = entry.date %}
@@ -119,7 +123,8 @@
                                 {% set lastAction = null %}
                                 {% for entry in history|default([]) %}
                                     {% set entryRoles = entry.user ? entry.user.roles : [] %}
-                                    {% if requiredRole in entryRoles or (roleCode is defined and roleCode in entryRoles) %}
+                                    {% set isForStep = (requiredRole in entryRoles) or (roleCode is defined and roleCode in entryRoles) or (entry.validatedRole is defined and entry.validatedRole == requiredRole) %}
+                                    {% if isForStep %}
                                         {% if entry.commentary is defined and entry.commentary starts with 'Annulation de décision' %}
                                             {% set lastAction = 'undo' %}
                                         {% elseif entry.newStatus in ['en_attente_validation', 'en_attente_st', 'en_attente_dsi', 'traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi', 'refusee_fin', 'en_attente_traitement'] %}

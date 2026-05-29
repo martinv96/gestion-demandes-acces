@@ -1,0 +1,66 @@
+/* Style ultra plat pour la section statuer sur la demande côté services (hors admin) */
+.workflow-actions-card.service-user {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.workflow-actions-card.service-user .workflow-actions-header {
+    border: none;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0;
+}
+
+.workflow-actions-card.service-user .workflow-actions-title {
+    color: #e0e6ed;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.workflow-actions-card.service-user .workflow-actions-eyebrow {
+    color: #7b8a99;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.workflow-actions-card.service-user #workflowActionButtons {
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.workflow-actions-card.service-user button {
+    min-width: 0;
+    font-size: 1rem;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+}
+
+.workflow-actions-card.service-user textarea {
+    background: #15191c;
+    color: #e0e6ed;
+    border: none;
+    border-radius: 4px;
+    width: 100%;
+    min-height: 70px;
+    margin-bottom: 0.5rem;
+    resize: vertical;
+    box-shadow: none;
+}
+
+.workflow-actions-card.service-user form {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.workflow-actions-card.service-user .btn {
+    box-shadow: none !important;
+}
+
+.LastDecisionB {
+    margin-left:0;
+}

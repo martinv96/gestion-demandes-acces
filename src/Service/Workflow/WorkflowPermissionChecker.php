@@ -15,6 +15,14 @@ class WorkflowPermissionChecker
 
     public function canValidate(AccessRequest $request, User $user): bool
     {
+        if (in_array('ROLE_ADMIN', $user->getRoles(), true)) {
+            // Un admin peut valider toutes les étapes, sauf les demandes de fermeture (si tu veux l'autoriser aussi, retire la condition suivante)
+            if ($this->isClosureRequest($request)) {
+                return false;
+            }
+            return true;
+        }
+
         if ($this->isClosureRequest($request)) {
             return false;
         }
@@ -50,6 +58,12 @@ class WorkflowPermissionChecker
             return false;
         }
 
+        // Empêche d'annuler une annulation de décision
+        $comment = (string)($latestHistory->getCommentary() ?? '');
+        if (str_starts_with($comment, 'Annulation de décision')) {
+            return false;
+        }
+
         if ($this->isClosureRequest($request)) {
             return $currentStatus === AccessRequest::STATUS_TRAITEE;
         }
@@ -59,7 +73,60 @@ class WorkflowPermissionChecker
             return false;
         }
 
+        // Cas spécial : validation admin pour un service donné
+        if (method_exists($latestHistory, 'getValidatedRole') && $latestHistory->getValidatedRole()) {
+            $validatedRole = $latestHistory->getValidatedRole();
+            if (in_array($validatedRole, $this->stateResolver->getWorkflowRoles($user), true)) {
+                return true;
+            }
+        }
+
         return $this->stateResolver->shareWorkflowActor($user, $latestUser);
+    }
+
+    /**
+     * Permet à un service d’annuler la dernière décision qui le concerne (undo par service)
+     */
+    public function canUndoLastDecisionForRole(AccessRequest $request, User $user, string $role): bool
+    {
+        // On récupère l’historique du service (toutes les actions de ce rôle)
+        $histories = $request->getRequestId()->toArray();
+        $serviceActions = [];
+        foreach (array_reverse($histories) as $history) {
+            if (!$history instanceof \App\Entity\WorkflowHistory) {
+                continue;
+            }
+            // Cas admin : validatedRole
+            $isForRole = false;
+            if (method_exists($history, 'getValidatedRole') && $history->getValidatedRole()) {
+                $isForRole = $history->getValidatedRole() === $role;
+            } else {
+                $historyUser = $history->getUser();
+                if ($historyUser instanceof \App\Entity\User && in_array($role, $this->stateResolver->getWorkflowRoles($historyUser), true)) {
+                    $isForRole = true;
+                }
+            }
+            if (!$isForRole) {
+                continue;
+            }
+            $comment = (string)($history->getCommentary() ?? '');
+            // Si la dernière action est un undo, on ne peut plus annuler
+            if (str_starts_with($comment, 'Annulation de décision')) {
+                return false;
+            }
+            // Si la dernière action est une validation ou un refus, on peut annuler
+            $newStatus = (string)($history->getNewStatus() ?? '');
+            if (in_array($newStatus, [
+                'en_attente_validation', 'en_attente_st', 'en_attente_dsi', 'en_attente_edu', 'en_attente_traitement', 'traitee',
+                'refusee_rh', 'refusee_st', 'refusee_dsi', 'refusee_edu', 'refusee_fin',
+            ], true)) {
+                // Autorisé si l’utilisateur possède ce rôle
+                return in_array($role, $this->stateResolver->getWorkflowRoles($user), true);
+            }
+            // Si c’est une autre action, on ne peut pas annuler
+            break;
+        }
+        return false;
     }
 
     public function canFinalizeClosureByAnyUser(AccessRequest $request): bool

@@ -46,9 +46,14 @@ class WorkflowService
         return $this->permissionChecker->canUndoLastDecision($request, $user);
     }
 
-    public function validate(AccessRequest $request, User $user, string $comment): void
+    public function canUndoLastDecisionForRole(AccessRequest $request, User $user, string $role): bool
     {
-        $this->actionService->validate($request, $user, $comment);
+        return $this->permissionChecker->canUndoLastDecisionForRole($request, $user, $role);
+    }
+
+    public function validate(AccessRequest $request, User $user, string $comment, $forcedRole = null): void
+    {
+        $this->actionService->validate($request, $user, $comment, $forcedRole);
     }
 
     public function canFinalizeClosureByAnyUser(AccessRequest $request): bool
@@ -69,6 +74,11 @@ class WorkflowService
     public function undoLastDecision(AccessRequest $request, User $user, string $comment): void
     {
         $this->actionService->undoLastDecision($request, $user, $comment);
+    }
+
+    public function undoLastDecisionForRole(AccessRequest $request, User $user, string $role, string $comment): void
+    {
+        $this->actionService->undoLastDecisionForRole($request, $user, $role, $comment);
     }
 
     public static function getLabel(string $status): string

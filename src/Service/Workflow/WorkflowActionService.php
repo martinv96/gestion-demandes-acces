@@ -21,15 +21,14 @@ class WorkflowActionService
     ) {
     }
 
-    public function validate(AccessRequest $request, User $user, string $comment): void
+    public function validate(AccessRequest $request, User $user, string $comment, $forcedRole = null): void
     {
         if (trim($comment) === '') {
             throw new \InvalidArgumentException('Un commentaire est obligatoire en cas de validation.');
         }
 
         if ($this->stateResolver->isParallelServicePhase((string) ($request->getStatus() ?? ''))) {
-            $this->applyParallelValidation($request, $user, $comment);
-
+            $this->applyParallelValidation($request, $user, $comment, $forcedRole);
             return;
         }
 
@@ -59,9 +58,7 @@ class WorkflowActionService
 
     public function undoLastDecision(AccessRequest $request, User $user, string $comment): void
     {
-        if (trim($comment) === '') {
-            throw new \InvalidArgumentException('Un commentaire est obligatoire pour annuler une décision.');
-        }
+        // Le commentaire n'est PAS obligatoire pour annuler une décision côté services
 
         $latestHistory = $this->stateResolver->getLatestHistory($request);
         if (!$latestHistory instanceof WorkflowHistory) {
@@ -78,6 +75,26 @@ class WorkflowActionService
         }
 
         $this->applyTransition($request, $user, $previousStatus, 'Annulation de décision : ' . trim($comment));
+    }
+
+    /**
+     * Annule la dernière décision pour un rôle/service donné (undo par service)
+     */
+    public function undoLastDecisionForRole(AccessRequest $request, User $user, string $role, string $comment): void
+    {
+        $history = $this->stateResolver->getLatestHistoryForRole($request, $role);
+        if (!$history instanceof WorkflowHistory) {
+            throw new LogicException('Aucune décision récente à annuler pour ce service.');
+        }
+        if (!$this->permissionChecker->canUndoLastDecisionForRole($request, $user, $role)) {
+            throw new LogicException('Annulation de décision non autorisée pour ce service.');
+        }
+        $previousStatus = trim((string) $history->getOldStatus());
+        if ($previousStatus === '') {
+            throw new LogicException('Statut précédent introuvable.');
+        }
+        // On annule en créant une nouvelle entrée d’historique
+        $this->applyTransition($request, $user, $previousStatus, 'Annulation de décision pour ' . $role . ' : ' . trim($comment));
     }
 
     public function finalizeClosureByAnyUser(AccessRequest $request, User $user, string $comment): void
@@ -118,7 +135,7 @@ class WorkflowActionService
         );
     }
 
-    private function applyTransition(AccessRequest $request, User $user, string $newStatus, string $comment): void
+    private function applyTransition(AccessRequest $request, User $user, string $newStatus, string $comment, ?string $validatedRole = null): void
     {
         $history = new WorkflowHistory();
         $history
@@ -128,6 +145,9 @@ class WorkflowActionService
             ->setNewStatus($newStatus)
             ->setCommentary($comment)
             ->setDate(new \DateTimeImmutable());
+        if ($validatedRole !== null) {
+            $history->setValidatedRole($validatedRole);
+        }
 
         $request->setStatus($newStatus);
         $request->setUpdateDate(new \DateTimeImmutable());
@@ -142,12 +162,12 @@ class WorkflowActionService
         ));
     }
 
-    private function applyParallelValidation(AccessRequest $request, User $user, string $comment): void
+    private function applyParallelValidation(AccessRequest $request, User $user, string $comment, $forcedRole = null): void
     {
         $requiredRoles = $this->stateResolver->getParallelRequiredRoles($request);
-        $actorRole = $this->stateResolver->resolveParallelRoleForUser($request, $user, $requiredRoles);
+        $actorRole = $forcedRole ?? $this->stateResolver->resolveParallelRoleForUser($request, $user, $requiredRoles);
 
-        if ($actorRole === null) {
+        if ($actorRole === null || !in_array($actorRole, $requiredRoles, true)) {
             throw new LogicException('Transition de validation non autorisée pour ce rôle ou ce statut.');
         }
 
@@ -163,6 +183,7 @@ class WorkflowActionService
 
         $nextStatus = $allValidated ? AccessRequest::STATUS_TRAITEE : AccessRequest::STATUS_EN_ATTENTE_VALIDATION;
 
-        $this->applyTransition($request, $user, $nextStatus, $comment);
+        // Si validation admin (forcedRole), on enregistre explicitement le rôle validé
+        $this->applyTransition($request, $user, $nextStatus, $comment, $forcedRole ? $actorRole : null);
     }
 }

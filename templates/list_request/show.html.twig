@@ -567,12 +567,12 @@
 			</div>
 
 			{# Parcours de validation #}
-			{% include 'list_request/includes/_parcours_validation.html.twig' %}
+			{% include 'list_request/includes/_parcours_validation.html.twig' with { workflowStateResolver: workflowStateResolver } %}
 
 		</div>
 
 		{# Actions workflow en bas de page #}
-		{% include 'list_request/includes/_workflow_actions.html.twig' %}
+		{% include 'list_request/includes/_workflow_actions.html.twig' with { workflowStateResolver: workflowStateResolver } %}
 
 	</div>
 

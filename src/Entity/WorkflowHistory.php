@@ -11,6 +11,18 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(columns: ['request_id', 'date'], name: 'idx_wh_request_date')]
 class WorkflowHistory
 {
+    #[ORM\Column(name: 'validated_role', type: 'string', length: 64, nullable: true)]
+    private ?string $validatedRole = null;
+        public function getValidatedRole(): ?string
+        {
+            return $this->validatedRole;
+        }
+
+        public function setValidatedRole(?string $validatedRole): static
+        {
+            $this->validatedRole = $validatedRole;
+            return $this;
+        }
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

@@ -231,11 +231,14 @@ class WorkflowStateResolver
             $comment = (string) ($history->getCommentary() ?? '');
             if (str_starts_with($comment, 'Annulation de décision')) {
                 foreach ($requiredRoles as $requiredRole) {
-                    if (in_array($requiredRole, $historyUser->getRoles(), true)) {
+                    // Annulation admin : on regarde aussi validatedRole
+                    if (
+                        (method_exists($history, 'getValidatedRole') && $history->getValidatedRole() === $requiredRole)
+                        || in_array($requiredRole, $historyUser->getRoles(), true)
+                    ) {
                         unset($doneRoles[$requiredRole]);
                     }
                 }
-
                 continue;
             }
 
@@ -253,6 +256,16 @@ class WorkflowStateResolver
                 continue;
             }
 
+            // Si validatedRole est renseigné (cas admin), on ne coche QUE ce rôle
+            if (method_exists($history, 'getValidatedRole') && $history->getValidatedRole()) {
+                $role = $history->getValidatedRole();
+                if (in_array($role, $requiredRoles, true)) {
+                    $doneRoles[$role] = true;
+                }
+                continue;
+            }
+
+            // Sinon, comportement classique : on coche tous les rôles de l'utilisateur
             foreach ($requiredRoles as $requiredRole) {
                 if (in_array($requiredRole, $historyUser->getRoles(), true)) {
                     $doneRoles[$requiredRole] = true;
@@ -292,6 +305,36 @@ class WorkflowStateResolver
         }
 
         return $latestHistory;
+    }
+
+    /**
+     * Retourne la dernière décision (WorkflowHistory) concernant un rôle/service donné
+     */
+    public function getLatestHistoryForRole(AccessRequest $request, string $role): ?WorkflowHistory
+    {
+        $latest = null;
+        foreach ($request->getRequestId() as $history) {
+            if (!$history instanceof WorkflowHistory) {
+                continue;
+            }
+            // Cas admin : validatedRole
+            if (method_exists($history, 'getValidatedRole') && $history->getValidatedRole()) {
+                if ($history->getValidatedRole() === $role) {
+                    if ($latest === null || $this->isMoreRecentHistory($history, $latest)) {
+                        $latest = $history;
+                    }
+                }
+                continue;
+            }
+            // Cas classique : utilisateur ayant ce rôle
+            $historyUser = $history->getUser();
+            if ($historyUser instanceof User && in_array($role, $this->getWorkflowRoles($historyUser), true)) {
+                if ($latest === null || $this->isMoreRecentHistory($history, $latest)) {
+                    $latest = $history;
+                }
+            }
+        }
+        return $latest;
     }
 
     /**
