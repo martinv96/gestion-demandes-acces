@@ -1,29 +1,29 @@
- .login-page {
-        position: relative;
-        min-height: 100vh;
-        margin: -1.5rem;
-        padding: clamp(2rem, 4vw, 3rem) 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        isolation: isolate;
-    }
+.login-page {
+    position: relative;
+    min-height: 100vh;
+    margin: -1.5rem;
+    padding: clamp(2rem, 4vw, 3rem) 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    isolation: isolate;
+}
 
-    .login-page::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: -1;
-        background: linear-gradient(rgba(246, 249, 247, 0.82), rgba(246, 249, 247, 0.82)), url('/images/hotel.jpg') center center / cover no-repeat;
-    }
+.login-page::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(rgba(246, 249, 247, 0.82), rgba(246, 249, 247, 0.82)), url('/images/hotel.jpg') center center / cover no-repeat;
+}
 
-    .login-page__content {
-        width: min(100%, 460px);
-    }
+.login-page__content {
+    width: min(100%, 460px);
+}
 
-    .login-card {
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid rgba(255, 255, 255, 0.65);
-        backdrop-filter: blur(6px);
-    }
+.login-card {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(6px);
+}

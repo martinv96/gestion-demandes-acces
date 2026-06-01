@@ -7,3 +7,39 @@
 .nav-link:hover {
     color: #212529; 
 }
+
+
+/* List request */
+
+.ImgFiltre {
+    width: 16px;
+    height: 16px;
+    object-fit:contain;
+}
+
+.logoSearch {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+}
+
+.logoXls {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    padding-bottom: 2px;
+}
+
+.logoAction {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+/* sidebar */
+
+.ImgDeconnexion {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}

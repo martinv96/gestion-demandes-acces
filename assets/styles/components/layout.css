@@ -40,3 +40,11 @@
     min-width:40vh !important;
     align-self: center;
 }
+
+.app-page-fluid {
+    position: static !important;
+    left: auto !important;
+    max-width: 100% !important;
+    width: 100%;
+    padding-bottom: 10px;
+}

@@ -31,12 +31,12 @@
 
 			{# SIDEBAR #}
 			<aside
-				class="app-sidebar bg-white border-end min-vh-100 d-flex flex-column justify-content-between" style="width:285px;">
+				class="app-sidebar bg-white border-end min-vh-100 d-flex flex-column justify-content-between">
 
 				{# Logo + lien vers dashboard #}
 				<a class="nav-link" href="{{ path('app_dashboard') }}">
 					<div class="p-4 border-bottom d-flex align-items-center gap-3">
-						<img src="{{ asset('images/logo/logo-home.jpg') }}" alt="Logo mairie" class="imageLogo" style="width:55px;height:55px;object-fit:contain;">
+						<img src="{{ asset('images/logo/logo-home.jpg') }}" alt="Logo mairie" class="imageLogo">
 						<div>
 							<h6 class="titreH6 mb-0">GDAP</h6>
 							<p class="text logo-subtitle"><b>G</b>estion <b>D</B>es <b>A</b>ccès du <b>P</b>lessis</p>
@@ -82,7 +82,7 @@
 						</div>
 						<form action="{{ path('app_logout') }}" method="POST">
 							<button type="submit" class="btn btn-light w-100 d-flex align-items-center justify-content-center gap-2">
-								<img src="{{asset ('images/deconnexion.png')}}" alt="déconnexion" style="width:20px;height:20px;object-fit:contain;">
+								<img src="{{asset ('images/deconnexion.png')}}" alt="déconnexion" class="ImgDeconnexion">
 								Déconnexion
 							</button>
 						</form>

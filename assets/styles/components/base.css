@@ -134,6 +134,7 @@ hr {
     align-self: flex-start;
     height: 100vh;
     z-index: 5;
+    width: 285px;
 }
 
 .app-main {
@@ -235,6 +236,17 @@ hr {
     height: 1.9rem;
     border-radius: 999px;
     background: var(--theme-surface-alt);
+}
+
+/* change password */
+
+.containerBis {
+    width: 100%;
+    max-width: 440px;
+}
+
+.containerChangePassword {
+    min-height: 70vh;
 }
 
 @media (max-width: 991.98px) {

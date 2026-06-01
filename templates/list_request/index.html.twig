@@ -6,7 +6,7 @@
 {% block body %}
 
 	{# Contenu principal #}
-	<div class="container-fluid">
+	<div class="container-fluid app-page-fluid">
 		{% block page_title %}
 			<div class="d-flex justify-content-between align-items-center mb-4">
 				<div>
@@ -28,7 +28,7 @@
 			<div class="card mb-4 p-3">
 				<form method="GET">
 					<div class="d-flex align-items-center gap-2 mb-1">
-						<img src="{{ asset('images/filtres/Shapetest.svg') }}" alt="Filtres" style="width:16px;height:16px;object-fit:contain;">
+						<img src="{{ asset('images/filtres/Shapetest.svg') }}" class="ImgFiltre" alt="Filtres">
 						<label class="form-label form-label-sm mb-1 text-muted fw-semibold d-inline-block">Filtres</label>
 					</div>
 					{# Ligne 1 : statut, service, type #}
@@ -81,7 +81,7 @@
 							<div class="input-group input-group-sm">
 								<input type="text" name="agent" class="form-control" placeholder="Nom ou prénom…" value="{{ filters.agent }}">
 								<button type="submit" class="btn btn-outline-secondary">
-									<img src="{{ asset('images/filtres/chercher.png') }}" alt="Rechercher" style="width:16px;height:16px;object-fit:contain;">
+									<img src="{{ asset('images/filtres/chercher.png') }}" alt="Rechercher" class="logoSearch">
 								</button>
 							</div>
 						</div>
@@ -112,7 +112,7 @@
 
 				<div class="d-flex justify-content-end mb-3">
 					<a href="{{ path('app_request_export_csv', app.request.query.all|merge({'scope': exportScope|default('current')})) }}" class="btn btnExport">
-						<img src="{{ asset('images/icones/xls.png') }}" alt="CSV" style="width:24px;height:24px;object-fit:contain;padding-bottom:2px;">
+						<img src="{{ asset('images/icones/xls.png') }}" alt="CSV" class="logoXls">
 						Export XLS
 					</a>
 				</div>
@@ -190,7 +190,7 @@
 										<td class="text-center">
 											<a href="{{ path('app_request_show', {id: request.id}) }}">
 												<img
-												src="{{ asset('images/icones/chercher1.png') }}" alt="Voir" style="width:24px;height:24px;object-fit:contain;">
+												src="{{ asset('images/icones/chercher1.png') }}" alt="Voir" class="logoAction">
 											<!-- Voir -->
 											</a>
 										</td>
