@@ -254,4 +254,62 @@ class WorkflowNotificationService
 
         return $fullName !== '' ? $fullName : sprintf('Demande #%d', $request->getId());
     }
+
+    public function sendNoteAccompagnement(AccessRequest $request): void
+    {
+        //on commence par vérifier par sécurité que la demande est bien traitée
+        if ((string) $request->getStatus() !== AccessRequest::STATUS_TRAITEE) {
+            return;
+        }
+
+        // on récupère l'agen lié à la demande
+        $agent = $request->getAgent();
+
+        if ($agent === null) {
+            $this->logger?->warning('Impossible d\'envoyer la note d\'acompagnement : aucun agent rattaché à la demande.',[
+                'request_id' => $request->getId()
+            ]);
+            return;
+        }
+
+        $emailAddress = trim((string) $agent->getEmail());
+
+        // on récupère l'adresse mail saisie sur la demande
+        if ($emailAddress === '') {
+            $this->logger?->warning('Impossible d\'envoyer la note d\'accompagnement : l\'agent n\'a pas d\'adresse email renseignée.',[
+                'request_id' => $request->getId(),
+                'agent_id' => $agent->getId()
+            ]);
+            return;
+        }
+
+        try {
+            $email = (new TemplatedEmail())
+                ->from($this->resolveMailerFrom())
+                ->to($emailAddress)
+                ->subject('GDAP : Vos accès et matériels sont prêts - ' . $agent->getFirstname() . ' ' . $agent->getLastname())
+                ->htmlTemplate('emails/note_accompagnement.html.twig')
+                ->context([
+                    'request' => $request,
+                ]);
+
+            $this->mailer->send($email);
+
+            $this->logger?->info('Note d\'accompagnement envoyée avec succès à l\'agent.',[
+                'request_id' => $request->getId(),
+                'to' => $emailAddress
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger?->error('Echec de l\'envoi de la note d\'accompagnement.',[
+                'request_id' => $request->getId(),
+                'error' => $e->getMessage()
+            ]);
+
+            throw new \RuntimeException(
+                sprintf('Envoi de la note d\'accompagnement impossible pour la demande #%d : %s', (int) $request->getId(), $e->getMessage()),
+                0,
+                $e
+            );
+        }
+    }
 }

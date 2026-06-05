@@ -31,11 +31,21 @@
 			<div class="card shadow-sm dashboard-panel">
 				<div class="card-body">
 					<h5 class="dashboard-panel-title">Repartition par type</h5>
-					<div class="dashboard-type-list">
+					<div
+						class="dashboard-type-list">
+						{# On définit le mapping des types une seule fois #}
+						{% set typeLabelsMap = {
+							'ouverture': 'Arrivée',
+							'modification': 'Changement de poste / Droits',
+							'fermeture': 'Départ'
+						} %}
+
 						{% for item in typeDistribution %}
 							<div class="dashboard-type-item">
-								<div class="dashboard-type-header">
-									<span>{{ item.label }}</span>
+								<div
+									class="dashboard-type-header">
+									{# On cherche si la clé existe dans notre mapping (via item.label ou item.type si item.label contient la valeur brute) #}
+									<span>{{ typeLabelsMap[item.label] ?? typeLabelsMap[item.type] ?? item.label|capitalize }}</span>
 									<span>{{ item.count }}</span>
 								</div>
 								<div class="dashboard-type-track">
@@ -107,7 +117,8 @@
 						<div class="dashboard-recent-agent">
 							<strong>
 								{% if request.agent %}
-									{{ request.agent.firstname|capitalize }} {{ request.agent.lastname|capitalize }}
+									{{ request.agent.firstname|capitalize }}
+									{{ request.agent.lastname|capitalize }}
 								{% else %}
 									-
 								{% endif %}

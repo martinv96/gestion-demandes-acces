@@ -64,9 +64,9 @@
 							<select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
 								<option value="">Tous les types</option>
 								{% set typeOptions = {
-                            'ouverture': 'Ouverture',
+                            'ouverture': 'Arrivée',
                             'modification': 'Modification',
-                            'fermeture': 'Fermeture'
+                            'fermeture': 'Départ'
                         } %}
 								{% for value, label in typeOptions %}
 									<option value="{{ value }}" {% if value == filters.type %} selected {% endif %}>{{ label }}</option>
@@ -156,7 +156,16 @@
 												<span class="text-muted">-</span>
 											{% endif %}
 										</td>
-										<td class="text-capitalize">{{ request.type }}</td>
+										<td>
+											{# --- DEBUT DU MAPPING DU TYPE --- #}
+											{% set typeMap = {
+												'ouverture': 'Arrivée',
+												'modification': 'Changement de poste / Droits',
+												'fermeture': 'Départ'
+											} %}
+											{{ typeMap[request.type] ?? request.type|capitalize }}
+											{# --- FIN DU MAPPING DU TYPE --- #}
+										</td>
 										<td>
 											{% set statusMap = {
                                         'en_attente_rh':  ['info',    'En attente RH'],
@@ -210,8 +219,10 @@
 						class="pagination">
 						{# Précédent #}
 						<li class="page-item {{ currentPage == 1 ? 'disabled' : ''}}">
-							<a class="page-link" href="{{ path(paginationRoute, filters|merge({'page': currentPage - 1})) }}"><span aria-hidden="true">&#129168;</span></a>
-						</li> 
+							<a class="page-link" href="{{ path(paginationRoute, filters|merge({'page': currentPage - 1})) }}">
+								<span aria-hidden="true">&#129168;</span>
+							</a>
+						</li>
 
 						{# Pages #}
 						{% for i in 1..maxPages %}
@@ -222,7 +233,9 @@
 
 						{# Suivant #}
 						<li class="page-item {{ currentPage == maxPages ? 'disabled' : ''}}">
-							<a class="page-link" href="{{ path(paginationRoute, filters|merge({'page': currentPage + 1})) }}"><span aria-hidden="true">&#129170;</span></a>
+							<a class="page-link" href="{{ path(paginationRoute, filters|merge({'page': currentPage + 1})) }}">
+								<span aria-hidden="true">&#129170;</span>
+							</a>
 						</li>
 					</ul>
 				</nav>

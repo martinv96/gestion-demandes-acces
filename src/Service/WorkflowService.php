@@ -53,7 +53,32 @@ class WorkflowService
 
     public function validate(AccessRequest $request, User $user, string $comment, $forcedRole = null): void
     {
+        // 1. Exécution de la validation (changement de statut)
         $this->actionService->validate($request, $user, $comment, $forcedRole);
+
+        // 2. Nettoyage et normalisation du statut et du type
+        $status = mb_strtolower(trim((string) $request->getStatus()));
+        $type = trim((string) $request->getType());
+
+        // 3. Comparaison souple pour éviter les pièges de casse ('traitee', 'traitée', 'Traitee'...)
+        $isTraitee = in_array($status, ['traitee', 'traitée'], true);
+        $isOuverture = ($type === AccessRequest::TYPE_OUVERTURE);
+
+        if ($isTraitee && $isOuverture) {
+            // On encapsule l'appel dans un try/catch au niveau du WorkflowService pour que,
+            // si le template Twig plante, l'erreur s'affiche directement à l'écran (Page blanche d'erreur)
+            // au lieu de mourir silencieusement dans le code.
+            try {
+                $this->notificationService->sendNoteAccompagnement($request);
+            } catch (\Throwable $e) {
+                // Si l'envoi plante (ex: problème Twig), on force l'affichage de l'erreur
+                throw new \RuntimeException(
+                    "Erreur fatale lors du rendu ou de l'envoi de la note d'accompagnement : " . $e->getMessage(),
+                    0,
+                    $e
+                );
+            }
+        }
     }
 
     public function canFinalizeClosureByAnyUser(AccessRequest $request): bool

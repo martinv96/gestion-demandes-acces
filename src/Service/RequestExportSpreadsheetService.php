@@ -53,9 +53,9 @@ class RequestExportSpreadsheetService
         ];
 
         $typeLabels = [
-            AccessRequest::TYPE_OUVERTURE => 'Ouverture',
-            AccessRequest::TYPE_MODIFICATION => 'Modification',
-            AccessRequest::TYPE_FERMETURE => 'Fermeture',
+            AccessRequest::TYPE_OUVERTURE => 'Arrivée',
+            AccessRequest::TYPE_MODIFICATION => 'Changement de poste / Droits',
+            AccessRequest::TYPE_FERMETURE => 'Départ',
         ];
 
         $statusStyleMap = [
