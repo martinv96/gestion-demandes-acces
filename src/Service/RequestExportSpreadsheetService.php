@@ -77,6 +77,9 @@ class RequestExportSpreadsheetService
         $spreadsheet = new Spreadsheet();
         $spreadsheet->getDefaultStyle()->getFont()->setName('Aptos')->setSize(11);
 
+        // ==========================================
+        // 1. ONGLET PRINCIPAL : DEMANDES (SANS DÉLAIS)
+        // ==========================================
         $summarySheet = $spreadsheet->getActiveSheet();
         $summarySheet->setTitle('Demandes');
 
@@ -90,14 +93,10 @@ class RequestExportSpreadsheetService
             'Date de départ',
             'Dernier commentaire',
             'Date de dernière action',
-            'Délais de traitement RH',
-            'Délais de traitement ST',
-            'Délais de traitement DSI',
-            'Délais de traitement FINANCES',
         ];
 
         $summarySheet->fromArray($headers, null, 'A1');
-        $this->applyExportHeaderStyle($summarySheet, 'A1:M1');
+        $this->applyExportHeaderStyle($summarySheet, 'A1:I1');
 
         $summaryRows = [];
         $summaryStyleMetaByRow = [];
@@ -115,77 +114,6 @@ class RequestExportSpreadsheetService
                 $agentEntity?->getLastname(),
             );
 
-            // --- CALCULS DES DÉLAIS PAR SERVICE DEPUIS LA CRÉATION ---
-            $delaisRH = '-';
-            $delaisST = '-';
-            $delaisDSI = '-';
-            $delaisFIN = '-';
-
-            $allRequestHistories = ($requestId !== null && isset($historyByRequestId[$requestId])) ? $historyByRequestId[$requestId] : [];
-
-            // 1. Tri chronologique pour trouver les premières ou dernières validations
-            usort($allRequestHistories, static function ($a, $b) {
-                return ($a->getDate() <=> $b->getDate());
-            });
-
-            $dateValidationRH = null;
-            $dateValidationST = null;
-            $dateValidationDSI = null;
-            $dateValidationFIN = null;
-
-            foreach ($allRequestHistories as $entry) {
-                $oldStatus = $entry->getOldStatus();
-                $newStatus = $entry->getNewStatus();
-
-                // Validation RH : Quand le ticket quitte l'environnement RH pour la première fois
-                if (($oldStatus === 'en_attente_validation' || $oldStatus === AccessRequest::STATUS_EN_ATTENTE_RH)
-                    && $newStatus !== 'en_attente_validation' && $newStatus !== AccessRequest::STATUS_EN_ATTENTE_RH) {
-                    if ($dateValidationRH === null) {
-                        $dateValidationRH = $entry->getDate();
-                    }
-                }
-                
-                // Validation ST : quand le pôle ST quitte son statut d'attente
-                if ($oldStatus === AccessRequest::STATUS_EN_ATTENTE_ST && $newStatus !== AccessRequest::STATUS_EN_ATTENTE_ST) {
-                    if ($dateValidationST === null) {
-                        $dateValidationST = $entry->getDate();
-                    }
-                }
-                
-                // Validation DSI : quand le pôle DSI quitte son statut d'attente
-                if ($oldStatus === AccessRequest::STATUS_EN_ATTENTE_DSI && $newStatus !== AccessRequest::STATUS_EN_ATTENTE_DSI) {
-                    if ($dateValidationDSI === null) {
-                        $dateValidationDSI = $entry->getDate();
-                    }
-                }
-                
-                // Validation FINANCES / Traitement : premier passage à un statut final
-                if (in_array($newStatus, [AccessRequest::STATUS_TRAITEE, AccessRequest::STATUS_REFUSEE_DSI, AccessRequest::STATUS_REFUSEE_ST, AccessRequest::STATUS_REFUSEE_RH])) {
-                    if ($dateValidationFIN === null) {
-                        $dateValidationFIN = $entry->getDate();
-                    }
-                }
-            }
-
-            $dateCreation = $requestEntity->getCreationDate();
-            $now = new \DateTimeImmutable();
-
-            if ($dateCreation !== null) {
-                // Règle demandée : création -> validation du service, sinon création -> aujourd'hui.
-                $finRH = $dateValidationRH ?? $now;
-                $delaisRH = ($finRH < $dateCreation) ? '0 j' : $dateCreation->diff($finRH)->days . ' j';
-
-                $finST = $dateValidationST ?? $now;
-                $delaisST = ($finST < $dateCreation) ? '0 j' : $dateCreation->diff($finST)->days . ' j';
-
-                $finDSI = $dateValidationDSI ?? $now;
-                $delaisDSI = ($finDSI < $dateCreation) ? '0 j' : $dateCreation->diff($finDSI)->days . ' j';
-
-                $finFIN = $dateValidationFIN ?? $now;
-                $delaisFIN = ($finFIN < $dateCreation) ? '0 j' : $dateCreation->diff($finFIN)->days . ' j';
-            }
-
-            // [Le code continue ici sur votre tableau d'export classique...]
             $summaryRows[] = [
                 $requestEntity->getReference(),
                 $typeLabels[$requestType] ?? $requestType,
@@ -196,11 +124,8 @@ class RequestExportSpreadsheetService
                 $requestEntity->getDepartureDate()?->format('d/m/Y') ?? '-',
                 $history?->getCommentary() ?? '-',
                 $history?->getDate()?->format('d/m/Y H:i') ?? '-',
-                $delaisRH,
-                $delaisST,
-                $delaisDSI,
-                $delaisFIN,
             ];
+
             $summaryStyleMetaByRow[$row] = [
                 'type' => $requestType,
                 'status' => $requestStatus,
@@ -209,12 +134,11 @@ class RequestExportSpreadsheetService
             $row++;
         }
 
-
         if ($summaryRows !== []) {
             $summarySheet->fromArray($summaryRows, null, 'A2');
             $summaryLastRow = 1 + count($summaryRows);
 
-            $summarySheet->getStyle('A2:M' . $summaryLastRow)->getBorders()->getAllBorders()
+            $summarySheet->getStyle('A2:I' . $summaryLastRow)->getBorders()->getAllBorders()
                 ->setBorderStyle(Border::BORDER_THIN)
                 ->getColor()->setARGB('FFE5E7EB');
 
@@ -222,7 +146,7 @@ class RequestExportSpreadsheetService
             $summarySheet->getStyle('A2:A' . $summaryLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $summarySheet->getStyle('B2:C' . $summaryLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $summarySheet->getStyle('F2:G' . $summaryLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $summarySheet->getStyle('I2:M' . $summaryLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $summarySheet->getStyle('I2:I' . $summaryLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
             foreach ($summaryStyleMetaByRow as $summaryRow => $meta) {
                 $requestType = $meta['type'];
@@ -238,14 +162,17 @@ class RequestExportSpreadsheetService
             }
         }
 
-
-        foreach (range('A', 'M') as $columnID) {
+        foreach (range('A', 'I') as $columnID) {
             $summarySheet->getColumnDimension($columnID)->setAutoSize(true);
         }
-        $summarySheet->setAutoFilter('A1:M1');
+        $summarySheet->setAutoFilter('A1:I1');
         $summarySheet->freezePane('A2');
         $summarySheet->setSelectedCell('A1');
 
+
+        // ==========================================
+        // 2. ONGLET SECONDAIRE : DÉTAILS (AVEC DÉLAIS)
+        // ==========================================
         $detailSheet = $spreadsheet->createSheet();
         $detailSheet->setTitle('Détails');
 
@@ -265,45 +192,121 @@ class RequestExportSpreadsheetService
             'Nouveau statut',
             'Commentaire historique',
             'Date action',
+            'Délais de traitement RH',
+            'Délais de traitement ST',
+            'Délais de traitement DSI',
+            'Délais de traitement FINANCES',
         ];
 
         $detailSheet->fromArray($detailHeaders, null, 'A1');
-        $this->applyExportHeaderStyle($detailSheet, 'A1:O1');
+        $this->applyExportHeaderStyle($detailSheet, 'A1:S1');
 
         $detailRows = [];
         $detailStyleMetaByRow = [];
         $detailRow = 2;
+
         foreach ($requests as $requestEntity) {
             $requestId = $requestEntity->getId();
             $agentEntity = $requestEntity->getAgent();
             $serviceEntity = $agentEntity?->getService();
             $requestStatus = $requestEntity->getStatus() ?? '';
             $requestType = $requestEntity->getType() ?? '';
+            
             $agentFullName = $this->formatAgentFullName(
                 $agentEntity?->getFirstname(),
                 $agentEntity?->getLastname(),
             );
 
+            // --- CALCULS DES DÉLAIS PAR SERVICE DEPUIS LA CRÉATION ---
+            $delaisRH = '-';
+            $delaisST = '-';
+            $delaisDSI = '-';
+            $delaisFIN = '-';
+
+            $allRequestHistories = ($requestId !== null && isset($historyByRequestId[$requestId])) ? $historyByRequestId[$requestId] : [];
+
+            // Tri chronologique des historiques pour isoler proprement les premières validations
+            usort($allRequestHistories, static function ($a, $b) {
+                return ($a->getDate() <=> $b->getDate());
+            });
+
+            $dateValidationRH = null;
+            $dateValidationST = null;
+            $dateValidationDSI = null;
+            $dateValidationFIN = null;
+
+            foreach ($allRequestHistories as $entry) {
+                $oldStatus = $entry->getOldStatus();
+                $newStatus = $entry->getNewStatus();
+
+                // Validation RH
+                if (($oldStatus === 'en_attente_validation' || $oldStatus === AccessRequest::STATUS_EN_ATTENTE_RH)
+                    && $newStatus !== 'en_attente_validation' && $newStatus !== AccessRequest::STATUS_EN_ATTENTE_RH) {
+                    if ($dateValidationRH === null) {
+                        $dateValidationRH = $entry->getDate();
+                    }
+                }
+                
+                // Validation ST
+                if ($oldStatus === AccessRequest::STATUS_EN_ATTENTE_ST && $newStatus !== AccessRequest::STATUS_EN_ATTENTE_ST) {
+                    if ($dateValidationST === null) {
+                        $dateValidationST = $entry->getDate();
+                    }
+                }
+                
+                // Validation DSI
+                if ($oldStatus === AccessRequest::STATUS_EN_ATTENTE_DSI && $newStatus !== AccessRequest::STATUS_EN_ATTENTE_DSI) {
+                    if ($dateValidationDSI === null) {
+                        $dateValidationDSI = $entry->getDate();
+                    }
+                }
+                
+                // Validation FINANCES / Traitement final
+                if (in_array($newStatus, [AccessRequest::STATUS_TRAITEE, AccessRequest::STATUS_REFUSEE_DSI, AccessRequest::STATUS_REFUSEE_ST, AccessRequest::STATUS_REFUSEE_RH])) {
+                    if ($dateValidationFIN === null) {
+                        $dateValidationFIN = $entry->getDate();
+                    }
+                }
+            }
+
+            $dateCreation = $requestEntity->getCreationDate();
+            $now = new \DateTimeImmutable();
+
+            if ($dateCreation !== null) {
+                $finRH = $dateValidationRH ?? $now;
+                $delaisRH = ($finRH < $dateCreation) ? '0 j' : $dateCreation->diff($finRH)->days . ' j';
+
+                $finST = $dateValidationST ?? $now;
+                $delaisST = ($finST < $dateCreation) ? '0 j' : $dateCreation->diff($finST)->days . ' j';
+
+                $finDSI = $dateValidationDSI ?? $now;
+                $delaisDSI = ($finDSI < $dateCreation) ? '0 j' : $dateCreation->diff($finDSI)->days . ' j';
+
+                $finFIN = $dateValidationFIN ?? $now;
+                $delaisFIN = ($finFIN < $dateCreation) ? '0 j' : $dateCreation->diff($finFIN)->days . ' j';
+            }
+
+            // Extraction et tri des ressources affectées
             $logiciels = [];
             $materiels = [];
             foreach ($requestEntity->getRessources() as $ressource) {
                 if ($ressource->getCategory() === 'logiciel') {
                     $logiciels[] = (string) $ressource->getName();
                 }
-
                 if ($ressource->getCategory() === 'materiel') {
                     $materiels[] = (string) $ressource->getName();
                 }
             }
-
             sort($logiciels);
             sort($materiels);
 
+            // Gestion de l'affichage s'il n'existe aucun historique pour le moment
             $requestHistories = ($requestId !== null && isset($historyByRequestId[$requestId])) ? $historyByRequestId[$requestId] : [];
             if ($requestHistories === []) {
                 $requestHistories = [null];
             }
 
+            // Génération d'une ligne pour chaque action historique
             foreach ($requestHistories as $history) {
                 $historyOldStatus = $history?->getOldStatus() ?? '';
                 $historyNewStatus = $history?->getNewStatus() ?? '';
@@ -324,6 +327,10 @@ class RequestExportSpreadsheetService
                     $history ? ($statusLabels[$historyNewStatus] ?? $historyNewStatus) : '-',
                     $history?->getCommentary() ?? '-',
                     $history?->getDate()?->format('d/m/Y H:i') ?? '-',
+                    $delaisRH,
+                    $delaisST,
+                    $delaisDSI,
+                    $delaisFIN,
                 ];
 
                 $detailStyleMetaByRow[$detailRow] = [
@@ -341,7 +348,7 @@ class RequestExportSpreadsheetService
             $detailSheet->fromArray($detailRows, null, 'A2');
             $detailLastRow = 1 + count($detailRows);
 
-            $detailSheet->getStyle('A2:O' . $detailLastRow)->getBorders()->getAllBorders()
+            $detailSheet->getStyle('A2:S' . $detailLastRow)->getBorders()->getAllBorders()
                 ->setBorderStyle(Border::BORDER_THIN)
                 ->getColor()->setARGB('FFE5E7EB');
 
@@ -349,7 +356,7 @@ class RequestExportSpreadsheetService
             $detailSheet->getStyle('A2:A' . $detailLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $detailSheet->getStyle('B2:C' . $detailLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $detailSheet->getStyle('F2:G' . $detailLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $detailSheet->getStyle('O2:O' . $detailLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $detailSheet->getStyle('O2:S' . $detailLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $detailSheet->getStyle('H2:J' . $detailLastRow)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
             $detailSheet->getStyle('N2:N' . $detailLastRow)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
 
@@ -377,7 +384,7 @@ class RequestExportSpreadsheetService
             }
         }
 
-        foreach (range('A', 'O') as $columnID) {
+        foreach (range('A', 'S') as $columnID) {
             $detailSheet->getColumnDimension($columnID)->setAutoSize(true);
         }
 
@@ -386,7 +393,7 @@ class RequestExportSpreadsheetService
         $detailSheet->getColumnDimension('J')->setWidth(36);
         $detailSheet->getColumnDimension('N')->setWidth(42);
 
-        $detailSheet->setAutoFilter('A1:O1');
+        $detailSheet->setAutoFilter('A1:S1');
         $detailSheet->freezePane('A2');
         $detailSheet->setSelectedCell('A1');
 
