@@ -16,8 +16,7 @@ class RequestExportSpreadsheetService
     public function __construct(
         private RequestRepository $requestRepository,
         private WorkflowHistoryRepository $historyRepository,
-    ) {
-    }
+    ) {}
 
     /**
      * @param array{status?: string, serviceId?: int, type?: string, arrivalDate?: string, departureDate?: string, agent?: string} $filters
@@ -91,10 +90,14 @@ class RequestExportSpreadsheetService
             'Date de départ',
             'Dernier commentaire',
             'Date de dernière action',
+            'Délais de traitement RH',
+            'Délais de traitement ST',
+            'Délais de traitement DSI',
+            'Délais de traitement FINANCES',
         ];
 
         $summarySheet->fromArray($headers, null, 'A1');
-        $this->applyExportHeaderStyle($summarySheet, 'A1:I1');
+        $this->applyExportHeaderStyle($summarySheet, 'A1:M1');
 
         $summaryRows = [];
         $summaryStyleMetaByRow = [];
@@ -112,6 +115,77 @@ class RequestExportSpreadsheetService
                 $agentEntity?->getLastname(),
             );
 
+            // --- CALCULS DES DÉLAIS PAR SERVICE DEPUIS LA CRÉATION ---
+            $delaisRH = '-';
+            $delaisST = '-';
+            $delaisDSI = '-';
+            $delaisFIN = '-';
+
+            $allRequestHistories = ($requestId !== null && isset($historyByRequestId[$requestId])) ? $historyByRequestId[$requestId] : [];
+
+            // 1. Tri chronologique pour trouver les premières ou dernières validations
+            usort($allRequestHistories, static function ($a, $b) {
+                return ($a->getDate() <=> $b->getDate());
+            });
+
+            $dateValidationRH = null;
+            $dateValidationST = null;
+            $dateValidationDSI = null;
+            $dateValidationFIN = null;
+
+            foreach ($allRequestHistories as $entry) {
+                $oldStatus = $entry->getOldStatus();
+                $newStatus = $entry->getNewStatus();
+
+                // Validation RH : Quand le ticket quitte l'environnement RH pour la première fois
+                if (($oldStatus === 'en_attente_validation' || $oldStatus === AccessRequest::STATUS_EN_ATTENTE_RH)
+                    && $newStatus !== 'en_attente_validation' && $newStatus !== AccessRequest::STATUS_EN_ATTENTE_RH) {
+                    if ($dateValidationRH === null) {
+                        $dateValidationRH = $entry->getDate();
+                    }
+                }
+                
+                // Validation ST : quand le pôle ST quitte son statut d'attente
+                if ($oldStatus === AccessRequest::STATUS_EN_ATTENTE_ST && $newStatus !== AccessRequest::STATUS_EN_ATTENTE_ST) {
+                    if ($dateValidationST === null) {
+                        $dateValidationST = $entry->getDate();
+                    }
+                }
+                
+                // Validation DSI : quand le pôle DSI quitte son statut d'attente
+                if ($oldStatus === AccessRequest::STATUS_EN_ATTENTE_DSI && $newStatus !== AccessRequest::STATUS_EN_ATTENTE_DSI) {
+                    if ($dateValidationDSI === null) {
+                        $dateValidationDSI = $entry->getDate();
+                    }
+                }
+                
+                // Validation FINANCES / Traitement : premier passage à un statut final
+                if (in_array($newStatus, [AccessRequest::STATUS_TRAITEE, AccessRequest::STATUS_REFUSEE_DSI, AccessRequest::STATUS_REFUSEE_ST, AccessRequest::STATUS_REFUSEE_RH])) {
+                    if ($dateValidationFIN === null) {
+                        $dateValidationFIN = $entry->getDate();
+                    }
+                }
+            }
+
+            $dateCreation = $requestEntity->getCreationDate();
+            $now = new \DateTimeImmutable();
+
+            if ($dateCreation !== null) {
+                // Règle demandée : création -> validation du service, sinon création -> aujourd'hui.
+                $finRH = $dateValidationRH ?? $now;
+                $delaisRH = ($finRH < $dateCreation) ? '0 j' : $dateCreation->diff($finRH)->days . ' j';
+
+                $finST = $dateValidationST ?? $now;
+                $delaisST = ($finST < $dateCreation) ? '0 j' : $dateCreation->diff($finST)->days . ' j';
+
+                $finDSI = $dateValidationDSI ?? $now;
+                $delaisDSI = ($finDSI < $dateCreation) ? '0 j' : $dateCreation->diff($finDSI)->days . ' j';
+
+                $finFIN = $dateValidationFIN ?? $now;
+                $delaisFIN = ($finFIN < $dateCreation) ? '0 j' : $dateCreation->diff($finFIN)->days . ' j';
+            }
+
+            // [Le code continue ici sur votre tableau d'export classique...]
             $summaryRows[] = [
                 $requestEntity->getReference(),
                 $typeLabels[$requestType] ?? $requestType,
@@ -122,6 +196,10 @@ class RequestExportSpreadsheetService
                 $requestEntity->getDepartureDate()?->format('d/m/Y') ?? '-',
                 $history?->getCommentary() ?? '-',
                 $history?->getDate()?->format('d/m/Y H:i') ?? '-',
+                $delaisRH,
+                $delaisST,
+                $delaisDSI,
+                $delaisFIN,
             ];
             $summaryStyleMetaByRow[$row] = [
                 'type' => $requestType,
@@ -131,11 +209,12 @@ class RequestExportSpreadsheetService
             $row++;
         }
 
+
         if ($summaryRows !== []) {
             $summarySheet->fromArray($summaryRows, null, 'A2');
             $summaryLastRow = 1 + count($summaryRows);
 
-            $summarySheet->getStyle('A2:I' . $summaryLastRow)->getBorders()->getAllBorders()
+            $summarySheet->getStyle('A2:M' . $summaryLastRow)->getBorders()->getAllBorders()
                 ->setBorderStyle(Border::BORDER_THIN)
                 ->getColor()->setARGB('FFE5E7EB');
 
@@ -143,7 +222,7 @@ class RequestExportSpreadsheetService
             $summarySheet->getStyle('A2:A' . $summaryLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $summarySheet->getStyle('B2:C' . $summaryLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             $summarySheet->getStyle('F2:G' . $summaryLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $summarySheet->getStyle('I2:I' . $summaryLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $summarySheet->getStyle('I2:M' . $summaryLastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
             foreach ($summaryStyleMetaByRow as $summaryRow => $meta) {
                 $requestType = $meta['type'];
@@ -159,16 +238,11 @@ class RequestExportSpreadsheetService
             }
         }
 
-        $summarySheet->getColumnDimension('A')->setWidth(15);
-        $summarySheet->getColumnDimension('B')->setWidth(18);
-        $summarySheet->getColumnDimension('C')->setWidth(22);
-        $summarySheet->getColumnDimension('D')->setWidth(24);
-        $summarySheet->getColumnDimension('E')->setWidth(24);
-        $summarySheet->getColumnDimension('F')->setWidth(16);
-        $summarySheet->getColumnDimension('G')->setWidth(16);
-        $summarySheet->getColumnDimension('H')->setWidth(42);
-        $summarySheet->getColumnDimension('I')->setWidth(22);
-        $summarySheet->setAutoFilter('A1:I1');
+
+        foreach (range('A', 'M') as $columnID) {
+            $summarySheet->getColumnDimension($columnID)->setAutoSize(true);
+        }
+        $summarySheet->setAutoFilter('A1:M1');
         $summarySheet->freezePane('A2');
         $summarySheet->setSelectedCell('A1');
 
@@ -303,21 +377,15 @@ class RequestExportSpreadsheetService
             }
         }
 
-        $detailSheet->getColumnDimension('A')->setWidth(15);
-        $detailSheet->getColumnDimension('B')->setWidth(18);
-        $detailSheet->getColumnDimension('C')->setWidth(22);
-        $detailSheet->getColumnDimension('D')->setWidth(24);
-        $detailSheet->getColumnDimension('E')->setWidth(24);
-        $detailSheet->getColumnDimension('F')->setWidth(16);
-        $detailSheet->getColumnDimension('G')->setWidth(16);
+        foreach (range('A', 'O') as $columnID) {
+            $detailSheet->getColumnDimension($columnID)->setAutoSize(true);
+        }
+
         $detailSheet->getColumnDimension('H')->setWidth(28);
         $detailSheet->getColumnDimension('I')->setWidth(28);
         $detailSheet->getColumnDimension('J')->setWidth(36);
-        $detailSheet->getColumnDimension('K')->setWidth(22);
-        $detailSheet->getColumnDimension('L')->setWidth(20);
-        $detailSheet->getColumnDimension('M')->setWidth(20);
         $detailSheet->getColumnDimension('N')->setWidth(42);
-        $detailSheet->getColumnDimension('O')->setWidth(20);
+
         $detailSheet->setAutoFilter('A1:O1');
         $detailSheet->freezePane('A2');
         $detailSheet->setSelectedCell('A1');

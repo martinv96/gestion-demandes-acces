@@ -124,4 +124,50 @@ class WorkflowHistory
 
         return $this;
     }
+
+    public function getDurationInDays(): ?int 
+    {
+        if (!$this->date || !$this->request) {
+            return null;
+        }
+
+        // trouver la date de début de cette étape
+        // c'est la date de création de la demande par défaut
+
+        $dateDebut = $this->request->getCreationDate();
+
+        // on cherche dans l'historique s'il y a une étape juste avant celle-ci
+        $histories = $this->request->getRequestId()->toArray();
+
+        // historique trié par date
+        $previousHistory = null;
+        foreach ($histories as $history) {
+            if ($history->getId() === $this->getId()) {
+                break;
+            }
+            $previousHistory = $history;
+        }
+
+        // si on a trouvé une étape précédente, le début de l'étape actuelle correspond à la fin de la précédente
+        if ($previousHistory !== null && $previousHistory->getDate() !== null) {
+            $dateDebut = $previousHistory->getDate();
+        }
+
+        if (!$dateDebut) {
+            return null;
+        }
+
+        // si l'étape est encore en cours, on prend maintenant :
+        if ($this->newStatus === $this->request->getStatus()) {
+            $dateFin = new \DateTimeImmutable();
+        } else {
+            // si elle est validée/terminée, on prend la date à laquelle cette action à été enregistrée
+            $dateFin = $this->date;
+        }
+
+        // calcul de la différence 
+        $diff = $dateDebut->diff($dateFin);
+
+        return (int) $diff->days;
+    }
 }
