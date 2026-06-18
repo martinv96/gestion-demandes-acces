@@ -136,6 +136,12 @@ class Request
     #[ORM\OneToMany(targetEntity: self::class, mappedBy: 'parentRequest')]
     private Collection $childRequests;
 
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable:true)]
+    private ?\DateTimeImmutable $lastManualReminderServiceAt = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $lastManualReminderService = null;
+
     public function __construct()
     {
         $this->ressources = new ArrayCollection();
@@ -514,4 +520,29 @@ class Request
         $this->pieceJointe = $pieceJointe;
         return $this;
     }
+
+    public function getLastManualReminderAt(): ?\DateTimeImmutable
+    {
+        return $this->lastManualReminderServiceAt;
+    }
+
+    public function setLastManualReminderAt(?\DateTimeImmutable $lastManualReminderAt): static
+    {
+        $this->lastManualReminderServiceAt = $lastManualReminderAt;
+
+        return $this;
+    }
+
+    public function getLastManualReminderService(): ?string
+    {
+        return $this->lastManualReminderService;
+    }
+
+    public function setLastManualReminderService(?string $lastManualReminderService): static
+    {
+        $this->lastManualReminderService = $lastManualReminderService;
+
+        return $this;
+    }
+
 }

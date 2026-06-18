@@ -3,6 +3,7 @@
 namespace App\Service\Workflow;
 
 use App\Entity\Request as AccessRequest;
+use App\Repository\ServiceRepository;
 use App\Repository\UserRepository;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
@@ -28,11 +29,11 @@ class WorkflowNotificationService
     public function __construct(
         private MailerInterface $mailer,
         private UserRepository $userRepository,
+        private ServiceRepository $serviceRepository,
         private WorkflowStateResolver $stateResolver,
         private string $mailerFrom = 'no-reply@localhost',
         private ?LoggerInterface $logger = null
-    ) {
-    }
+    ) {}
 
     public function notifyAllActors(AccessRequest $request, string $comment): void
     {
@@ -69,7 +70,7 @@ class WorkflowNotificationService
         }
     }
 
-    public function sendReminder (AccessRequest $request, string $message = 'Ceci est un rappel automatique.'): void
+    public function sendReminder(AccessRequest $request, string $message = 'Ceci est un rappel automatique.'): void
     {
         try {
             $nextRoles = $this->stateResolver->getNextValidatorRoles($request);
@@ -96,7 +97,8 @@ class WorkflowNotificationService
                         ->htmlTemplate('emails/notification_reminder.html.twig')
                         ->context([
                             'request' => $request,
-                            'status_label' => $this->getLabel((string) $request->getStatus()), 'reminder_message' => $message,
+                            'status_label' => $this->getLabel((string) $request->getStatus()),
+                            'reminder_message' => $message,
                         ]);
                     $this->mailer->send($email);
                     $this->logInfo($emailAddress, $request, true);
@@ -107,7 +109,7 @@ class WorkflowNotificationService
         }
     }
 
-    public function sendEscalation(AccessRequest $request, string $message ='La demande est toujours en attente et nécessite une intervention.'): void
+    public function sendEscalation(AccessRequest $request, string $message = 'La demande est toujours en attente et nécessite une intervention.'): void
     {
         try {
             $activeUsers = $this->userRepository->findBy(['isActive' => true]);
@@ -116,14 +118,14 @@ class WorkflowNotificationService
         }
 
         foreach ($activeUsers as $user) {
-            if (!is_object($user)|| !method_exists($user,'getEmail') || !method_exists($user,'getRoles')) {
+            if (!is_object($user) || !method_exists($user, 'getEmail') || !method_exists($user, 'getRoles')) {
                 continue;
             }
 
             $roles = (array) $user->getRoles();
-            $mustReceiveEscalation = in_array('ROLE_ADMIN',$roles, true) || in_array('ROLE_RH',$roles, true);
+            $mustReceiveEscalation = in_array('ROLE_ADMIN', $roles, true) || in_array('ROLE_RH', $roles, true);
 
-            if(!$mustReceiveEscalation) {
+            if (!$mustReceiveEscalation) {
                 continue;
             }
 
@@ -140,20 +142,19 @@ class WorkflowNotificationService
                     ->htmlTemplate('emails/notification_info.html.twig')
                     ->context([
                         'request' => $request,
-                        'status_label' => $this->getLabel((string) $request->getStatus()), 'last_comment' => $message,
+                        'status_label' => $this->getLabel((string) $request->getStatus()),
+                        'last_comment' => $message,
                     ]);
 
                 $this->mailer->send($email);
 
-                $this->logger?->info('Escalade workflow envoyée.',[
+                $this->logger?->info('Escalade workflow envoyée.', [
                     'request_id' => $request->getId(),
                     'to' => $emailAddress,
                     'status' => $request->getStatus(),
                 ]);
-            
-
             } catch (\Throwable $e) {
-                $this->logger?->error('Echec de l\'envoi du mail d\'escalade.',[
+                $this->logger?->error('Echec de l\'envoi du mail d\'escalade.', [
                     'request_id' => $request->getId(),
                     'to' => $emailAddress,
                     'status' => $request->getStatus(),
@@ -266,7 +267,7 @@ class WorkflowNotificationService
         $agent = $request->getAgent();
 
         if ($agent === null) {
-            $this->logger?->warning('Impossible d\'envoyer la note d\'acompagnement : aucun agent rattaché à la demande.',[
+            $this->logger?->warning('Impossible d\'envoyer la note d\'acompagnement : aucun agent rattaché à la demande.', [
                 'request_id' => $request->getId()
             ]);
             return;
@@ -276,7 +277,7 @@ class WorkflowNotificationService
 
         // on récupère l'adresse mail saisie sur la demande
         if ($emailAddress === '') {
-            $this->logger?->warning('Impossible d\'envoyer la note d\'accompagnement : l\'agent n\'a pas d\'adresse email renseignée.',[
+            $this->logger?->warning('Impossible d\'envoyer la note d\'accompagnement : l\'agent n\'a pas d\'adresse email renseignée.', [
                 'request_id' => $request->getId(),
                 'agent_id' => $agent->getId()
             ]);
@@ -295,12 +296,12 @@ class WorkflowNotificationService
 
             $this->mailer->send($email);
 
-            $this->logger?->info('Note d\'accompagnement envoyée avec succès à l\'agent.',[
+            $this->logger?->info('Note d\'accompagnement envoyée avec succès à l\'agent.', [
                 'request_id' => $request->getId(),
                 'to' => $emailAddress
             ]);
         } catch (\Throwable $e) {
-            $this->logger?->error('Echec de l\'envoi de la note d\'accompagnement.',[
+            $this->logger?->error('Echec de l\'envoi de la note d\'accompagnement.', [
                 'request_id' => $request->getId(),
                 'error' => $e->getMessage()
             ]);
@@ -311,5 +312,170 @@ class WorkflowNotificationService
                 $e
             );
         }
+    }
+
+    /**
+     * @return array{recipients:int,sent:int,failed:int}
+     */
+    public function sendManualServiceReminder(AccessRequest $request, string $serviceTarget, string $customMessage = ''): array
+    {
+        // 1. Mapping du service cible vers les codes services et rôles workflow associés.
+        $normalizedTarget = mb_strtoupper(trim($serviceTarget));
+        $targetConfig = match ($normalizedTarget) {
+            'RH' => ['codes' => ['RH'], 'roles' => ['ROLE_RH']],
+            'ST' => ['codes' => ['ST'], 'roles' => ['ROLE_ST']],
+            'DSI' => ['codes' => ['DSI'], 'roles' => ['ROLE_DSI']],
+            'FIN', 'FINANCES' => ['codes' => ['FIN', 'FINANCES'], 'roles' => ['ROLE_FIN', 'ROLE_FINANCES']],
+            default => null,
+        };
+
+        if ($targetConfig === null) {
+            $this->logger?->warning('Tentative de relance manuelle sur un service inconnu.', [
+                'request_id' => $request->getId(),
+                'target' => $serviceTarget
+            ]);
+            return ['recipients' => 0, 'sent' => 0, 'failed' => 0];
+        }
+
+        $targetCodes = $targetConfig['codes'];
+        $targetRoles = $targetConfig['roles'];
+
+        /** @var array<string, string> $recipients */
+        $recipients = [];
+
+        // 2. Priorité à l'adresse mail du service configuré (table Service).
+        try {
+            $services = $this->serviceRepository->findAll();
+            foreach ($services as $service) {
+                $serviceCode = mb_strtoupper(trim((string) $service->getCode()));
+                if ($serviceCode !== '' && in_array($serviceCode, $targetCodes, true)) {
+                    $serviceEmail = trim((string) $service->getEmail());
+                    if ($serviceEmail !== '') {
+                        $recipients[$serviceEmail] = 'service';
+                    }
+                }
+            }
+
+            // Fallback: certains services n'ont pas de code workflow, on tente un rapprochement par nom.
+            if ($recipients === []) {
+                $nameKeywords = match ($normalizedTarget) {
+                    'RH' => ['RESSOURCES HUMAINES', 'RH'],
+                    'ST' => ['SERVICE TECHNIQUE', 'TECHNIQUE', 'ST'],
+                    'DSI' => ['DSI', 'INFORMATIQUE'],
+                    'FIN', 'FINANCES' => ['FINANCES', 'FIN'],
+                    default => [],
+                };
+
+                if ($nameKeywords !== []) {
+                    foreach ($this->serviceRepository->findAll() as $service) {
+                        $serviceName = mb_strtoupper(trim((string) $service->getName()));
+                        if ($serviceName === '') {
+                            continue;
+                        }
+
+                        foreach ($nameKeywords as $keyword) {
+                            if (str_contains($serviceName, $keyword)) {
+                                $serviceEmail = trim((string) $service->getEmail());
+                                if ($serviceEmail !== '') {
+                                    $recipients[$serviceEmail] = 'service_name_fallback';
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            $this->logger?->error('Impossible de récupérer les services pour la relance manuelle.', [
+                'request_id' => $request->getId(),
+                'service' => $serviceTarget,
+                'target_codes' => $targetCodes,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            $activeUsers = $this->userRepository->findBy(['isActive' => true]);
+        } catch (\Throwable $e) {
+            $this->logger?->error('Impossible de récuréper les utilisateurs pour la relance manuelle.', [
+                'request_id' => $request->getId(),
+                'error' => $e->getMessage()
+            ]);
+            $activeUsers = [];
+        }
+
+        // 3. Complément: utilisateurs actifs porteurs du rôle ciblé.
+        foreach ($activeUsers as $user) {
+            if (!is_object($user) || !method_exists($user, 'getEmail') || !method_exists($user, 'getRoles')) {
+                continue;
+            }
+
+            $emailAddress = trim((string) $user->getEmail());
+            if ($emailAddress === '') {
+                continue;
+            }
+
+            $hasTargetRole = array_intersect($targetRoles, (array) $user->getRoles()) !== [];
+            if ($hasTargetRole) {
+                $recipients[$emailAddress] = 'user';
+            }
+        }
+
+        if ($recipients === []) {
+            $this->logger?->warning('Aucun destinataire trouvé pour la relance manuelle.', [
+                'request_id' => $request->getId(),
+                'service' => $serviceTarget,
+                'target_codes' => $targetCodes,
+                'target_roles' => $targetRoles,
+            ]);
+
+            return ['recipients' => 0, 'sent' => 0, 'failed' => 0];
+        }
+
+        // Message par défaut si l'admin n'a pas écrit de texte spécifique.
+        $message = trim($customMessage) !== '' ? $customMessage : 'Un administrateur demande la relance du traitement de cette demande.';
+        $sentCount = 0;
+        $failedCount = 0;
+
+        foreach ($recipients as $emailAddress => $recipientSource) {
+            try {
+                $email = (new TemplatedEmail())
+                    ->from($this->resolveMailerFrom())
+                    ->to($emailAddress)
+                    ->subject($this->buildSubject('RELANCE MANUELLE - ' . mb_strtoupper($serviceTarget), $request))
+                    ->htmlTemplate('emails/notification_manual_reminder.html.twig')
+                    ->context([
+                        'request' => $request,
+                        'status_label' => $this->getLabel((string) $request->getStatus()),
+                        'reminder_message' => $message,
+                    ]);
+                $this->mailer->send($email);
+                $sentCount++;
+
+                $this->logger?->info('Relance manuelle envoyée au service avec succès.', [
+                    'request_id' => $request->getId(),
+                    'service' => $serviceTarget,
+                    'target_codes' => $targetCodes,
+                    'target_roles' => $targetRoles,
+                    'source' => $recipientSource,
+                    'to' => $emailAddress,
+                ]);
+            } catch (\Throwable $e) {
+                $failedCount++;
+                $this->logError(
+                    sprintf("Echec de la relance manuelle pour le service %s", $serviceTarget),
+                    $request,
+                    $e,
+                    $emailAddress,
+                    true
+                );
+            }
+        }
+
+        return [
+            'recipients' => count($recipients),
+            'sent' => $sentCount,
+            'failed' => $failedCount,
+        ];
     }
 }

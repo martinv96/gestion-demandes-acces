@@ -18,6 +18,7 @@ final class RequestVoter extends Voter
     public const EDIT_INFO = 'REQUEST_EDIT_INFO';
     public const UNDO = 'REQUEST_UNDO';
     public const UNBLOCK = 'REQUEST_UNBLOCK';
+    public const REMIND_SERVICE = 'REQUEST_REMIND_SERVICE';
 
     public function __construct(private WorkflowService $workflowService)
     {
@@ -36,6 +37,7 @@ final class RequestVoter extends Voter
             self::EDIT_INFO,
             self::UNDO,
             self::UNBLOCK,
+            self::REMIND_SERVICE,
         ], true);
     }
 
@@ -58,6 +60,7 @@ final class RequestVoter extends Voter
             self::EDIT_INFO => $this->workflowService->canEditAfterRefusal($request, $user),
             self::UNDO => $this->workflowService->canUndoLastDecision($request, $user),
             self::UNBLOCK => $this->workflowService->canUnblockByRh($request, $user),
+            self::REMIND_SERVICE => in_array('ROLE_ADMIN', $user->getRoles(), true),
             default => false,
         };
     }

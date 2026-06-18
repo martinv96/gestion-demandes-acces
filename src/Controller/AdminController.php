@@ -7,6 +7,8 @@ use App\Entity\Service;
 use App\Entity\User;
 use App\Entity\WorkflowTransitionConfig;
 use App\Entity\LoginAudit;
+use App\Entity\Request as AccessRequest;
+use App\Service\Workflow\WorkflowNotificationService;
 use App\Repository\LoginAuditDailyStatRepository;
 use App\Repository\LoginAuditRepository;
 use App\Service\Security\LoginAuditRetentionService;
@@ -54,7 +56,7 @@ final class AdminController extends AbstractController
         $limit = 10;
         $userLimit = 5;
         $softwareLimit = 5;
-        $tab = $request->query->getString('tab','users');
+        $tab = $request->query->getString('tab', 'users');
 
         $serviceCurrentPage = $request->query->getInt('page', 1);
         $usersCurrentPage = $request->query->getInt('users_page', 1);
@@ -73,7 +75,7 @@ final class AdminController extends AbstractController
         $servicesOffset = ($serviceCurrentPage - 1) * $limit;
         $usersOffset = ($usersCurrentPage - 1) * $userLimit;
         $softwareOffset = ($softwareCurrentPage - 1) * $softwareLimit;
-        
+
         $auditLimit = 15;
         $auditCurrentPage = $request->query->getInt('audit_page', 1);
         if ($auditCurrentPage < 1) {
@@ -135,11 +137,11 @@ final class AdminController extends AbstractController
 
         //users
         $paginatedUsers = $userRepository->findPaginated($usersOffset, $userLimit);
-        $totalUsers =$userRepository->countAll();
+        $totalUsers = $userRepository->countAll();
         $usersMaxPages = (int) ceil($totalUsers / $userLimit);
 
         //logiciels
-        $category='logiciel';
+        $category = 'logiciel';
         $paginatedSoftware = $ressourceRepository->findPaginated($category, $softwareOffset, $softwareLimit);
         $totalSoftwares = $ressourceRepository->countAll($category);
         $softwaresMaxPages = (int) ceil($totalSoftwares / $softwareLimit);
@@ -175,7 +177,7 @@ final class AdminController extends AbstractController
             'liveLogout' => $liveLogout,
             'historyTotals' => $historyTotals,
             'historyRecentDays' => $historyRecentDays,
-            
+
             'logiciels' => $paginatedSoftware,
             'softwareCurrentPage' => $softwareCurrentPage,
             'softwaresMaxPages' => $softwaresMaxPages,
@@ -188,28 +190,28 @@ final class AdminController extends AbstractController
     }
 
     #[Route('/audit/purge', name: 'audit_purge', methods: ['POST'])]
-public function auditPurge(
-    Request $request,
-    LoginAuditRetentionService $retentionService,
-): Response {
-    $this->denyAccessUnlessGranted('ROLE_ADMIN');
+    public function auditPurge(
+        Request $request,
+        LoginAuditRetentionService $retentionService,
+    ): Response {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
-    if (!$this->isCsrfTokenValid('admin_audit_purge', (string) $request->request->get('_token'))) {
-        $this->addFlash('danger', 'Token de sécurité invalide.');
+        if (!$this->isCsrfTokenValid('admin_audit_purge', (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Token de sécurité invalide.');
+            return $this->redirectToRoute('app_admin_index', ['tab' => 'audits']);
+        }
+
+        $result = $retentionService->purgeOlderThanMonths(12);
+
+        $this->addFlash('success', sprintf(
+            'Purge audit terminée (cutoff %s) : %d ligne(s) agrégée(s), %d ligne(s) supprimée(s).',
+            $result['cutoff'],
+            $result['aggregated_rows'],
+            $result['purged_rows']
+        ));
+
         return $this->redirectToRoute('app_admin_index', ['tab' => 'audits']);
     }
-
-    $result = $retentionService->purgeOlderThanMonths(12);
-
-    $this->addFlash('success', sprintf(
-        'Purge audit terminée (cutoff %s) : %d ligne(s) agrégée(s), %d ligne(s) supprimée(s).',
-        $result['cutoff'],
-        $result['aggregated_rows'],
-        $result['purged_rows']
-    ));
-
-    return $this->redirectToRoute('app_admin_index', ['tab' => 'audits']);
-}
 
     // route pour ajouter un utilisateur
     // ! la route /admin/user/add permet d'ajouter un nouvel utilisateur via un formulaire.
@@ -363,13 +365,13 @@ public function auditPurge(
             $this->addFlash('danger', 'Token de sécurité invalide.');
             return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
         }
-    try {
-        $em->remove($user);
-        $em->flush();
-        $this->addFlash('success', 'Utilisateur supprimé.');
-    } catch (ForeignKeyConstraintViolationException $e) {
-        $this->addFlash('danger', 'Impossible de supprimer ce compte car il est référencé dans l\'historique des validations. Désactivez-le à la place.');
-    }
+        try {
+            $em->remove($user);
+            $em->flush();
+            $this->addFlash('success', 'Utilisateur supprimé.');
+        } catch (ForeignKeyConstraintViolationException $e) {
+            $this->addFlash('danger', 'Impossible de supprimer ce compte car il est référencé dans l\'historique des validations. Désactivez-le à la place.');
+        }
         return $this->redirectToRoute('app_admin_index', ['tab' => 'users']);
     }
 
@@ -863,5 +865,62 @@ public function auditPurge(
         $em->flush();
         $this->addFlash('success', 'Logiciel supprimé.');
         return $this->redirectToRoute('app_admin_index', ['tab' => 'logiciels']);
+    }
+
+    // route pour relancer manuellement un service par mail
+    //! accesible uniquement par les comptes dotés du rôle ROLE_ADMIN
+    #[Route('/request/{id}/remind-service', name: 'request_remind_service', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function remindService(
+        AccessRequest $accessRequest,
+        Request $request,
+        WorkflowNotificationService $notificationService,
+        EntityManagerInterface $em
+    ): Response {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        // validation du token CSRF pour sécuriser l'action du bouton 
+        if (!$this->isCsrfTokenValid('admin_remind_service_' . $accessRequest->getId(), (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Token de sécurité invalide.');
+            return $this->redirectToRoute('app_request_show', ['id' => $accessRequest->getId()]);
+        }
+
+        // récupération du service cible envoyé par la vue
+        $serviceTarget = trim((string) $request->request->get('service_target', ''));
+        $customMessage = trim((string) $request->request->get('custom_message', ''));
+
+        if ($serviceTarget === '') {
+            $this->addFlash('danger', 'Veuillez spécifier le service à relancer.');
+            return $this->redirectToRoute('app_request_show', ['id' => $accessRequest->getId()]);
+        }
+
+        // Déclenchement de l'envoi des e-mails avec statistiques détaillées.
+        $stats = $notificationService->sendManualServiceReminder($accessRequest, $serviceTarget, $customMessage);
+
+        // pour enregistrer la date et le service relancé
+        if ($stats['sent'] > 0) {
+            $accessRequest->setLastManualReminderAt(new \DateTimeImmutable());
+            $accessRequest->setLastManualReminderService(strtoupper($serviceTarget));
+            $em->flush();
+            $this->addFlash('success', sprintf(
+                'Relance envoyée au service %s (%d destinataire%s).',
+                strtoupper($serviceTarget),
+                $stats['sent'],
+                $stats['sent'] > 1 ? 's' : ''
+            ));
+        } elseif ($stats['recipients'] > 0) {
+            $this->addFlash('danger', sprintf(
+                'Destinataire(s) trouvé(s) pour %s (%d), mais envoi impossible. Vérifiez MAILER_DSN et les logs.',
+                strtoupper($serviceTarget),
+                $stats['recipients']
+            ));
+        } else {
+            $this->addFlash('warning', sprintf(
+                'Aucun destinataire actif trouvé pour le service %s. Vérifiez le code service et les comptes utilisateurs.',
+                strtoupper($serviceTarget)
+            ));
+        }
+
+        //redirection vers page détail 
+        return $this->redirectToRoute('app_request_show', ['id' => $accessRequest->getId()]);
     }
 }

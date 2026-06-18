@@ -1,0 +1,61 @@
+{% apply inline_css %}
+<style>
+    body { margin: 0; padding: 0; background-color: #f6f6f6;}
+    .sidebar { background-color: #a35233; width: 260px; min-width: 260px; padding: 40px 20px; text-align: center; vertical-align: top; }
+    .sidebar h4 { color: #fff !important; margin: 15px 0 5px; font-family: 'Segoe UI', sans-serif; font-size: 18px; }
+    .sidebar p { color: #f2d7cc; margin: 0; font-family: 'Segoe UI', sans-serif; font-size: 13px; opacity: 0.8; }
+    .main-content { background-color: #fff; padding: 60px 40px; vertical-align: top; }
+    h2 { color: #a35233; font-family: 'Segoe UI', sans-serif; font-weight: bold; font-size: 24px; margin: 0 0 25px; }
+    .info-card { background-color: #f2f2f2; border-radius: 8px; padding: 30px; margin-bottom: 30px; }
+    .label { color: #6e7985; font-size: 11px; text-transform: uppercase; margin-bottom: 5px; }
+    .value { color: #2c3e50; font-weight: 600; font-size: 17px; margin-bottom: 20px; }
+    .badge { background-color: #f8f1ed; border: 1px solid #e6ccbe; color: #a35233; padding: 6px 15px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block; }
+    .reminder-message { color: #a35233; font-size: 16px; margin: 20px 0; }
+    .footer { background-color: #e9ecef; padding: 30px; text-align: center; color: #7f8c8d; font-size: 11px; }
+    .btn-primary {background-color: #a35233; color: #ffffff !important; padding :16px 32px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-family: 'Segoe UI', sans-serif; margin-top: 30px; border: 1px solid rgba(255, 255, 255, 0.2);}
+</style>
+
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+    <tr>
+        <td class="sidebar">
+            <img src="https://www.leplessistrevise.fr/wp-content/themes/leplessistrevise/img/logo.svg" alt="logo" width="75">
+            <h4>Le Plessis-Trévise</h4>
+            <p>GDAP - Gestion des Accès du Plessis</p>
+        </td>
+        <td class="main-content">
+            <h2>Relance administrative - Action requise</h2>
+
+            <div class="reminder-message">
+                <strong>Message de l'administrateur :</strong><br>
+                {{ reminder_message }}
+            </div>
+
+            <div class="info-card">
+                <div class="label">Référence du dossier</div>
+                <div class="value">{{ request.reference|default('#' ~ request.id) }}</div>
+
+                <div class="label">Agent concerné</div>
+                <div class="value">
+                    {% if request.agent is not null %}
+                        {{ request.agent.firstname|capitalize }} {{ request.agent.lastname|upper }}
+                    {% else %}
+                        Non spécifié
+                    {% endif %}
+                </div>
+
+                <div class="label">Statut actuel du traitement</div>
+                <div class="value">{{ status_label }}</div>
+            </div>
+
+            <div style="text-align: center">
+                <a href="{{ url('app_request_show', {id: request.id}) }}" class="btn-primary">Traiter la demande</a>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2" class="footer">
+            <p>Ceci est une notification de relance envoyée manuellement par un administrateur depuis la plateforme GDAP.<br><strong>Mairie du Plessis-Trévise</strong> &copy; {{ "now"|date("Y") }} - Tous droits réservés.</p>
+        </td>
+    </tr>
+</table>
+{% endapply %}
