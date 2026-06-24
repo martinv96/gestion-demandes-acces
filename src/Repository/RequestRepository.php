@@ -3,9 +3,11 @@
 namespace App\Repository;
 
 use App\Entity\Request;
+use App\Entity\User;
 use App\Entity\WorkflowHistory;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -526,5 +528,59 @@ class RequestRepository extends ServiceEntityRepository
             ->getResult();
 
         return $results;
+    }
+
+    /** 
+     * pour récupérer les demandes ayant une arrivée ou un départ
+     * dans l'intervalle de dates visible sur le calendrier
+     * 
+     * @return list<Request>
+     */
+    public function findRequestsBetweenDates(\DateTimeInterface $start, \DateTimeInterface $end): array
+    {
+        return $this->createQueryBuilder('r')
+            ->leftJoin('r.agent', 'a')->addSelect('a')
+            ->leftJoin('a.service', 's')->addSelect('s')
+            ->andWhere('
+                (r.arrivalDate >= :start AND r.arrivalDate <= :end) OR
+                (r.departureDate >= :start AND r.departureDate <= :end)
+            ')
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->orderBy('r.arrivalDate', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return Request[]
+     */
+    public function findRequestByCreator(User $user): array
+    {
+        return $this->createQueryBuilder('r')
+            ->leftJoin('r.agent', 'a')
+            ->addSelect('a')
+            ->where('r.author = :user')
+            ->setParameter('user', $user)
+            ->orderBy('r.id', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findPaginatedRequestsByAuthor(User $user, int $page, int $limit): Paginator
+    {
+        $query = $this->createQueryBuilder('r')
+            ->leftJoin('r.agent', 'a')
+            ->addSelect('a')
+            ->leftJoin('a.service', 's')
+            ->addSelect('s')
+            ->where('r.author = :user')
+            ->setParameter('user', $user)
+            ->orderBy('r.id', 'DESC')
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit)
+            ->getQuery();
+
+        return new Paginator($query);
     }
 }

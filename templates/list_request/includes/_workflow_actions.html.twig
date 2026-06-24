@@ -1,5 +1,5 @@
 {# Interface spéciale pour ADMIN : liste verticale de validation/refus par service #}
-{% if 'ROLE_ADMIN' in app.user.roles %}
+{% if app.user and 'ROLE_ADMIN' in app.user.roles %}
 	<div class="validationCard row mt-4">
 		<div class="col-12">
 			<div class="card border-0 workflow-actions-card" id="workflowActionsCard">

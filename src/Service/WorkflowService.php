@@ -116,6 +116,11 @@ class WorkflowService
         return $this->permissionChecker->canEditAfterRefusal($request, $user);
     }
 
+    public function isInfoEditLocked(AccessRequest $request, User $user): bool
+    {
+        return $this->permissionChecker->isInfoEditLocked($request, $user);
+    }
+
     public function canUnblockByRh(AccessRequest $request, User $user): bool
     {
         return $this->permissionChecker->canUnblockByRh($request, $user);

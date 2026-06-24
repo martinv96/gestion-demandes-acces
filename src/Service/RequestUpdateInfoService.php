@@ -5,6 +5,8 @@ namespace App\Service;
 use App\Entity\Request as AccessRequest;
 use App\Entity\Ressource;
 use App\Entity\Service;
+use App\Entity\User;
+use App\Entity\WorkflowHistory;
 use Doctrine\ORM\EntityManagerInterface;
 
 class RequestUpdateInfoService
@@ -31,7 +33,7 @@ class RequestUpdateInfoService
      * materiel?: array<string>
      * } $payload
      */
-    public function update(AccessRequest $requestEntity, array $payload): void
+    public function update(AccessRequest $requestEntity, array $payload, ?User $actor = null): void
     {
         $type = (string) ($payload['type'] ?? $requestEntity->getType() ?? AccessRequest::TYPE_OUVERTURE);
         if (!in_array($type, AccessRequest::TYPES, true)) {
@@ -83,13 +85,29 @@ class RequestUpdateInfoService
         if ($newCommentary !== '') {
             $existingCommentary = trim((string) ($requestEntity->getCommentary() ?? ''));
             $timestamp = (new \DateTimeImmutable())->format('d/m/Y H:i');
-            $newEntry = sprintf('[%s] RH: %s', $timestamp, $newCommentary);
+            $actorLabel = $actor?->getDisplayName() ?: 'Utilisateur';
+            $newEntry = sprintf('[%s] %s : %s', $timestamp, $actorLabel, $newCommentary);
 
             $requestEntity->setCommentary(
                 $existingCommentary === ''
                     ? $newEntry
                     : $existingCommentary . "\n" . $newEntry
             );
+
+            if ($actor instanceof User) {
+                $currentStatus = (string) ($requestEntity->getStatus() ?? '');
+                $history = new WorkflowHistory();
+                $history
+                    ->setRequest($requestEntity)
+                    ->setUser($actor)
+                    ->setOldStatus($currentStatus)
+                    ->setNewStatus($currentStatus)
+                    ->setCommentary('Modification des informations : ' . $newCommentary)
+                    ->setDate(new \DateTimeImmutable());
+
+                $requestEntity->addRequestId($history);
+                $this->entityManager->persist($history);
+            }
         }
 
         foreach ($requestEntity->getRessources()->toArray() as $existingResource) {

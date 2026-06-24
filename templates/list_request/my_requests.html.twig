@@ -1,0 +1,148 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Suivi de mes demandes{% endblock %}
+
+{% block body %}
+	<div class="my-requests-page">
+		{# En-tête de la page #}
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<div>
+				<h1 class="h3 mb-1 fw-bold my-requests-title">Suivi de mes demandes</h1>
+				<p class="small mb-0 my-requests-subtitle">Retrouvez l'état d'avancement des demandes que vous avez initiées</p>
+			</div>
+			<a href="{{ path('app_new_request') }}" class="btn btn-primary shadow-sm px-3 my-requests-new-btn">
+				<i class="fas fa-plus fa-sm me-2"></i>
+				Nouvelle demande
+			</a>
+		</div>
+
+		{# Tableau des Demandes #}
+		<div class="card border-0 shadow-sm my-requests-card">
+			<div class="card-body p-0">
+				<div class="table-responsive">
+					<table class="table table-hover align-middle mb-0 my-requests-table">
+						<thead class="small text-uppercase border-bottom my-requests-thead">
+							<tr>
+								<th class="ps-4 py-3" style="font-size: 0.75rem;">Référence</th>
+								<th class="py-3" style="font-size: 0.75rem;">Type</th>
+								<th class="py-3" style="font-size: 0.75rem;">Agent concerné</th>
+								<th class="py-3" style="font-size: 0.75rem;">Date de création</th>
+								<th class="py-3" style="font-size: 0.75rem;">Statut actuel</th>
+								<th class="pe-4 py-3 text-end" style="font-size: 0.75rem;">Action</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for req in requests %}
+								<tr class="border-bottom">
+									{# 1. Référence #}
+									<td class="ps-4 fw-semibold my-requests-ref" style="font-size: 0.9rem;">
+										{{ req.reference|default('REQ-' ~ req.creationDate|date('Y') ~ '-' ~ req.id) }}
+									</td>
+
+									{# 2. Type #}
+									<td>
+										<span class="badge border px-2.5 py-1.5 fw-medium text-capitalize my-requests-type-badge" style="font-size: 0.8rem; border-radius: 12px;">
+											{{ req.type }}
+										</span>
+									</td>
+
+									{# 3. Agent #}
+									<td>
+										{% if req.agent and req.agent.service %}
+											<span class="fw-bold text-uppercase my-requests-service" style="font-size: 0.85rem; letter-spacing: 0.5px;">
+												{{ req.agent.service.name }}
+											</span>
+										{% else %}
+											<span class="small my-requests-muted">Aucun agent lié</span>
+										{% endif %}
+									</td>
+
+									{# 4. Date de création #}
+									<td class="my-requests-date" style="font-size: 0.85rem;">
+										{{ req.creationDate|date('d/m/Y à H:i') }}
+									</td>
+
+									{# 5. Statut actuel #}
+									<td>
+										{% if req.status == 'traitee' or req.status == 'valide' %}
+											<span class="badge bg-success-subtle text-success px-3 py-1.5 fw-semibold" style="border-radius: 6px; font-size: 0.8rem;">Validé</span>
+										{% elseif req.status == 'rejetee' or req.status == 'refusee_rh' or req.status == 'refusee_st' or req.status == 'refusee_dsi' %}
+											<span class="badge bg-danger-subtle text-danger px-3 py-1.5 fw-semibold" style="border-radius: 6px; font-size: 0.8rem;">Rejeté</span>
+										{% elseif req.status == 'en_attente_st' %}
+											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente ST</span>
+										{% elseif req.status == 'en_attente_dsi' %}
+											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente DSI</span>
+										{% else %}
+											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En cours d'étude</span>
+										{% endif %}
+									</td>
+
+									{# 6. Action #}
+									<td class="pe-4 text-end">
+										<div class="d-inline-flex gap-2">
+											<a href="{{ path('app_request_show', {'id': req.id}) }}" class="btn btn-sm btn-outline-secondary border fw-medium px-2.5 py-1.5 shadow-sm my-requests-detail-btn" style="border-radius: 6px; font-size: 0.8rem;">
+												<i class="far fa-eye me-1"></i>
+												Voir le détail
+											</a>
+
+											{% if is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') %}
+												<form method="post" action="{{ path('app_request_delete', {'id': req.id}) }}" class="d-inline" onsubmit="return confirm('Confirmer la suppression de cette demande ?');">
+													<input type="hidden" name="_token" value="{{ csrf_token('request_delete_' ~ req.id) }}">
+													<button type="submit" class="btn btn-sm btn-outline-danger fw-medium px-2.5 py-1.5 shadow-sm" style="border-radius: 6px; font-size: 0.8rem;">
+														<i class="far fa-trash-alt me-1"></i>
+														Supprimer
+													</button>
+												</form>
+											{% endif %}
+										</div>
+									</td>
+								</tr>
+							{% else %}
+								<tr>
+									<td colspan="6" class="text-center py-5 my-requests-muted">
+										<i class="fas fa-folder-open d-block mb-3 fa-2x my-requests-empty-icon"></i>
+										Vous n'avez pas encore créé de demande d'accès.
+									</td>
+								</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+
+				{# Footer avec Pagination (Uniquement si pagesCount > 1) #}
+				<div class="d-flex justify-content-between align-items-center px-4 py-3 border-top my-requests-footer">
+					<div class="small my-requests-muted">
+						{{ totalRequests }} {{ totalRequests > 1 ? 'demandes trouvées' : 'demande trouvée' }}
+					</div>
+
+					{% if pagesCount > 1 %}
+						<nav aria-label="Pagination">
+							<ul class="pagination pagination-sm mb-0">
+								{# Bouton Précédent #}
+								<li class="page-item {{ currentPage == 1 ? 'disabled' }}">
+									<a class="page-link" href="{{ path('app_my_requests', {'page': currentPage - 1}) }}" aria-label="Précédent">
+										<span aria-hidden="true">&laquo;</span>
+									</a>
+								</li>
+
+								{# Liste des numéros de pages #}
+								{% for i in 1..pagesCount %}
+									<li class="page-item {{ currentPage == i ? 'active' }}">
+										<a class="page-link" href="{{ path('app_my_requests', {'page': i}) }}">{{ i }}</a>
+									</li>
+								{% endfor %}
+
+								{# Bouton Suivant #}
+								<li class="page-item {{ currentPage == pagesCount ? 'disabled' }}">
+									<a class="page-link" href="{{ path('app_my_requests', {'page': currentPage + 1}) }}" aria-label="Suivant">
+										<span aria-hidden="true">&raquo;</span>
+									</a>
+								</li>
+							</ul>
+						</nav>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}

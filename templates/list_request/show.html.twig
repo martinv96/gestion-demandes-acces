@@ -31,6 +31,7 @@
 		{% for entry in history %}
 			{% set entryRoles = entry.user ? entry.user.roles : [] %}
 			{% set isUndoEntry = entry.commentary starts with 'Annulation de décision' %}
+			{% set isModificationEntry = entry.commentary starts with 'Modification des informations :' %}
 
 			{% if isUndoEntry %}
 				{% if 'ROLE_RH' in entryRoles %}
@@ -47,21 +48,21 @@
 				{% endif %}
 			{% endif %}
 
-			{% if not isUndoEntry and 'ROLE_RH' in entryRoles and entry.newStatus in ['en_attente_validation', 'en_attente_st'] and rhValidatedAt is null %}
+			{% if not isUndoEntry and not isModificationEntry and 'ROLE_RH' in entryRoles and entry.newStatus in ['en_attente_validation', 'en_attente_st'] and rhValidatedAt is null %}
 				{% set rhValidatedAt = entry.date %}
 			{% endif %}
 
-			{% if entry.newStatus == 'en_attente_st' and rhValidatedAt is null %}
+			{% if not isModificationEntry and entry.newStatus == 'en_attente_st' and rhValidatedAt is null %}
 				{% set rhValidatedAt = entry.date %}
 			{% endif %}
-			{% if entry.newStatus == 'en_attente_dsi' and stValidatedAt is null %}
+			{% if not isModificationEntry and entry.newStatus == 'en_attente_dsi' and stValidatedAt is null %}
 				{% set stValidatedAt = entry.date %}
 			{% endif %}
-			{% if entry.newStatus == 'traitee' and dsiValidatedAt is null %}
+			{% if not isModificationEntry and entry.newStatus == 'traitee' and dsiValidatedAt is null %}
 				{% set dsiValidatedAt = entry.date %}
 			{% endif %}
 
-			{% if not isUndoEntry and entry.oldStatus starts with 'en_attente_' and entry.oldStatus != 'en_attente_rh' and entry.newStatus in ['en_attente_validation', 'traitee', 'en_attente_traitement'] %}
+			{% if not isUndoEntry and not isModificationEntry and entry.oldStatus starts with 'en_attente_' and entry.oldStatus != 'en_attente_rh' and entry.newStatus in ['en_attente_validation', 'traitee', 'en_attente_traitement'] %}
 				{% if 'ROLE_ST' in entryRoles %}
 					{% set stStepDone = true %}
 					{% if stValidatedAt is null %}
@@ -589,30 +590,18 @@
 					{# Commentaire de la demande #}
 					<div class="col-12">
 						<div class="card">
-							<div class="card-header">Commentaire</div>
+							<div class="card-header">Commentaire (modification)</div>
 							<div class="card-body">
 								{% if canEditRequestInfo %}
-									<label for="inline_commentaire" class="form-label">Ajouter un commentaire</label>
-									<textarea class="form-control" id="inline_commentaire" name="commentaire" rows="4" placeholder="Ajouter un commentaire, il sera conservé dans l'historique de la demande"></textarea>
-									<div class="form-text mb-3">Le commentaire existant reste conservé.</div>
-								{% endif %}
-								{% if requestEntity.commentary %}
-									{% set commentaryLines = requestEntity.commentary|replace({'\r\n': '\n', '\r': '\n'})|split('\n') %}
-									<div class="mb-0 small lh-base d-flex flex-column gap-1">
-										{% for line in commentaryLines %}
-											{% set trimmedLine = line|trim %}
-											{% if trimmedLine != '' and trimmedLine != '---' %}
-												<div>{{ line }}</div>
-											{% endif %}
-										{% endfor %}
+								<label for="inline_commentaire" class="form-label">Ajouter votre commentaire</label>
+								<textarea class="form-control" id="inline_commentaire" name="commentaire" rows="4" placeholder="Votre commentaire sera ajouté avec votre nom et la date"></textarea>
+									<div class="form-text mb-3">Les commentaires existants sont conservés automatiquement. Consultez l'historique des validations pour les commentaires des services.</div>
+								{% elseif isInfoEditLocked %}
+									<div class="alert alert-secondary mb-0" role="alert">
+										Vous avez déjà modifié cette demande une fois dans ce cycle. Pour modifier à nouveau, annulez la dernière décision.
 									</div>
-								{% else %}
-									<p class="mb-0">Aucun commentaire.</p>
 								{% endif %}
-							</div>
-						</div>
-					</div>
-
+								
 					{% if canEditRequestInfo and requestEntity.status != constant('App\\Entity\\Request::STATUS_TRAITEE') and not currentUserHasValidated %}
 						<div class="col-12">
 							<div class="d-flex justify-content-end gap-2">
@@ -620,6 +609,10 @@
 							</div>
 						</div>
 					{% endif %}
+							</div>
+						</div>
+					</div>
+
 
 					{% if canEditRequestInfo %}
 					</form>

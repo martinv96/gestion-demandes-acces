@@ -152,8 +152,6 @@ final class NewRequestController extends AbstractController
             'form' => $form->createView(),
             'isServiceTechniqueUser' => $isServiceTechniqueUser,
         ]);
-    }
-
-    
+    }    
    
 }

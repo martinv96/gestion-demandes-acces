@@ -223,6 +223,10 @@ class WorkflowStateResolver
                 continue;
             }
 
+            if ($this->isInformationUpdateEntry($history)) {
+                continue;
+            }
+
             $historyUser = $history->getUser();
             if (!$historyUser instanceof User) {
                 continue;
@@ -317,6 +321,11 @@ class WorkflowStateResolver
             if (!$history instanceof WorkflowHistory) {
                 continue;
             }
+
+            if ($this->isInformationUpdateEntry($history)) {
+                continue;
+            }
+
             // Cas admin : validatedRole
             if (method_exists($history, 'getValidatedRole') && $history->getValidatedRole()) {
                 if ($history->getValidatedRole() === $role) {
@@ -589,6 +598,13 @@ class WorkflowStateResolver
             'toStatus' => $normalizedToStatus,
             'role' => $normalizedRole,
         ];
+    }
+
+    private function isInformationUpdateEntry(WorkflowHistory $history): bool
+    {
+        $comment = (string) ($history->getCommentary() ?? '');
+
+        return str_starts_with($comment, 'Modification des informations :');
     }
 
     private function isMoreRecentHistory(WorkflowHistory $candidate, WorkflowHistory $reference): bool

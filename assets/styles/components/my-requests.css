@@ -1,0 +1,64 @@
+/* my-requests.css */
+
+.my-requests-page .my-requests-title {
+    color: var(--theme-text);
+}
+
+.my-requests-page .my-requests-subtitle,
+.my-requests-page .my-requests-muted {
+    color: var(--theme-text-soft) !important;
+}
+
+.my-requests-page .my-requests-new-btn {
+    border-radius: 6px;
+}
+
+.my-requests-page .my-requests-card {
+    border-radius: 8px;
+}
+
+.my-requests-page .my-requests-thead {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-muted);
+}
+
+.my-requests-page .my-requests-ref,
+.my-requests-page .my-requests-date {
+    color: var(--theme-text-soft) !important;
+}
+
+.my-requests-page .my-requests-type-badge {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text-soft);
+    border-color: var(--theme-border) !important;
+}
+
+.my-requests-page .my-requests-service {
+    color: var(--theme-primary);
+}
+
+.my-requests-page .my-requests-status-warning {
+    color: var(--theme-warning) !important;
+}
+
+.my-requests-page .my-requests-detail-btn {
+    color: var(--theme-text);
+    border-color: var(--theme-border) !important;
+    background: var(--theme-surface);
+}
+
+.my-requests-page .my-requests-detail-btn:hover,
+.my-requests-page .my-requests-detail-btn:focus {
+    color: var(--theme-text);
+    background: var(--theme-surface-alt);
+    border-color: var(--theme-border-strong) !important;
+}
+
+.my-requests-page .my-requests-empty-icon {
+    color: var(--theme-text-muted);
+}
+
+.my-requests-page .my-requests-footer {
+    background: var(--theme-surface-alt);
+    border-top: 1px solid var(--theme-border) !important;
+}

@@ -110,6 +110,9 @@ class WorkflowPermissionChecker
                 continue;
             }
             $comment = (string)($history->getCommentary() ?? '');
+            if (str_starts_with($comment, 'Modification des informations :')) {
+                continue;
+            }
             // Si la dernière action est un undo, on ne peut plus annuler
             if (str_starts_with($comment, 'Annulation de décision')) {
                 return false;
@@ -154,6 +157,10 @@ class WorkflowPermissionChecker
 
     public function canEditAfterRefusal(AccessRequest $request, User $user): bool
     {
+        if ($this->isInfoEditLocked($request, $user)) {
+            return false;
+        }
+
         $status = (string) ($request->getStatus() ?? '');
 
         if (str_starts_with($status, 'refusee_')) {
@@ -172,6 +179,54 @@ class WorkflowPermissionChecker
 
             // Bloquer l'édition uniquement si CE service a déjà validé (pas les autres)
             return !$this->stateResolver->hasRoleAlreadyValidated($request, $userRole);
+        }
+
+        return false;
+    }
+
+    public function isInfoEditLocked(AccessRequest $request, User $user): bool
+    {
+        $histories = $request->getRequestId()->toArray();
+
+        usort($histories, static function (mixed $a, mixed $b): int {
+            if (!$a instanceof WorkflowHistory || !$b instanceof WorkflowHistory) {
+                return 0;
+            }
+
+            $aDate = $a->getDate();
+            $bDate = $b->getDate();
+
+            if ($aDate == $bDate) {
+                return ($b->getId() ?? 0) <=> ($a->getId() ?? 0);
+            }
+
+            return $bDate <=> $aDate;
+        });
+
+        foreach ($histories as $history) {
+            if (!$history instanceof WorkflowHistory) {
+                continue;
+            }
+
+            $comment = (string) ($history->getCommentary() ?? '');
+
+            // L'annulation rouvre un nouveau cycle: l'édition redevient possible.
+            if (str_starts_with($comment, 'Annulation de décision')) {
+                return false;
+            }
+
+            if (!str_starts_with($comment, 'Modification des informations :')) {
+                continue;
+            }
+
+            $historyUser = $history->getUser();
+            if (!$historyUser instanceof User) {
+                continue;
+            }
+
+            if ($this->stateResolver->shareWorkflowActor($user, $historyUser)) {
+                return true;
+            }
         }
 
         return false;

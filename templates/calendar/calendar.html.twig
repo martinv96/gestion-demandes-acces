@@ -1,0 +1,143 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Calendrier des mouvements
+{% endblock %}
+
+{% block stylesheets %}
+	{{ parent() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css">
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/scale.css">
+{% endblock %}
+
+{% block body %}
+	<div class="container">
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<div>
+				<h1 class="h3 mb-0 text-gray-800">Calendrier des demandes</h1>
+				<p class="text-muted small mb-0">Suivi des arrivées et départs des agents</p>
+			</div>
+		</div>
+
+		<div id="calendar"></div>
+		<div class="modal fade" id="dayEventsModal" tabindex="-1" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+					<div class="modal-header bg-light">
+						<h5 class="modal-title" id="modalDateTitle">Demandes du jour</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<div class="list-group list-group-flush" id="modalEventsList"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales/fr.global.min.js"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var dayModalElement = document.getElementById('dayEventsModal');
+            var dayModal = dayModalElement ? new bootstrap.Modal(dayModalElement) : null;
+
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'fr',
+                timeZone: 'UTC',
+                firstDay: 1,
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,dayGridWeek'
+                },
+                buttonText: {
+                    today: "Aujourd'hui",
+                    month: "Mois",
+                    week: "Semaine"
+                },
+                events: '{{ path("app_calendar_events") }}',
+                fixedWeekCount: false,
+                // 1. Infobulle au survol (avec tippy.js)
+                eventDidMount: function(info) {
+                    var props = info.event.extendedProps;
+                    var content = `
+                        <div class="p-1">
+                            <strong>${props.agent}</strong><br>
+                            <span class="text-capitalize small">Action: ${props.type}</span><br>
+                            <span class="small">Service: ${props.service}</span>
+                        </div>
+                `;
+
+                tippy(info.el, {
+                    content:content,
+                    allowHTML: true,
+                    animation: 'scale',
+                    theme: 'custom',
+                    placement: 'top',
+                    interactive: true
+                });
+            },
+            // 2. Clic direct sur un événement
+                eventClick: function(info) {
+                    info.jsEvent.preventDefault();
+                    if (info.event.extendedProps.urlShow) {
+                        window.location.href = info.event.extendedProps.urlShow;
+                    }
+                },
+
+                // 3. Clic sur la case d'une journée (Corrigé et sécurisé)
+                dateClick: function(info) {
+                    var targetDateStr = info.dateStr; // Format 'YYYY-MM-DD'
+                    var allEvents = calendar.getEvents();
+                    
+                    // Filtrage robuste basé sur la date uniquement (sans l'heure)
+                    var dayEvents = allEvents.filter(function(event) {
+                        var eventDateStr = event.startStr.split('T')[0];
+                        return eventDateStr === targetDateStr;
+                    });
+
+                    if (dayEvents.length === 1) {
+                        window.location.href = dayEvents[0].extendedProps.urlShow;
+                    } else if (dayEvents.length > 1 && dayModal) {
+                        var listContainer = document.getElementById('modalEventsList');
+                        listContainer.innerHTML = ''; 
+                        
+                        var dateObj = new Date(targetDateStr);
+                        document.getElementById('modalDateTitle').innerText = "Demandes du " + dateObj.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+                        dayEvents.forEach(function(ev) {
+                            var props = ev.extendedProps;
+                            var badgeClass = props.type === 'arrivée' ? 'bg-success' : 'bg-danger';
+                            
+                            var item = document.createElement('a');
+                            item.href = props.urlShow;
+                            item.className = "list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3";
+                            item.innerHTML = `
+                                <div>
+                                    <h6 class="mb-1 fw-bold text-dark">${props.agent}</h6>
+                                    <small class="text-muted">Service : ${props.service}</small>
+                                </div>
+                                <span class="badge ${badgeClass} text-white text-uppercase" style="font-size:0.7rem; padding: 5px 8px;">${props.type}</span>
+                            `;
+                            listContainer.appendChild(item);
+                        });
+
+                        dayModal.show();
+                    }
+                }
+            });
+
+            calendar.render();
+        });
+    </script>
+{% endblock %}

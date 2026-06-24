@@ -2,7 +2,7 @@
 
 <div class="col-12 mt-4">
     <div class="card">
-        <div class="card-header">Historique des validations</div>
+        <div class="card-header">Historique des actions</div>
         <div class="card-body">
             {% set sortedHistory = history|sort((a, b) => a.date <=> b.date) %}
             {% set totalHistory = sortedHistory|length %}
@@ -20,14 +20,15 @@
 
                 <ul class="list-group list-group-flush history-list">
                     {% for entry in pagedHistory %}
+                        {% set isModification = entry.oldStatus == entry.newStatus and (entry.commentary is defined and entry.commentary starts with 'Modification des informations :') %}
                         {% set isRefusal = entry.newStatus starts with 'refusee_' %}
                         {% set isReturnAfterRefusal = 
                             (entry.oldStatus == 'en_attente_st' and entry.newStatus == 'en_attente_rh') 
                             or (entry.oldStatus == 'en_attente_dsi' and entry.newStatus == 'en_attente_st') 
                         %}
-                        {% set eventType = isRefusal ? 'refusal' : (isReturnAfterRefusal ? 'return' : 'validation') %}
-                        {% set eventLabel = isRefusal ? 'Refus' : (isReturnAfterRefusal ? 'Retour' : 'Validation') %}
-                        {% set eventIcon = isRefusal ? 'x' : (isReturnAfterRefusal ? '↺' : '✓') %}
+                        {% set eventType = isModification ? 'info' : (isRefusal ? 'refusal' : (isReturnAfterRefusal ? 'return' : 'validation')) %}
+                        {% set eventLabel = isModification ? 'Modification' : (isRefusal ? 'Refus' : (isReturnAfterRefusal ? 'Retour' : 'Validation')) %}
+                        {% set eventIcon = isModification ? '✎' : (isRefusal ? 'x' : (isReturnAfterRefusal ? '↺' : '✓')) %}
                         
                         <li class="list-group-item history-item px-0">
                             <div class="history-item-top">

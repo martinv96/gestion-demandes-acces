@@ -138,6 +138,7 @@ final class RequestCreationService
                         ->setOldStatus($parentHistory->getOldStatus() ?? '')
                         ->setNewStatus($parentHistory->getNewStatus() ?? '')
                         ->setCommentary($parentHistory->getCommentary() ?? '')
+                        ->setValidatedRole($parentHistory->getValidatedRole() ?? null)
                         ->setDate($parentHistory->getDate() ?? new \DateTimeImmutable());
 
                     $this->em->persist($historyCopy);

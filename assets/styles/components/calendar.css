@@ -1,0 +1,73 @@
+/* calendar.css */
+
+.fc {
+    background: var(--bs-body-bg, #fff);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+/* .fc, .fc-scrollgrid {
+    border-left-width: 0px !important;
+} */
+
+.fc-header-toolbar {
+    margin-bottom: 1.5rem !important;
+}
+
+.fc-theme-standard .fc-scrollgrid,
+.fc-theme-standard px,
+.fc-theme-standard td, 
+.fc-theme-standard th,
+.fc-theme-standard .fc-list,
+.fc-theme-standard .fc-scroller {
+    border-color:  var(--bs-border-color, rgba(0,0,0,0.08)) !important;
+}
+
+.fc-daygrid-day:hover {
+    background-color: rgba(var(--bs-body-color-rgb, 0,0,0), 0.03);
+    cursor: pointer;
+}
+
+/* code couleurs fluide pour les évènements */
+.event-arrival {
+    background-color: #d1e7dd !important;
+    border-left: 4px solid #0f5132 !important;
+    color: #0f5132 !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    font-weight: 500;
+    padding: 3px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+}
+
+.event-departure {
+    background-color: #f8d7da !important;
+    border-left: 4px solid #842029 !important;
+    color: #842029 !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    font-weight: 500;
+    padding: 3px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+}
+
+.event-arrival:hover, .event-departure:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.tippy-box[data-theme~='custom'] {
+    background-color: #333;
+    color: #fff;
+    padding: 5px;
+    border-radius: 8px;
+    font-size:0.85rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}

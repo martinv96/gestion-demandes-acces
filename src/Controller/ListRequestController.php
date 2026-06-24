@@ -13,11 +13,13 @@ use App\Service\RequestExportSpreadsheetService;
 use App\Service\RequestUpdateInfoService;
 use App\Service\WorkflowService;
 use App\Security\Voter\RequestVoter;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request as HttpRequest;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -218,6 +220,11 @@ final class ListRequestController extends AbstractController
         $currentUserHasValidated = false;
         if ($currentUser instanceof User) {
             foreach ($requestEntity->getRequestId() as $history) {
+                $historyComment = (string) ($history->getCommentary() ?? '');
+                if (str_starts_with($historyComment, 'Modification des informations :')) {
+                    continue;
+                }
+
                 if (
                     $history->getUser() &&
                     $history->getUser()->getId() === $currentUser->getId() &&
@@ -236,6 +243,9 @@ final class ListRequestController extends AbstractController
                 }
             }
         }
+        $isInfoEditLocked = $currentUser instanceof User
+            ? $workflowService->isInfoEditLocked($requestEntity, $currentUser)
+            : false;
 
         // --- Construction dynamique des étapes du workflow pour l'admin ---
         $workflowSteps = [];
@@ -299,6 +309,7 @@ final class ListRequestController extends AbstractController
             'closureManageableMaterielIds' => $closureManageableMaterielIds,
             'closureOwnerById' => $closureOwnerById,
             'currentUserHasValidated' => $currentUserHasValidated,
+            'isInfoEditLocked' => $isInfoEditLocked,
         ]);
     }
 
@@ -418,7 +429,7 @@ final class ListRequestController extends AbstractController
 
         $user = $this->getUser();
         if (!$user instanceof User) {
-            throw $this->createAccessDeniedException(); 
+            throw $this->createAccessDeniedException();
         }
 
         if (!$this->isGranted(RequestVoter::UNDO, $requestEntity)) {
@@ -598,11 +609,18 @@ final class ListRequestController extends AbstractController
             // Revalide après refresh pour éviter un faux 403 sur état intermédiaire.
             $entityManager->refresh($requestEntity);
             if (!$this->isGranted(RequestVoter::EDIT_INFO, $requestEntity)) {
+                if ($workflowService->isInfoEditLocked($requestEntity, $user)) {
+                    $this->addRequestFlash($httpRequest, 'warning', 'Vous avez déjà effectué une modification dans ce cycle. Annulez la dernière décision pour modifier de nouveau.');
+
+                    return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+                }
+
                 $this->addRequestFlash($httpRequest, 'warning', 'Une action est déjà en cours. Recharger la page.');
 
                 return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
             }
         }
+
 
         // ! vérification du token CSRF pour sécuriser la requête de mise à jour des informations de la demande
         if (!$this->isCsrfTokenValid('request_edit_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
@@ -645,7 +663,7 @@ final class ListRequestController extends AbstractController
                 'commentaire' => (string) $httpRequest->request->get('commentaire', ''),
                 'logiciels' => $logiciels,
                 'materiel' => $materiels,
-            ]);
+            ], $user);
 
             $messageBus->dispatch(new WorkflowNotificationMessage(
                 (int) $requestEntity->getId(),
@@ -945,5 +963,75 @@ final class ListRequestController extends AbstractController
         return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
     }
 
+    #[Route('/my-requests', name: 'app_my_requests', methods: ['GET'])]
+    public function myRequests(RequestRepository $requestRepository, HttpRequest $request): Response
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
+
+        // Configuration de la pagination
+        $page = max(1, $request->query->getInt('page', 1));
+        $limit = 10;
+
+        // Récupère uniquement les 10 demandes de la page en cours
+        $paginator = $requestRepository->findPaginatedRequestsByAuthor($currentUser, $page, $limit);
+
+        // Calcul du nombre total de pages
+        $totalRequests = count($paginator);
+        $pagesCount = ceil($totalRequests / $limit);
+
+        return $this->render('list_request/my_requests.html.twig', [
+            'requests'    => $paginator, // On passe l'objet paginé (qui s'utilise comme un tableau en Twig)
+            'currentPage' => $page,
+            'pagesCount'  => $pagesCount,
+            'totalRequests' => $totalRequests,
+        ]);
+    }
+
+    #[Route('/request/{id}/delete', name :'app_request_delete', methods: ['POST'], requirements: ['id' => '\\d+'])]
+    public function deleteRequest(
+        AccessRequest $requestEntity,
+        Request $httpRequest,
+        EntityManagerInterface $entityManager
+    ): Response {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+        //uniquement admin ou RH
+        if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_RH')) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas les droits pour supprimer cette demande.');
+        }
+
+        //protection csrf
+        if (!$this->isCsrfTokenValid('request_delete_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
+            $this->addRequestFlash($httpRequest, 'danger', 'Token de sécurité invalide.');
+            return $this->redirectToRoute('app_my_requests');
+        }
+
+        try {
+            foreach ($requestEntity->getRequestId()->toArray() as $history) {
+                $entityManager->remove($history);
+            }
+
+            foreach ($requestEntity->getRessources()->toArray() as $ressource) {
+                $requestEntity->removeRessource($ressource);
+            }
+
+            foreach ($requestEntity->getChildRequests()->toArray() as $childRequest) {
+                $childRequest->setParentRequest(null);
+            }
+
+            $entityManager->remove($requestEntity);
+            $entityManager->flush();
+
+            $this->addRequestFlash($httpRequest, 'success', 'La demande a bien été supprimée.');
+        } catch (ForeignKeyConstraintViolationException) {
+            $this->addRequestFlash($httpRequest, 'danger', 'Suppression impossible: des éléments liés à la demande doivent être traités avant suppression.');
+        } catch (\Throwable $e) {
+            $this->addRequestFlash($httpRequest, 'danger' ,'Suppression impossible pour le moment.');
+        }
+
+        return $this->redirectToRoute('app_my_requests');
+    }
 }
