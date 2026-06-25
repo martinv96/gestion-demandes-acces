@@ -45,8 +45,14 @@
 
 									{# 2. Type #}
 									<td>
+										{% set type_mapping = {
+											'ouverture' : 'Arrivée',
+											'Ouverture' : 'Arrivée',
+											'fermeture'  :'Départ',
+											'Fermeture' : 'Départ'
+										} %}
 										<span class="badge border px-2.5 py-1.5 fw-medium text-capitalize my-requests-type-badge" style="font-size: 0.8rem; border-radius: 12px;">
-											{{ req.type }}
+											{{ type_mapping[req.type] | default(req.type) }}
 										</span>
 									</td>
 
@@ -72,12 +78,14 @@
 											<span class="badge bg-success-subtle text-success px-3 py-1.5 fw-semibold" style="border-radius: 6px; font-size: 0.8rem;">Validé</span>
 										{% elseif req.status == 'rejetee' or req.status == 'refusee_rh' or req.status == 'refusee_st' or req.status == 'refusee_dsi' %}
 											<span class="badge bg-danger-subtle text-danger px-3 py-1.5 fw-semibold" style="border-radius: 6px; font-size: 0.8rem;">Rejeté</span>
+										{% elseif req.status == 'en_attente_rh' %}
+											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente RH</span>
 										{% elseif req.status == 'en_attente_st' %}
-											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente ST</span>
+											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente de validation</span>
 										{% elseif req.status == 'en_attente_dsi' %}
-											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente DSI</span>
+											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente de validation</span>
 										{% else %}
-											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En cours d'étude</span>
+											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente de validation</span>
 										{% endif %}
 									</td>
 
