@@ -16,6 +16,10 @@
 			</a>
 		</div>
 
+			{# filtres #}
+			<div class="card mb-4 p-3">
+
+
 		{# Tableau des Demandes #}
 		<div class="card border-0 shadow-sm my-requests-card">
 			<div class="card-body p-0">
@@ -50,7 +54,7 @@
 									<td>
 										{% if req.agent and req.agent.service %}
 											<span class="fw-bold text-uppercase my-requests-service" style="font-size: 0.85rem; letter-spacing: 0.5px;">
-												{{ req.agent.service.name }}
+												{{ req.agent.lastname }} {{ req.agent.firstname}}
 											</span>
 										{% else %}
 											<span class="small my-requests-muted">Aucun agent lié</span>

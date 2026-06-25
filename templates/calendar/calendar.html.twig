@@ -67,13 +67,41 @@
                 },
                 events: '{{ path("app_calendar_events") }}',
                 fixedWeekCount: false,
+
+                //pour l'image arrivée
+                eventContent: function(arg) {
+                    let titleEl = document.createElement('span');
+                    titleEl.innerText = arg.event.title;
+
+                    //si départ, on ajoute l'image devant le nom agent
+                    if (arg.event.classNames.includes('event-departure')) {
+                        let imgEl = document.createElement('img');
+                        imgEl.src = 'images/depart.png';
+                        imgEl.style.width = '14px';
+                        imgEl.style.height = '14px';
+                        imgEl.style.marginRight = '5px';
+                        imgEl.style.verticalAlign = 'middle';
+
+                        let container = document.createElement('span');
+                        container.appendChild(imgEl);
+                        container.appendChild(titleEl);
+                        return { domNodes: [container] };
+                    }
+
+                    // pour l'arrivée, comportement par défaut
+                    if (arg.event.classNames.includes('event-arrival')) {
+                        titleEl.innerText = '🟢' + arg.event.title;
+                    }
+
+                    return { domNodes: [titleEl] };
+                },
                 // 1. Infobulle au survol (avec tippy.js)
                 eventDidMount: function(info) {
                     var props = info.event.extendedProps;
                     var content = `
                         <div class="p-1">
                             <strong>${props.agent}</strong><br>
-                            <span class="text-capitalize small">Action: ${props.type}</span><br>
+                            <span class="text-capitalize small">Type: ${props.type}</span><br>
                             <span class="small">Service: ${props.service}</span>
                         </div>
                 `;

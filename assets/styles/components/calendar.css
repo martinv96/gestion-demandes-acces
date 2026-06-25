@@ -31,7 +31,7 @@
 
 /* code couleurs fluide pour les évènements */
 .event-arrival {
-    background-color: #d1e7dd !important;
+    background-color: #cde9dc !important;
     border-left: 4px solid #0f5132 !important;
     color: #0f5132 !important;
     border-top: none !important;
@@ -45,7 +45,7 @@
 }
 
 .event-departure {
-    background-color: #f8d7da !important;
+    background-color: #f898a0 !important;
     border-left: 4px solid #842029 !important;
     color: #842029 !important;
     border-top: none !important;

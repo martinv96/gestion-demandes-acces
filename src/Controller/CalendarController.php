@@ -50,7 +50,7 @@ class CalendarController extends AbstractController
             if ($req->getArrivalDate()) {
                 $events[] = [
                     'id' => 'arrival' . $req->getId(),
-                    'title' => '🟢 '. $agentName,
+                    'title' => $agentName,
                     'start' => $req->getArrivalDate()->format('Y-m-d'),
                     'className' => 'event-arrival',
                     'extendedProps' => [
@@ -66,7 +66,7 @@ class CalendarController extends AbstractController
             if ($req->getDepartureDate()) {
                 $events[] = [
                     'id' => 'departure_' . $req->getId(),
-                    'title' => '🚫 ' . $agentName,
+                    'title' => $agentName,
                     'start' => $req->getDepartureDate()->format('Y-m-d'),
                     'className' => 'event-departure',
                     'extendedProps' => [
