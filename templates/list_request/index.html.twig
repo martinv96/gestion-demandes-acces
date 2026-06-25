@@ -216,25 +216,28 @@
 				<nav class="mt-4">
 					{% set paginationRoute = pageRoute|default('app_list_request') %}
 					<ul
-						class="pagination">
+						class="pagination pagination-sm mb-0 gap-1">
+
 						{# Précédent #}
-						<li class="page-item {{ currentPage == 1 ? 'disabled' : ''}}">
-							<a class="page-link" href="{{ path(paginationRoute, filters|merge({'page': currentPage - 1})) }}">
-								<span aria-hidden="true">&#129168;</span>
+						<li class="page-item {{ currentPage == 1 ? 'disabled' : '' }}">
+							<a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path(paginationRoute, filters|merge({'page': currentPage - 1})) }}" style="width: 32px; height: 32px; padding: 0;">
+								&#129168;
 							</a>
 						</li>
 
 						{# Pages #}
 						{% for i in 1..maxPages %}
-							<li class="page-item {{ i == currentPage ? 'active' : ''}}">
-								<a class="page-link" href="{{ path(paginationRoute, filters|merge({'page': i})) }}">{{ i }}</a>
+							<li class="page-item {{ i == currentPage ? 'active' : '' }}">
+								<a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path(paginationRoute, filters|merge({'page': i})) }}" style="width: 32px; height: 32px; padding: 0;">
+									{{ i }}
+								</a>
 							</li>
 						{% endfor %}
 
 						{# Suivant #}
-						<li class="page-item {{ currentPage == maxPages ? 'disabled' : ''}}">
-							<a class="page-link" href="{{ path(paginationRoute, filters|merge({'page': currentPage + 1})) }}">
-								<span aria-hidden="true">&#129170;</span>
+						<li class="page-item {{ currentPage == maxPages ? 'disabled' : '' }}">
+							<a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path(paginationRoute, filters|merge({'page': currentPage + 1})) }}" style="width: 32px; height: 32px; padding: 0;">
+								&#129170;
 							</a>
 						</li>
 					</ul>

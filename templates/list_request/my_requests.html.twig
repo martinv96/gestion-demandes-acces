@@ -1,9 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Suivi de mes demandes{% endblock %}
+{% block title %}Suivi de mes demandes
+{% endblock %}
 
 {% block body %}
-	<div class="my-requests-page">
+	<div
+		class="my-requests-page">
 		{# En-tête de la page #}
 		<div class="d-flex justify-content-between align-items-center mb-4">
 			<div>
@@ -16,145 +18,150 @@
 			</a>
 		</div>
 
-			{# filtres #}
-			<div class="card mb-4 p-3">
+		{# filtres #}
+		<div
+			class="card mb-4 p-3">
 
 
-		{# Tableau des Demandes #}
-		<div class="card border-0 shadow-sm my-requests-card">
-			<div class="card-body p-0">
-				<div class="table-responsive">
-					<table class="table table-hover align-middle mb-0 my-requests-table">
-						<thead class="small text-uppercase border-bottom my-requests-thead">
-							<tr>
-								<th class="ps-4 py-3" style="font-size: 0.75rem;">Référence</th>
-								<th class="py-3" style="font-size: 0.75rem; padding-left: 1.4rem">Type</th>
-								<th class="py-3" style="font-size: 0.75rem;">Agent concerné</th>
-								<th class="py-3" style="font-size: 0.75rem;">Date de création</th>
-								<th class="py-3" style="font-size: 0.75rem;">Statut actuel</th>
-								<th class="py-3 text-end" style="font-size: 0.75rem; padding-right: 5.5rem;">Action</th>
-							</tr>
-						</thead>
-						<tbody>
-							{% for req in requests %}
-								<tr class="border-bottom">
-									{# 1. Référence #}
-									<td class="ps-4 fw-semibold my-requests-ref" style="font-size: 0.9rem;">
-										{{ req.reference|default('REQ-' ~ req.creationDate|date('Y') ~ '-' ~ req.id) }}
-									</td>
+			{# Tableau des Demandes #}
+			<div class="card border-0 shadow-sm my-requests-card">
+				<div class="card-body p-0">
+					<div class="table-responsive">
+						<table class="table table-hover align-middle mb-0 my-requests-table">
+							<thead class="small text-uppercase border-bottom my-requests-thead">
+								<tr>
+									<th class="ps-4 py-3" style="font-size: 0.75rem;">Référence</th>
+									<th class="py-3" style="font-size: 0.75rem; padding-left: 1.4rem">Type</th>
+									<th class="py-3" style="font-size: 0.75rem;">Agent concerné</th>
+									<th class="py-3" style="font-size: 0.75rem;">Date de création</th>
+									<th class="py-3" style="font-size: 0.75rem;">Statut actuel</th>
+									<th class="py-3 text-end" style="font-size: 0.75rem; padding-right: 4.3rem;">Action</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for req in requests %}
+									<tr
+										class="border-bottom">
+										{# 1. Référence #}
+										<td class="ps-4 fw-semibold my-requests-ref" style="font-size: 0.9rem;">
+											{{ req.reference|default('REQ-' ~ req.creationDate|date('Y') ~ '-' ~ req.id) }}
+										</td>
 
-									{# 2. Type #}
-									<td>
-										{% set type_mapping = {
+										{# 2. Type #}
+										<td>
+											{% set type_mapping = {
 											'ouverture' : 'Arrivée',
 											'Ouverture' : 'Arrivée',
 											'fermeture'  :'Départ',
 											'Fermeture' : 'Départ'
 										} %}
-										<span class="badge border px-2.5 py-1.5 fw-medium text-capitalize my-requests-type-badge" style="font-size: 0.8rem; border-radius: 12px;">
-											{{ type_mapping[req.type] | default(req.type) }}
-										</span>
-									</td>
-
-									{# 3. Agent #}
-									<td>
-										{% if req.agent and req.agent.service %}
-											<span class="fw-bold text-uppercase my-requests-service" style="font-size: 0.85rem; letter-spacing: 0.5px;">
-												{{ req.agent.lastname }} {{ req.agent.firstname}}
+											<span class="badge border px-2.5 py-1.5 fw-medium text-capitalize my-requests-type-badge" style="font-size: 0.8rem; border-radius: 12px;">
+												{{ type_mapping[req.type] | default(req.type) }}
 											</span>
-										{% else %}
-											<span class="small my-requests-muted">Aucun agent lié</span>
-										{% endif %}
-									</td>
+										</td>
 
-									{# 4. Date de création #}
-									<td class="my-requests-date" style="font-size: 0.85rem;">
-										{{ req.creationDate|date('d/m/Y à H:i') }}
-									</td>
-
-									{# 5. Statut actuel #}
-									<td>
-										{% if req.status == 'traitee' or req.status == 'valide' %}
-											<span class="badge bg-success-subtle text-success px-3 py-1.5 fw-semibold" style="border-radius: 6px; font-size: 0.8rem;">Validé</span>
-										{% elseif req.status == 'rejetee' or req.status == 'refusee_rh' or req.status == 'refusee_st' or req.status == 'refusee_dsi' %}
-											<span class="badge bg-danger-subtle text-danger px-3 py-1.5 fw-semibold" style="border-radius: 6px; font-size: 0.8rem;">Rejeté</span>
-										{% elseif req.status == 'en_attente_rh' %}
-											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente RH</span>
-										{% elseif req.status == 'en_attente_st' %}
-											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente de validation</span>
-										{% elseif req.status == 'en_attente_dsi' %}
-											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente de validation</span>
-										{% else %}
-											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente de validation</span>
-										{% endif %}
-									</td>
-
-									{# 6. Action #}
-									<td class="pe-4 text-end">
-										<div class="d-inline-flex gap-2">
-											<a href="{{ path('app_request_show', {'id': req.id}) }}" class="btn btn-sm btn-outline-secondary border fw-medium px-2.5 py-1.5 shadow-sm my-requests-detail-btn" style="border-radius: 6px; font-size: 0.8rem;">
-												<i class="far fa-eye me-1"></i>
-												Voir le détail
-											</a>
-
-											{% if is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') %}
-												<form method="post" action="{{ path('app_request_delete', {'id': req.id}) }}" class="d-inline" onsubmit="return confirm('Confirmer la suppression de cette demande ?');">
-													<input type="hidden" name="_token" value="{{ csrf_token('request_delete_' ~ req.id) }}">
-													<button type="submit" class="btn btn-sm btn-outline-danger fw-medium px-2.5 py-1.5 shadow-sm" style="border-radius: 6px; font-size: 0.8rem;">
-														<i class="far fa-trash-alt me-1"></i>
-														Supprimer
-													</button>
-												</form>
+										{# 3. Agent #}
+										<td>
+											{% if req.agent and req.agent.service %}
+												<span class="fw-bold text-uppercase my-requests-service" style="font-size: 0.85rem; letter-spacing: 0.5px;">
+													{{ req.agent.lastname }}
+													{{ req.agent.firstname}}
+												</span>
+											{% else %}
+												<span class="small my-requests-muted">Aucun agent lié</span>
 											{% endif %}
-										</div>
-									</td>
-								</tr>
-							{% else %}
-								<tr>
-									<td colspan="6" class="text-center py-5 my-requests-muted">
-										<i class="fas fa-folder-open d-block mb-3 fa-2x my-requests-empty-icon"></i>
-										Vous n'avez pas encore créé de demande d'accès.
-									</td>
-								</tr>
-							{% endfor %}
-						</tbody>
-					</table>
-				</div>
+										</td>
 
-				{# Footer avec Pagination (Uniquement si pagesCount > 1) #}
-				<div class="d-flex justify-content-between align-items-center px-4 py-3 border-top my-requests-footer">
-					<div class="small my-requests-muted">
-						{{ totalRequests }} {{ totalRequests > 1 ? 'demandes trouvées' : 'demande trouvée' }}
+										{# 4. Date de création #}
+										<td class="my-requests-date" style="font-size: 0.85rem;">
+											{{ req.creationDate|date('d/m/Y à H:i') }}
+										</td>
+
+										{# 5. Statut actuel #}
+										<td>
+											{% if req.status == 'traitee' or req.status == 'valide' %}
+												<span class="badge bg-success-subtle text-success px-3 py-1.5 fw-semibold" style="border-radius: 6px; font-size: 0.8rem;">Validé</span>
+											{% elseif req.status == 'rejetee' or req.status == 'refusee_rh' or req.status == 'refusee_st' or req.status == 'refusee_dsi' %}
+												<span class="badge bg-danger-subtle text-danger px-3 py-1.5 fw-semibold" style="border-radius: 6px; font-size: 0.8rem;">Rejeté</span>
+											{% elseif req.status == 'en_attente_rh' %}
+												<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente RH</span>
+											{% elseif req.status == 'en_attente_st' %}
+												<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente de validation</span>
+											{% elseif req.status == 'en_attente_dsi' %}
+												<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente de validation</span>
+											{% else %}
+												<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente de validation</span>
+											{% endif %}
+										</td>
+
+										{# 6. Action #}
+										<td class="pe-4 text-end">
+											<div class="d-inline-flex gap-2">
+												<a href="{{ path('app_request_show', {'id': req.id}) }}" class="btn btn-sm btn-outline-secondary fw-medium px-2.5 py-1.5 shadow-sm my-requests-detail-btn" style="border-radius: 6px; font-size: 0.8rem; border: none;">
+													<img src="{{ asset('images/icones/chercher1.png') }}" alt="voir" class="logoAction">
+												</a>
+												{% if is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') %}
+													<form method="post" action="{{ path('app_request_delete', {'id': req.id}) }}" class="d-inline" onsubmit="return confirm('Confirmer la suppression de cette demande ?');">
+														<input type="hidden" name="_token" value="{{ csrf_token('request_delete_' ~ req.id) }}">
+														<button type="submit" class="btn btn-sm btn-outline-danger fw-medium px-2.5 py-1.5 shadow-sm" style="border-radius: 6px; font-size: 0.8rem;">
+															<i class="far fa-trash-alt me-1"></i>
+															Supprimer
+														</button>
+													</form>
+												{% endif %}
+											</div>
+										</td>
+									</tr>
+								{% else %}
+									<tr>
+										<td colspan="6" class="text-center py-5 my-requests-muted">
+											<i class="fas fa-folder-open d-block mb-3 fa-2x my-requests-empty-icon"></i>
+											Vous n'avez pas encore créé de demande d'accès.
+										</td>
+									</tr>
+								{% endfor %}
+							</tbody>
+						</table>
 					</div>
 
-					{% if pagesCount > 1 %}
-						<nav aria-label="Pagination">
-							<ul class="pagination pagination-sm mb-0">
-								{# Bouton Précédent #}
-								<li class="page-item {{ currentPage == 1 ? 'disabled' }}">
-									<a class="page-link" href="{{ path('app_my_requests', {'page': currentPage - 1}) }}" aria-label="Précédent">
-										<span aria-hidden="true">&laquo;</span>
-									</a>
-								</li>
+					{# Footer avec Pagination (Uniquement si pagesCount > 1) #}
+					<div class="d-flex justify-content-between align-items-center px-4 py-3 border-top my-requests-footer">
+						<div class="small my-requests-muted">
+							{{ totalRequests }}
+							{{ totalRequests > 1 ? 'demandes trouvées' : 'demande trouvée' }}
+						</div>
 
-								{# Liste des numéros de pages #}
-								{% for i in 1..pagesCount %}
-									<li class="page-item {{ currentPage == i ? 'active' }}">
-										<a class="page-link" href="{{ path('app_my_requests', {'page': i}) }}">{{ i }}</a>
+						{% if pagesCount > 1 %}
+							<nav aria-label="Pagination">
+								<ul class="pagination pagination-sm mb-0 gap-1">
+									{# Ajout de gap-1 pour espacer proprement les blocs si besoin #}
+
+									{# Bouton Précédent #}
+										<li class="page-item {{ currentPage == 1 ? 'disabled' }}"> <a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path('app_my_requests', {'page': currentPage - 1}) }}" aria-label="Précédent" style="width: 32px; height: 32px; padding: 0;">
+											&laquo;
+										</a>
 									</li>
-								{% endfor %}
 
-								{# Bouton Suivant #}
-								<li class="page-item {{ currentPage == pagesCount ? 'disabled' }}">
-									<a class="page-link" href="{{ path('app_my_requests', {'page': currentPage + 1}) }}" aria-label="Suivant">
-										<span aria-hidden="true">&raquo;</span>
-									</a>
-								</li>
-							</ul>
-						</nav>
-					{% endif %}
+									{# Liste des numéros de pages #}
+									{% for i in 1..pagesCount %}
+										<li class="page-item {{ currentPage == i ? 'active' }}">
+											<a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path('app_my_requests', {'page': i}) }}" style="width: 32px; height: 32px; padding: 0;">
+												{{ i }}
+											</a>
+										</li>
+									{% endfor %}
+
+									{# Bouton Suivant #}
+									<li class="page-item {{ currentPage == pagesCount ? 'disabled' }}">
+										<a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path('app_my_requests', {'page': currentPage + 1}) }}" aria-label="Suivant" style="width: 32px; height: 32px; padding: 0;">
+											&raquo;
+										</a>
+									</li>
+								</ul>
+							</nav>
+						{% endif %}
+					</div>
 				</div>
 			</div>
 		</div>
-	</div>
-{% endblock %}
+	{% endblock %}
