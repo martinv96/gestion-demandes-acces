@@ -21,7 +21,6 @@ use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request as HttpRequest;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -37,16 +36,13 @@ final class ListRequestController extends AbstractController
     // ! route qui affiche la liste de toutes les demandes d'accès (avec status type et date)
     // ! + un lien vers la page de détail de chaque demande
     #[Route('/list/request', name: 'app_list_request', methods: ['GET'])]
-    public function index(RequestRepository $requestRepository, ServiceRepository $serviceRepository, Request $httpRequest): Response
+    public function index(RequestRepository $requestRepository, ServiceRepository $serviceRepository, HttpRequest $httpRequest): Response
     {
-
 
         $limit = 10;
         $page = $httpRequest->query->getInt('page', 1);
         if ($page < 1) $page = 1;
         $offset = ($page - 1) * $limit;
-
-
 
         // ! gestion des filtres de recherche : status, service, type et date d'arrivée
         $allowedStatuses = AccessRequest::WORKFLOW_STATUSES;

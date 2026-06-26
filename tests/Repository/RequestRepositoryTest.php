@@ -24,12 +24,12 @@ final class RequestRepositoryTest extends KernelTestCase
 		$this->repository = self::getContainer()->get(RequestRepository::class);
 	}
 
-	public function testFindLatestProcessedReplacementChildReturnsMostRecentChild(): void
+	public function testFindLatestProcessedReplacementChildReturnsMostRecentReplacementEvenWhenPending(): void
 	{
 		$context = $this->createAuthorAndAgent('latest');
 		$parent = $this->createRequest('ouverture', 'en_attente_rh', $context['agent'], $context['author']);
 		$childOld = $this->createRequest('modification', 'traitee', $context['agent'], $context['author'], $parent, '-2 day');
-		$childNew = $this->createRequest('fermeture', 'traitee', $context['agent'], $context['author'], $parent, 'now');
+		$childNew = $this->createRequest('fermeture', 'en_attente_validation', $context['agent'], $context['author'], $parent, 'now');
 
 		$this->em->flush();
 
@@ -40,18 +40,36 @@ final class RequestRepositoryTest extends KernelTestCase
 		self::assertNotSame($childOld->getId(), $found->getId());
 	}
 
-	public function testFindCurrentInChainReturnsLastProcessedRequest(): void
+	public function testFindCurrentInChainReturnsLatestRequestInChain(): void
 	{
 		$context = $this->createAuthorAndAgent('chain');
 		$root = $this->createRequest('ouverture', 'en_attente_rh', $context['agent'], $context['author']);
 		$child1 = $this->createRequest('modification', 'traitee', $context['agent'], $context['author'], $root, '-1 day');
-		$child2 = $this->createRequest('fermeture', 'traitee', $context['agent'], $context['author'], $child1, 'now');
+		$child2 = $this->createRequest('fermeture', 'en_attente_validation', $context['agent'], $context['author'], $child1, 'now');
 
 		$this->em->flush();
 
 		$current = $this->repository->findCurrentInChain($root);
 
 		self::assertSame($child2->getId(), $current->getId());
+	}
+
+	public function testFindCurrentWithFiltersHidesParentWhenPendingReplacementExists(): void
+	{
+		$context = $this->createAuthorAndAgent('scope');
+		$parent = $this->createRequest('ouverture', 'en_attente_validation', $context['agent'], $context['author']);
+		$child = $this->createRequest('modification', 'en_attente_validation', $context['agent'], $context['author'], $parent, 'now');
+
+		$this->em->flush();
+
+		$results = $this->repository->findCurrentWithFilters([
+			'agent' => (string) $context['agent']->getFirstname(),
+		], 100, 0);
+
+		$resultIds = array_map(static fn (AccessRequest $request): ?int => $request->getId(), $results);
+
+		self::assertContains($child->getId(), $resultIds);
+		self::assertNotContains($parent->getId(), $resultIds);
 	}
 
 	public function testFindActiveCurrentRequestForAgentIdentityReturnsActiveRequest(): void

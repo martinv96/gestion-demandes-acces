@@ -335,8 +335,6 @@ class RequestRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('r')
             ->leftJoin('r.agent', 'a')->addSelect('a')
             ->leftJoin('a.service', 's')->addSelect('s')
-            ->leftJoin('r.ressources', 're')->addSelect('re')
-            ->leftJoin('r.childRequests', 'children')->addSelect('children')
             ->orderBy('r.creationDate', 'DESC')
             ->setMaxResults($limit)
             ->setFirstResult($offset);
@@ -434,28 +432,23 @@ class RequestRepository extends ServiceEntityRepository
     // Méthode privée pour appliquer le scope "état actuel" à une requête
     private function applyCurrentScope(QueryBuilder $qb): void
     {
-        // Si une demande a une enfant MOD/FER traitée, elle est remplacée par la demande fille.
+        // "Etat actuel" = dernière demande de la chaîne parent/enfant (feuille).
+        // Dès qu'une demande a une enfant (modification/fermeture), le parent bascule en historique.
         $qb->andWhere(
             'NOT EXISTS (
                 SELECT 1
                 FROM App\Entity\Request child
                 WHERE child.parentRequest = r
-                  AND child.status = :currentProcessedStatus
-                  AND child.type IN (:currentReplacementTypes)
             )'
-        )
-            ->setParameter('currentProcessedStatus', Request::STATUS_TRAITEE)
-            ->setParameter('currentReplacementTypes', [Request::TYPE_MODIFICATION, Request::TYPE_FERMETURE]);
+        );
     }
 
     public function findLatestProcessedReplacementChild(Request $parent): ?Request
     {
         return $this->createQueryBuilder('r')
             ->andWhere('r.parentRequest = :parent')
-            ->andWhere('r.status = :status')
             ->andWhere('r.type IN (:types)')
             ->setParameter('parent', $parent)
-            ->setParameter('status', Request::STATUS_TRAITEE)
             ->setParameter('types', [Request::TYPE_MODIFICATION, Request::TYPE_FERMETURE])
             ->orderBy('r.creationDate', 'DESC')
             ->addOrderBy('r.id', 'DESC')

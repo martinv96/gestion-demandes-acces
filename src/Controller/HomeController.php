@@ -43,7 +43,7 @@ class HomeController extends AbstractController
             ],
         ];
 
-        $recentRequests = $requestRepository->findRecentCurrentForDashboard(4);
+        $recentRequests = $requestRepository->findRecentCurrentForDashboard(5);
 
         $typeLabels = [
             'ouverture' => 'Ouverture',
