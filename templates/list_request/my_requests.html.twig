@@ -16,7 +16,7 @@
 		<div class="d-flex justify-content-between align-items-center mb-4">
 			<div>
 				<h1 class="h3 mb-1 fw-bold my-requests-title">Suivi de mes demandes</h1>
-				<p class="small mb-0 my-requests-subtitle">Retrouvez l'état d'avancement des demandes que vous avez initiées</p>
+				<p class="fs-6 mb-0 my-requests-subtitle">Retrouvez l'état d'avancement des demandes que vous avez initiées</p>
 			</div>
 			<a href="{{ path('app_new_request') }}" class="btn btn-primary shadow-sm px-3 my-requests-new-btn">
 				<i class="fas fa-plus fa-sm me-2"></i>
@@ -45,7 +45,7 @@
 						</select>
 					</div>
 
-					{# Deuxième colonne : Type (CORRIGÉ ICI) #}
+					{# Deuxième colonne : Type #}
 					<div class="col-12 col-md-4">
 						<label class="form-label form-label-sm mb-1 text-muted fw-semibold">Type</label>
 						<select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -64,7 +64,7 @@
 					<div class="col-12 col-md-4">
 						<label class="form-label form-label-sm mb-1 text-muted fw-semibold">Agent</label>
 						<div class="input-group input-group-sm">
-								<input type="text" name="agent" class="form-control" placeholder="Nom ou prénom..." value="{{ filters.agent|default('') }}">
+							<input type="text" name="agent" class="form-control" placeholder="Nom ou prénom..." value="{{ filters.agent|default('') }}">
 							<button type="submit" class="btn btn-outline-secondary">
 								<img src="{{ asset('images/filtres/chercher.png') }}" alt="Rechercher" class="logoSearch" style="max-height: 15px;">
 							</button>
@@ -86,7 +86,7 @@
 								<th class="py-3" style="font-size: 0.75rem;">Agent concerné</th>
 								<th class="py-3" style="font-size: 0.75rem;">Date de création</th>
 								<th class="py-3" style="font-size: 0.75rem;">Statut actuel</th>
-								<th class="py-3 text-end" style="font-size: 0.75rem; padding-right: 4.3rem;">Action</th>
+								<th class="py-3 text-end" style="font-size: 0.75rem; padding-right: 3rem;">Action</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -154,9 +154,8 @@
 											{% if is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') %}
 												<form method="post" action="{{ path('app_request_delete', {'id': req.id}) }}" class="d-inline" onsubmit="return confirm('Confirmer la suppression de cette demande ?');">
 													<input type="hidden" name="_token" value="{{ csrf_token('request_delete_' ~ req.id) }}">
-													<button type="submit" class="btn btn-sm btn-outline-danger fw-medium px-2.5 py-1.5 shadow-sm" style="border-radius: 6px; font-size: 0.8rem;">
-														<i class="far fa-trash-alt me-1"></i>
-														Supprimer
+													<button type="submit" class="btn btn-sm btn-outline-danger fw-medium px-2.5 py-1.5 shadow-sm" style="border-radius: 6px; font-size: 0.8rem; border: none;">
+														<img src="{{ asset('images/icones/btnDelete.png') }}" alt="supprimer" class="logoAction">
 													</button>
 												</form>
 											{% endif %}
@@ -184,15 +183,8 @@
 
 					{% if pagesCount > 1 %}
 						<nav aria-label="Pagination">
-							<ul class="pagination pagination-sm mb-0 gap-1">
-								{# Ajout de gap-1 pour espacer proprement les blocs si besoin #}
-
-								{# Bouton Précédent #}
-									<li class="page-item {{ currentPage == 1 ? 'disabled' }}"> <a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path('app_my_requests', {'page': currentPage - 1, 'serviceId': filters.serviceId, 'type': filters.type, 'agent': filters.agent}) }}" aria-label="Précédent" style="width: 32px; height: 32px; padding: 0;">
-										&laquo;
-									</a>
-								</li>
-
+							<ul
+								class="pagination pagination-sm mb-0 gap-1">
 								{# Liste des numéros de pages #}
 								{% for i in 1..pagesCount %}
 									<li class="page-item {{ currentPage == i ? 'active' }}">
@@ -201,13 +193,6 @@
 										</a>
 									</li>
 								{% endfor %}
-
-								{# Bouton Suivant #}
-								<li class="page-item {{ currentPage == pagesCount ? 'disabled' }}">
-									<a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path('app_my_requests', {'page': currentPage + 1, 'serviceId': filters.serviceId, 'type': filters.type, 'agent': filters.agent}) }}" aria-label="Suivant" style="width: 32px; height: 32px; padding: 0;">
-										&raquo;
-									</a>
-								</li>
 							</ul>
 						</nav>
 					{% endif %}

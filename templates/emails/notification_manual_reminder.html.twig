@@ -27,7 +27,7 @@
 
             <div class="reminder-message">
                 <strong>Message de l'administrateur :</strong><br>
-                {{ reminder_message }}
+                {{ reminder_message|default('Une action de votre part est attendu pour finaliser le traitement de cette demande d\'accès. Afin d\'éviter tout blocage dans le dossier de l\'agent, merci de prendre connaissance des informations ci-dessous et de valider les étapes nécéssaires.') }}
             </div>
 
             <div class="info-card">

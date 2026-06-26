@@ -10,8 +10,10 @@
 		{% block page_title %}
 			<div class="d-flex justify-content-between align-items-center mb-4">
 				<div>
-					<h1 class="h3 mb-1">Dernières demandes</h1>
-					<p class="text-muted mb-0">Retrouvez ici les dernières demandes d'accès</p>
+					<h1 class="h3 mb-0">Dernières demandes</h1>
+					<p class="text-muted mb-0 fs-5">Retrouvez ici le suivi de vos demandes d’accès</p>
+					<p class="text-muted mb-0 fs-6 fw-lighter">(Seul le dernier état de chaque demande (Arrivée, Modification, Départ) est affiché ici. Les étapes précédentes restent consultables dans l'historique.)</p>
+
 				</div>
 				<a href="{{ path('app_new_request') }}" class="btn btn-primary">Nouvelle demande</a>
 			</div>
@@ -218,12 +220,7 @@
 					<ul
 						class="pagination pagination-sm mb-0 gap-1">
 
-						{# Précédent #}
-						<li class="page-item {{ currentPage == 1 ? 'disabled' : '' }}">
-							<a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path(paginationRoute, filters|merge({'page': currentPage - 1})) }}" style="width: 32px; height: 32px; padding: 0;">
-								&#129168;
-							</a>
-						</li>
+						
 
 						{# Pages #}
 						{% for i in 1..maxPages %}
@@ -234,13 +231,7 @@
 							</li>
 						{% endfor %}
 
-						{# Suivant #}
-						<li class="page-item {{ currentPage == maxPages ? 'disabled' : '' }}">
-							<a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path(paginationRoute, filters|merge({'page': currentPage + 1})) }}" style="width: 32px; height: 32px; padding: 0;">
-								&#129170;
-							</a>
-						</li>
-					</ul>
+						
 				</nav>
 			{% endif %}
 
