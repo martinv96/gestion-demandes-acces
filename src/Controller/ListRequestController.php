@@ -359,7 +359,7 @@ final class ListRequestController extends AbstractController
     // route pour valider une demande
     // ! route qui permet de valider une demande d'accès spécifique
     #[Route('/request/{id}/validate', name: 'app_request_validate', methods: ['POST'], requirements: ['id' => '\\d+'])]
-    public function validate(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
+    public function validate(AccessRequest $requestEntity, HttpRequest $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -419,7 +419,7 @@ final class ListRequestController extends AbstractController
     }
 
     #[Route('/request/{id}/undo-decision', name: 'app_request_undo_decision', methods: ['POST'], requirements: ['id' => '\\d+'])]
-    public function undoDecision(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
+    public function undoDecision(AccessRequest $requestEntity, HttpRequest $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -471,7 +471,7 @@ final class ListRequestController extends AbstractController
     public function undoDecisionForRole(
         AccessRequest $requestEntity,
         string $role,
-        Request $httpRequest,
+        HttpRequest $httpRequest,
         WorkflowService $workflowService,
         EntityManagerInterface $entityManager
     ): Response {
@@ -527,7 +527,7 @@ final class ListRequestController extends AbstractController
     // route pour refuser une demande
     // ! route qui permet de refuser une demande d'accès spécifique
     #[Route('/request/{id}/refuse', name: 'app_request_refuse', methods: ['POST'], requirements: ['id' => '\\d+'])]
-    public function refuse(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
+    public function refuse(AccessRequest $requestEntity, HttpRequest $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -582,7 +582,7 @@ final class ListRequestController extends AbstractController
     #[Route('/request/{id}/update-info', name: 'app_request_update_info', methods: ['POST'], requirements: ['id' => '\\d+'])]
     public function updateInfo(
         AccessRequest $requestEntity,
-        Request $httpRequest,
+        HttpRequest $httpRequest,
         EntityManagerInterface $entityManager,
         RequestUpdateInfoService $requestUpdateInfoService,
         WorkflowService $workflowService,
@@ -676,7 +676,7 @@ final class ListRequestController extends AbstractController
         return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
     }
 
-    private function addRequestFlash(Request $httpRequest, string $type, string $message): void
+    private function addRequestFlash(HttpRequest $httpRequest, string $type, string $message): void
     {
         if (!$httpRequest->hasSession()) {
             return;
@@ -694,7 +694,7 @@ final class ListRequestController extends AbstractController
     public function markReturned(
         AccessRequest $requestEntity,
         int $ressourceId,
-        Request $httpRequest,
+        HttpRequest $httpRequest,
         EntityManagerInterface $entityManager,
         WorkflowService $workflowService,
         MessageBusInterface $messageBus
@@ -849,7 +849,7 @@ final class ListRequestController extends AbstractController
     // ! route pour exporter la liste des demandes au format CSV
     #[Route('/request/exportCsv', name: 'app_request_export_csv', methods: ['GET'])]
     public function exportXlsx(
-        Request $httpRequest,
+        HttpRequest $httpRequest,
         RequestExportSpreadsheetService $requestExportSpreadsheetService
     ): Response {
         // ! vérification que l'utilisateur est authentifié avant de permettre l'exportation de la liste des demandes
@@ -918,7 +918,7 @@ final class ListRequestController extends AbstractController
     }
 
     #[Route('/request/{id}/unblock', name: 'app_request_unblock', methods: ['POST'], requirements: ['id' => '\\d+'])]
-    public function unblock(AccessRequest $requestEntity, Request $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
+    public function unblock(AccessRequest $requestEntity, HttpRequest $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -960,7 +960,7 @@ final class ListRequestController extends AbstractController
     }
 
     #[Route('/my-requests', name: 'app_my_requests', methods: ['GET'])]
-    public function myRequests(RequestRepository $requestRepository, HttpRequest $request): Response
+    public function myRequests(RequestRepository $requestRepository, HttpRequest $request, ServiceRepository $serviceRepository): Response
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
@@ -971,25 +971,35 @@ final class ListRequestController extends AbstractController
         $page = max(1, $request->query->getInt('page', 1));
         $limit = 10;
 
-        // Récupère uniquement les 10 demandes de la page en cours
-        $paginator = $requestRepository->findPaginatedRequestsByAuthor($currentUser, $page, $limit);
+        $filters = [
+            'serviceId' => $request->query->getInt('serviceId') ?: null,
+            'type' => $request->query->get('type') ?: null,
+            'agent' => trim((string) $request->query->get('agent', '')),
+        ];
 
-        // Calcul du nombre total de pages
+        $services = $serviceRepository->findBy([], ['name' => 'DESC']);
+
+        // Récupère uniquement les demandes de la page en cours selon les filtres.
+        $paginator = $requestRepository->findPaginatedRequestsByAuthor($currentUser, $page, $limit, $filters);
+
+        // Le count du paginator déclenche une requête dédiée, gardée légère côté repository.
         $totalRequests = count($paginator);
-        $pagesCount = ceil($totalRequests / $limit);
+        $pagesCount = max(1, (int) ceil($totalRequests / $limit));
 
         return $this->render('list_request/my_requests.html.twig', [
             'requests'    => $paginator, // On passe l'objet paginé (qui s'utilise comme un tableau en Twig)
             'currentPage' => $page,
             'pagesCount'  => $pagesCount,
             'totalRequests' => $totalRequests,
+            'services' => $services,
+            'filters' => $filters,
         ]);
     }
 
     #[Route('/request/{id}/delete', name :'app_request_delete', methods: ['POST'], requirements: ['id' => '\\d+'])]
     public function deleteRequest(
         AccessRequest $requestEntity,
-        Request $httpRequest,
+        HttpRequest $httpRequest,
         EntityManagerInterface $entityManager
     ): Response {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');

@@ -560,20 +560,48 @@ class RequestRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    public function findPaginatedRequestsByAuthor(User $user, int $page, int $limit): Paginator
+    /**
+     * @param array{serviceId?: int|null, type?: string|null, agent?: string|null} $filters
+     */
+    public function findPaginatedRequestsByAuthor(User $user, int $page, int $limit, array $filters = []): Paginator
     {
-        $query = $this->createQueryBuilder('r')
+        $qb = $this->createQueryBuilder('r')
             ->leftJoin('r.agent', 'a')
             ->addSelect('a')
             ->leftJoin('a.service', 's')
             ->addSelect('s')
             ->where('r.author = :user')
             ->setParameter('user', $user)
-            ->orderBy('r.id', 'DESC')
+            ->orderBy('r.id', 'DESC');
+
+        if (!empty($filters['serviceId'])) {
+            $qb
+                ->andWhere('s.id = :serviceId')
+                ->setParameter('serviceId', (int) $filters['serviceId']);
+        }
+
+        if (!empty($filters['type'])) {
+            $qb
+                ->andWhere('LOWER(r.type) = :type')
+                ->setParameter('type', mb_strtolower((string) $filters['type']));
+        }
+
+        if (!empty($filters['agent'])) {
+            $agentSearch = '%'.mb_strtolower(trim((string) $filters['agent'])).'%';
+            $qb
+                ->andWhere('LOWER(a.firstname) LIKE :agentSearch OR LOWER(a.lastname) LIKE :agentSearch')
+                ->setParameter('agentSearch', $agentSearch);
+        }
+
+        $query = $qb
             ->setFirstResult(($page - 1) * $limit)
             ->setMaxResults($limit)
             ->getQuery();
 
-        return new Paginator($query);
+        // Les jointures utilisées ici sont sur des relations to-one: on peut désactiver DISTINCT
+        // pour éviter un COUNT très coûteux sur la pagination.
+        $query->setHint(Paginator::HINT_ENABLE_DISTINCT, false);
+
+        return new Paginator($query, false);
     }
 }
