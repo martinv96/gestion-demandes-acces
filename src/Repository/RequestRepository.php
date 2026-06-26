@@ -87,7 +87,7 @@ class RequestRepository extends ServiceEntityRepository
 
         if (!empty($filters['arrivalDate'])) {
             $qb->andWhere('r.arrivalDate = :arrivalDate')
-                ->setParameter('arrivalDate', new \DateTime($filters['arrivalDate']));
+                ->setParameter('arrivalDate', new \DateTime($filters['arrivalDate'])); //! protection injection exemple: new \DateTime ici sert de validation de type. tout ce qui n'est pas une date est filtrer et rejeté. ensuite, setParameter() requete préparer (prepared statement) symfony qui permet au serveur SQL d'analyser la requete. ça empeche le serveur SQL d'executer la requete comme si il s'agissait de code.
         }
 
         if (!empty($filters['departureDate'])) {

@@ -6,10 +6,6 @@ namespace App\Tests\Controller;
 
 use App\Entity\Service;
 use App\Entity\User;
-use App\Repository\AgentRepository;
-use App\Repository\WorkflowTransitionConfigRepository;
-use App\Service\RequestCreationService;
-use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -23,66 +19,63 @@ final class NewRequestControllerTest extends WebTestCase
         self::assertResponseRedirects('/login');
     }
 
-    public function testNewRequestShowsDangerFlashWhenCreationServiceThrows(): void
+    /**
+     * Teste le comportement nominal du NewRequestController :
+     * Un agent connecté peut remplir et soumettre le formulaire avec succès.
+     */
+    public function testNewRequestSuccessfullyCreatesRequest(): void
     {
-        self::markTestSkipped('Scenario non deterministe dans ce setup: RequestCreationService final autowire non surcharge de facon fiable en test fonctionnel.');
-
         $client = static::createClient();
         $container = static::getContainer();
 
-        $emReal = $container->get(EntityManagerInterface::class);
+        $em = $container->get(EntityManagerInterface::class);
 
+        // 1. Création d'un service et d'un utilisateur de test pour la session
         $serviceEntity = (new Service())
-            ->setName('Service-ctrl-' . uniqid())
-            ->setEmail('ctrl.' . uniqid() . '@mail.fr')
+            ->setName('Service RH ' . uniqid())
+            ->setEmail('rh.' . uniqid() . '@mail.fr')
             ->setCode('rh');
 
         $user = (new User())
-            ->setEmail('ctrl.user.' . uniqid() . '@mail.fr')
-            ->setPassword('x')
+            ->setEmail('agent.' . uniqid() . '@mail.fr')
+            ->setFirstname('Martin')
+            ->setLastname('Vallee')
+            ->setPassword('motdepasse_test')
             ->setIsActive(true)
             ->setService($serviceEntity);
 
-        $emReal->persist($serviceEntity);
-        $emReal->persist($user);
-        $emReal->flush();
+        $em->persist($serviceEntity);
+        $em->persist($user);
+        $em->flush();
 
+        // Authentifier le client HTTP avec cet utilisateur
         $client->loginUser($user);
 
-        $connectionMock = $this->createMock(Connection::class);
-        $connectionMock
-            ->method('beginTransaction')
-            ->willThrowException(new \RuntimeException('Simulated failure'));
-
-        $emMock = $this->createMock(EntityManagerInterface::class);
-        $emMock->method('getConnection')->willReturn($connectionMock);
-
-        $workflowRepo = $container->get(WorkflowTransitionConfigRepository::class);
-        $agentRepo = $container->get(AgentRepository::class);
-
-        $failingService = new RequestCreationService($emMock, $workflowRepo, $agentRepo);
-        $container->set(RequestCreationService::class, $failingService);
-        $container->set('test.' . RequestCreationService::class, $failingService);
-
+        // 2. Accès à la page du formulaire de création
         $crawler = $client->request('GET', '/new/request');
+        self::assertResponseIsSuccessful(); // Le formulaire s'affiche bien (HTTP 200)
 
+        // 3. Remplissage et soumission du formulaire avec des données valides
         $form = $crawler->filter('form.request-form')->form([
             'new_request[type]' => 'ouverture',
             'new_request[civility]' => 'M.',
-            'new_request[firstname]' => 'Flash',
-            'new_request[lastname]' => 'Error',
-            'new_request[email]' => 'flash.error.' . uniqid() . '@mairie.fr',
-            'new_request[service]' => (string) $serviceEntity->getId(),
-            'new_request[jobTitle]' => 'Test',
-            'new_request[arrivalDate]' => '2026-04-10',
-            'new_request[commentary]' => 'test flash danger',
+            'new_request[firstname]' => 'Jean',
+            'new_request[lastname]' => 'Dupont',
+            'new_request[email]' => 'jean.dupont.' . uniqid() . '@mairie.fr',
+            'new_request[service]' => (string) $serviceEntity->getId(), // L'ID valide généré au début
+            'new_request[jobTitle]' => 'Adjoint administratif',
+            'new_request[arrivalDate]' => '2026-09-01',
+            'new_request[commentary]' => 'Création de compte standard via test fonctionnel.',
         ]);
 
         $client->submit($form);
 
-        self::assertResponseRedirects('/new/request');
+        // 4. Assertions de fin
+        // On s'assure que le contrôleur redirige bien vers l'URL de succès d'après ta logique (?saved=1)
+        self::assertResponseRedirects('/new/request?saved=1');
+        
+        // On suit la redirection pour valider que la page finale répond correctement
         $client->followRedirect();
-
-        self::assertSelectorTextContains('.alert-danger', 'La création de la demande a échoué');
+        self::assertResponseIsSuccessful();
     }
 }

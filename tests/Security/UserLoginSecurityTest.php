@@ -25,7 +25,12 @@ final class UserLoginSecurityTest extends WebTestCase
         $plainPassword = 'TestPassword123!';
 
         // Crée et persiste l'utilisateur inactif
-        $user = (new User())->setEmail($email)->setIsActive(false)->setMustChangePassword(false);
+        $user = (new User())
+        ->setEmail($email)
+        ->setIsActive(false)
+        ->setFirstname('martin')
+        ->setLastname('user')
+        ->setMustChangePassword(false);
         $user->setPassword($hasher->hashPassword($user, $plainPassword));
         $em->persist($user);
         $em->flush();
@@ -87,6 +92,8 @@ final class UserLoginSecurityTest extends WebTestCase
         $user = (new User())
             ->setEmail($email)
             ->setIsActive(true)
+            ->setFirstname('martin')
+            ->setLastname('user')
             ->setMustChangePassword(false);
 
         // Hash le mot de passe avant de le stocker
@@ -138,6 +145,8 @@ final class UserLoginSecurityTest extends WebTestCase
         $user = (new User())
             ->setEmail($email)
             ->setIsActive(true)
+            ->setFirstname('martin')
+            ->setLastname('user')
             ->setMustChangePassword(false);
 
         $user->setPassword($hasher->hashPassword($user, $realPassword));
@@ -197,6 +206,8 @@ final class UserLoginSecurityTest extends WebTestCase
         $user = (new User())
             ->setEmail($email)
             ->setIsActive(true)
+            ->setFirstname('martin')
+            ->setLastname('user')
             ->setMustChangePassword(true);
 
         $user->setPassword($hasher->hashPassword($user, $plainPassword));
@@ -251,6 +262,8 @@ final class UserLoginSecurityTest extends WebTestCase
         $user = (new User())
             ->setEmail($email)
             ->setIsActive(true)
+            ->setFirstname('martin')
+            ->setLastname('user')
             ->setMustChangePassword(false);
 
         $user->setPassword($hasher->hashPassword($user, $plainPassword));

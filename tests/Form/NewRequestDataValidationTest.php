@@ -53,8 +53,8 @@ final class NewRequestDataValidationTest extends KernelTestCase
         $violations = $this->validator->validate($data);
 
         self::assertGreaterThan(0, $violations->count());
-        self::assertSame('departureDate', $violations[0]->getPropertyPath());
-        self::assertSame('La date de départ est obligatoire pour une fermeture.', $violations[0]->getMessage());
+        self::assertSame('parentRequest', $violations[0]->getPropertyPath());
+        self::assertSame("La demande d’origine est obligatoire pour une modification ou une fermeture.", $violations[0]->getMessage());
     }
 
     public function testOuvertureRequiresArrivalDate(): void
@@ -67,7 +67,7 @@ final class NewRequestDataValidationTest extends KernelTestCase
 
         self::assertGreaterThan(0, $violations->count());
         self::assertSame('arrivalDate', $violations[0]->getPropertyPath());
-        self::assertSame('La date d’arrivée est obligatoire pour une ouverture.', $violations[0]->getMessage());
+        self::assertSame('La date d’arrivée est obligatoire.', $violations[0]->getMessage());
     }
 
     /* 

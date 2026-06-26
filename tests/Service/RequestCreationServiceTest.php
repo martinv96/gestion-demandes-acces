@@ -42,6 +42,8 @@ final class RequestCreationServiceTest extends KernelTestCase
 
         $user = (new User())
             ->setEmail($uid . '@creator.fr')
+            ->setFirstname('martin')
+            ->setLastname('user')
             ->setPassword('x')
             ->setIsActive(true)
             ->setRole($role)
@@ -75,23 +77,27 @@ final class RequestCreationServiceTest extends KernelTestCase
                 $user,
                 'ouverture',
                 'en_attente_rh',
-                null,
-                static function (string $step): void {
+                null,           // 5ème argument: $effectiveParentRequest (null ici)
+                null,           // 6ème argument: $pieceJointeFile (null ici)
+                static function (string $step): void { // 7ème argument: $failureHook
                     if ($step === 'after_history') {
                         throw new \RuntimeException('panne simulé après le persist intermédiaire');
                     }
                 }
-            );            
+            );
         } finally {
             $em->clear();
 
-            self::assertSame($beforeRequestCount,
-            $requestRepository->count([]), 'Aucune request ne doit rester en base');
+            self::assertSame(
+                $beforeRequestCount,
+                $requestRepository->count([]),
+                'Aucune request ne doit rester en base'
+            );
             self::assertSame($beforeHistoryCount, $historyRepository->count([]), 'aucun history ne doit rester en base');
             self::assertSame($beforeAgentCount, $agentRepository->count([]), 'aucun agent intermédiaire ne doit rester en base');
 
             $agent = $agentRepository->findOneByIdentity('Rollback', 'scenario', 'rollback@mairie.fr');
-            self::assertNull($agent, 'agent créé dans la transaction doit être rollbacké');            
+            self::assertNull($agent, 'agent créé dans la transaction doit être rollbacké');
         }
     }
 
@@ -119,6 +125,8 @@ final class RequestCreationServiceTest extends KernelTestCase
 
         $user = (new User())
             ->setEmail($uid . '@creator.fr')
+            ->setFirstname('martin')
+            ->setLastname('user')
             ->setPassword('x')
             ->setIsActive(true)
             ->setRole($role)
@@ -174,18 +182,20 @@ final class RequestCreationServiceTest extends KernelTestCase
         $historyRepository = $container->get(WorkflowHistoryRepository::class);
 
         $uid = substr(uniqid('reuse', true), 0, 12);
-        
+
         $appService = (new UserService())
-            ->setName('ServiceReuse-' .$uid)
-            ->setEmail($uid. '@mail.fr')
+            ->setName('ServiceReuse-' . $uid)
+            ->setEmail($uid . '@mail.fr')
             ->setCode('rh');
 
         $role = (new Role())
             ->setLabel('ROLE_REUSE_' . strtoupper($uid));
 
         $user = (new User())
-            ->setEmail($uid. '@creator.fr')
+            ->setEmail($uid . '@creator.fr')
             ->setPassword('password')
+            ->setFirstname('martin')
+            ->setLastname('user')
             ->setIsActive(true)
             ->setRole($role)
             ->setService($appService);

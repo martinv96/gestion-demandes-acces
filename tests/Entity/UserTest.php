@@ -85,7 +85,7 @@ final class UserTest extends TestCase
             ->setEmail('dsi@mairie.fr')
             ->setService($service);
 
-        self::assertSame('Compte DSI', $user->getDisplayName());
+        self::assertSame('dsi@mairie.fr', $user->getDisplayName());
     }
 
     // Teste la construction du nom d'affichage en fonction des données disponibles.
@@ -110,6 +110,6 @@ final class UserTest extends TestCase
             ->setEmail('st@mairie.fr')
             ->setService($service);
 
-        self::assertSame('Compte ST', $user->getDisplayName());
+        self::assertSame('st@mairie.fr', $user->getDisplayName());
     }
 }

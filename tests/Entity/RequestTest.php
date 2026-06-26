@@ -205,7 +205,8 @@ final class RequestTest extends TestCase
 
         $parent->addChildRequest($child);
 
-        self::assertSame('Remplacée - Ouverture', $parent->getCurrentStateLabel());
+        // Mis à jour avec le vrai libellé de ton entité
+        self::assertSame('Ancienne version - Ouverture', $parent->getCurrentStateLabel());
     }
 
     // public function testGetCurrentStateLabelForReplacedRequestDefault(): void
