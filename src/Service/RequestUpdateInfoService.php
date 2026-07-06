@@ -23,6 +23,7 @@ class RequestUpdateInfoService
      * nom?: string,
      * email?: string,
      * fonction?: string,
+    * replacee_par?: string,
      * service?: int,
      * taille_vetements?: string,
      * taille_chaussures?: string,
@@ -41,6 +42,7 @@ class RequestUpdateInfoService
         }
 
         $requestEntity->setType($type);
+        $requestEntity->setReplaceePar(trim((string) ($payload['replacee_par'] ?? $requestEntity->getReplaceePar() ?? '')) ?: null);
 
         $agent = $requestEntity->getAgent();
         if ($agent === null) {

@@ -123,6 +123,18 @@
 			</div>
 		</div>
 
+		{% if form.replaceePar is defined %}
+			<div class="card request-form-card mb-4">
+				<div class="card-header">L'agent remplace (Optionnel)</div>
+				<div class="card-body">
+					<div class="row g-3">
+						<div class="card-body">
+							{{ form_row(form.replaceePar) }}
+						</div>
+					</div>
+				</div>
+			</div>
+		{% endif %}
 
 		{# récapitulatif demande d'origine #}
 		<div class="card request-form-card mb-4 d-none" id="parent-request-summary-card">
@@ -244,21 +256,21 @@
 		</div>
 
 		<div class="card request-form-card mb-4">
-    <div class="card-header">Pièce jointe (optionnel)</div>
-    <div class="card-body">
-        <div class="custom-file-wrapper mb-2">
-            {{ form_widget(form.pieceJointe, {
+			<div class="card-header">Pièce jointe (optionnel)</div>
+			<div class="card-body">
+				<div class="custom-file-wrapper mb-2">
+					{{ form_widget(form.pieceJointe, {
                 'attr': {
                     'class': 'custom-file-input',
                     'style': 'display:none;'
                 }
             }) }}
-            <label for="{{ form.pieceJointe.vars.id }}" class="custom-file-label-btn">Sélectionner un fichier</label>
-            <span id="file-name" class="custom-file-label-text">Aucun fichier sélectionné</span>
-        </div>
-        {{ form_errors(form.pieceJointe) }}
-    </div>
-</div>
+					<label for="{{ form.pieceJointe.vars.id }}" class="custom-file-label-btn">Sélectionner un fichier</label>
+					<span id="file-name" class="custom-file-label-text">Aucun fichier sélectionné</span>
+				</div>
+				{{ form_errors(form.pieceJointe) }}
+			</div>
+		</div>
 
 		{# commentaires #}
 		<div class="card request-form-card mb-4">

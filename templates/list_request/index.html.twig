@@ -218,9 +218,7 @@
 				<nav class="mt-4">
 					{% set paginationRoute = pageRoute|default('app_list_request') %}
 					<ul
-						class="pagination pagination-sm mb-0 gap-1">
-
-						
+						class="pagination pagination-sm mb-0 gap-1">						
 
 						{# Pages #}
 						{% for i in 1..maxPages %}
@@ -229,12 +227,9 @@
 									{{ i }}
 								</a>
 							</li>
-						{% endfor %}
-
-						
+						{% endfor %}						
 				</nav>
 			{% endif %}
-
 
 		{% endif %}
 
@@ -253,6 +248,4 @@ instance.input.form.submit();
 });
 });
 	</script>
-
-
 {% endblock %}

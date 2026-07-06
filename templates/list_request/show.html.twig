@@ -186,6 +186,13 @@
 												</div>
 											{% endif %}
 
+											{% if requestEntity.replaceePar is not empty %}
+												<div class="col-md-6">
+													<label for="inline_replacee_par" class="form-label">L'agent remplace</label>
+													<input type="text" class="form-control" id="inline_replacee_par" name="replacee_par" value="{{ requestEntity.replaceePar ?? '' }}" maxlength="70" placeholder="Ex: Nom Prénom">
+												</div>
+											{% endif %}
+
 										</div>
 									{% else %}
 										<dl class="row mb-0">
@@ -211,6 +218,10 @@
 											<dd class="col-sm-8">{{ requestEntity.creationDate ? requestEntity.creationDate|date('d/m/Y H:i') : '-' }}</dd>
 											<dt class="col-sm-4">Mise à jour</dt>
 											<dd class="col-sm-8">{{ requestEntity.updateDate ? requestEntity.updateDate|date('d/m/Y H:i') : '-' }}</dd>
+											{% if requestEntity.replaceePar is not empty %}
+												<dt class="col-sm-4">L'agent remplace</dt>
+												<dd class="col-sm-8">{{ requestEntity.replaceePar }}</dd>
+											{% endif %}
 											{% if requestEntity.status not in ['traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'] %}
 												<dt class="col-sm-4">Délai de traitement</dt>
 												<dd class="col-sm-8">

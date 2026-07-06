@@ -41,6 +41,9 @@ final class NewRequestData
     #[Assert\Length(max: 20, maxMessage: 'La taille des chaussures ne peut pas dépasser {{ limit }} caractères.')]
     private ?string $shoeSize = null;
 
+    #[Assert\Length(max: 70, maxMessage: 'Le champ remplacement ne peut pas dépasser {{ limit }} caractères.')]
+    private ?string $replaceePar = null;
+
     private ?\DateTime $arrivalDate = null;
 
     private ?\DateTime $departureDate = null;
@@ -219,6 +222,16 @@ final class NewRequestData
     public function setShoeSize(?string $shoeSize): void
     {
         $this->shoeSize = $shoeSize;
+    }
+
+    public function getReplaceePar(): ?string
+    {
+        return $this->replaceePar;
+    }
+
+    public function setReplaceePar(?string $replaceePar): void
+    {
+        $this->replaceePar = $replaceePar;
     }
 
     /**

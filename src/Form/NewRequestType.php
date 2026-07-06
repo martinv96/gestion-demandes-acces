@@ -4,6 +4,7 @@ namespace App\Form;
 
 use App\Entity\Ressource;
 use App\Entity\Service;
+use App\Entity\User;
 use App\Form\Model\NewRequestData;
 use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -51,7 +52,9 @@ final class NewRequestType extends AbstractType
 
         $user = $this->security->getUser();
 
-        $isTechnique = $user && $user->getService() && ($user->getService()->getCode() === 'ST' || $user->getService()->getId() === 3);
+        $isTechnique = $user instanceof User
+            && $user->getService()
+            && ($user->getService()->getCode() === 'ST' || $user->getService()->getId() === 3);
 
 
         $builder
@@ -115,6 +118,19 @@ final class NewRequestType extends AbstractType
                     ])
                 ],
             ]);
+
+
+                $builder
+
+            ->add('replaceePar', TextAreaType::class, [
+                'label' => false, 
+                'required' => false,
+                'attr' => [
+                    'rows' => 4,
+                    'placeholder' => 'Ex: Remplacement d\'un agent parti',
+                ],
+            ]);
+            
 
             if ($isTechnique) {
                 $builder

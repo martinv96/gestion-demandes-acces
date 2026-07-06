@@ -73,6 +73,9 @@ class Request
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $commentary = null;
 
+    #[ORM\Column(length: 70, nullable: true)]
+    private ?string $replaceePar = null;
+
     #[ORM\Column(length: 30, nullable: true)]
     private ?string $phoneType = null;
 
@@ -222,6 +225,18 @@ class Request
     public function setCommentary(?string $commentary): static
     {
         $this->commentary = $commentary;
+
+        return $this;
+    }
+
+    public function getReplaceePar(): ?string
+    {
+        return $this->replaceePar;
+    }
+
+    public function setReplaceePar(?string $replaceePar): static
+    {
+        $this->replaceePar = $replaceePar;
 
         return $this;
     }

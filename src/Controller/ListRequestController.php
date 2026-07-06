@@ -651,6 +651,7 @@ final class ListRequestController extends AbstractController
                 'nom' => (string) $httpRequest->request->get('nom', ''),
                 'fonction' => (string) $httpRequest->request->get('fonction', ''),
                 'email' => (string) $httpRequest->request->get('email', ''),
+                'replacee_par' => (string) $httpRequest->request->get('replacee_par', ''),
                 'service' => (int) $httpRequest->request->get('service', 0),
                 'taille_vetements' => (string) $httpRequest->request->get('taille_vetements', ''),
                 'taille_chaussures' => (string) $httpRequest->request->get('taille_chaussures', ''),
