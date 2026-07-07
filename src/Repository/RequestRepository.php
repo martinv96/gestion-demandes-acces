@@ -34,7 +34,7 @@ class RequestRepository extends ServiceEntityRepository
             ->setFirstResult($offset);
 
         if (!empty($filters['status'])) {
-            $qb->andWhere('r.status = :status')->setParameter('status', $filters['status']);
+            $this->applyStatusFilter($qb, (string) $filters['status']);
         }
 
         if (!empty($filters['serviceId'])) {
@@ -73,8 +73,8 @@ class RequestRepository extends ServiceEntityRepository
             ->leftJoin('r.agent', 'a')
             ->leftJoin('a.service', 's');
 
-            if (!empty($filters['status'])) {
-            $qb->andWhere('r.status = :status')->setParameter('status', $filters['status']);
+        if (!empty($filters['status'])) {
+            $this->applyStatusFilter($qb, (string) $filters['status']);
         }
 
         if (!empty($filters['serviceId'])) {
@@ -116,7 +116,7 @@ class RequestRepository extends ServiceEntityRepository
         $this->applyCurrentScope($qb);
 
         if (!empty($filters['status'])) {
-            $qb->andWhere('r.status = :status')->setParameter('status', $filters['status']);
+            $this->applyStatusFilter($qb, (string) $filters['status']);
         }
 
         if (!empty($filters['serviceId'])) {
@@ -162,7 +162,9 @@ class RequestRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return list<\DateTime>
+     * @return list<
+     *     \DateTime
+     * >
      */
     public function findDistinctCurrentArrivalDates(): array
     {
@@ -194,7 +196,6 @@ class RequestRepository extends ServiceEntityRepository
 
         return array_column($result, 'departureDate');
     }
-
     /**
      * @return list<\DateTime>
      */
@@ -327,7 +328,7 @@ class RequestRepository extends ServiceEntityRepository
      * - seule la dernière demande effective d'une chaîne parent/enfant est affichée
      * - une fermeture est affichée si elle est la dernière demande de la chaîne
      *
-     * @param array{status?: string, serviceId?: int, type?: string, arrivalDate?: string, departureDate?: string, agent?: string} $filters
+    * @param array{status?: string, serviceId?: int, type?: string, arrivalDate?: string, departureDate?: string, agent?: string} $filters
      * @return list<Request>
      */
     public function findCurrentWithFilters(array $filters = [], int $limit = 100, int $offset = 0): array
@@ -342,7 +343,7 @@ class RequestRepository extends ServiceEntityRepository
         $this->applyCurrentScope($qb);
 
         if (!empty($filters['status'])) {
-            $qb->andWhere('r.status = :status')->setParameter('status', $filters['status']);
+            $this->applyStatusFilter($qb, (string) $filters['status']);
         }
 
         if (!empty($filters['serviceId'])) {
@@ -379,7 +380,7 @@ class RequestRepository extends ServiceEntityRepository
      * - pas de jointure childRequests (inutile pour l'export)
      * - conservation de agent/service/ressources pour alimenter les 2 onglets
      *
-     * @param array{status?: string, serviceId?: int, type?: string, arrivalDate?: string, departureDate?: string, agent?: string} $filters
+    * @param array{status?: string, serviceId?: int, type?: string, arrivalDate?: string, departureDate?: string, agent?: string} $filters
      *
      * @return list<Request>
      */
@@ -397,7 +398,7 @@ class RequestRepository extends ServiceEntityRepository
         }
 
         if (!empty($filters['status'])) {
-            $qb->andWhere('r.status = :status')->setParameter('status', $filters['status']);
+            $this->applyStatusFilter($qb, (string) $filters['status']);
         }
 
         if (!empty($filters['serviceId'])) {
@@ -441,6 +442,44 @@ class RequestRepository extends ServiceEntityRepository
                 WHERE child.parentRequest = r
             )'
         );
+    }
+
+    private function applyStatusFilter(QueryBuilder $qb, string $status): QueryBuilder
+    {
+        $status = trim($status);
+
+        switch ($status) {
+            case 'a_valider_rh':
+                $qb->andWhere('r.status = :status')
+                    ->setParameter('status', Request::STATUS_EN_ATTENTE_RH);
+                break;
+            case 'a_valider_st':
+                $qb->andWhere('r.status = :status')
+                    ->andWhere('r.workflowSnapshot LIKE :workflowRole')
+                    ->setParameter('status', Request::STATUS_EN_ATTENTE_VALIDATION)
+                    ->setParameter('workflowRole', '%ROLE_ST%');
+                break;
+            case 'a_valider_dsi':
+                $qb->andWhere('r.status = :status')
+                    ->andWhere('r.workflowSnapshot LIKE :workflowRole')
+                    ->setParameter('status', Request::STATUS_EN_ATTENTE_VALIDATION)
+                    ->setParameter('workflowRole', '%ROLE_DSI%');
+                break;
+            case 'a_valider_fin':
+                $qb->andWhere('r.status = :status')
+                    ->andWhere('r.workflowSnapshot LIKE :workflowRole')
+                    ->setParameter('status', Request::STATUS_EN_ATTENTE_VALIDATION)
+                    ->setParameter('workflowRole', '%ROLE_FIN%');
+                break;
+            default:
+                if ($status !== '') {
+                    $qb->andWhere('r.status = :status')
+                        ->setParameter('status', $status);
+                }
+                break;
+        }
+
+        return $qb;
     }
 
     public function findLatestProcessedReplacementChild(Request $parent): ?Request

@@ -25,7 +25,12 @@ final class HistoryController extends AbstractController
         $offset = ($page - 1) * $limit;
 
 
-        $allowedStatuses = AccessRequest::WORKFLOW_STATUSES;
+        $allowedStatuses = array_merge(AccessRequest::WORKFLOW_STATUSES, [
+            'a_valider_rh',
+            'a_valider_st',
+            'a_valider_dsi',
+            'a_valider_fin',
+        ]);
         $allowedTypes = AccessRequest::TYPES;
 
         $status        = (string) $httpRequest->query->get('status', '');

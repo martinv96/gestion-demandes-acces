@@ -45,7 +45,12 @@ final class ListRequestController extends AbstractController
         $offset = ($page - 1) * $limit;
 
         // ! gestion des filtres de recherche : status, service, type et date d'arrivée
-        $allowedStatuses = AccessRequest::WORKFLOW_STATUSES;
+        $allowedStatuses = array_merge(AccessRequest::WORKFLOW_STATUSES, [
+            'a_valider_rh',
+            'a_valider_st',
+            'a_valider_dsi',
+            'a_valider_fin',
+        ]);
         $allowedTypes = AccessRequest::TYPES;
 
         $status        = (string) $httpRequest->query->get('status', '');
@@ -857,7 +862,12 @@ final class ListRequestController extends AbstractController
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
         // Reprend la logique de filtres de ta liste
-        $allowedStatuses = AccessRequest::WORKFLOW_STATUSES;
+        $allowedStatuses = array_merge(AccessRequest::WORKFLOW_STATUSES, [
+            'a_valider_rh',
+            'a_valider_st',
+            'a_valider_dsi',
+            'a_valider_fin',
+        ]);
         $allowedTypes = AccessRequest::TYPES;
 
         $status = (string) $httpRequest->query->get('status', '');
