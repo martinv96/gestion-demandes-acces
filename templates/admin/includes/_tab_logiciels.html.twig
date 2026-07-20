@@ -65,12 +65,12 @@
 			</li>
 
 			{% for i in 1..softwaresMaxPages %}
-			<li class="page-iten {{ i ==  softwareCurrentPage ? 'active' : ''}}">
+			<li class="page-item {{ i ==  softwareCurrentPage ? 'active' : ''}}">
 				<a class="page-link" href="{{ path('app_admin_index', { tab: 'logiciels', logiciels_page: i }) }}">{{ i }}</a>
 			</li>
 			{% endfor %}
 
-			<li class="page-item {{ softwareCurrentPage == softwareCurrentPage ? 'disabled' : ''}}">
+			<li class="page-item {{ softwareCurrentPage == softwaresMaxPages ? 'disabled' : ''}}">
 				<a class="page-link" href="{{ path('app_admin_index', {tab: 'logiciels', logiciels_page: softwareCurrentPage + 1 }) }}"><span aria-hidden="true">&#129170;</span></a>
 			</li>
 		</ul>

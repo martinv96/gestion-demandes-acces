@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import 'list_request/includes/_macros.html.twig' as macros %}
 
 {% block title %}Suivi de mes demandes
 {% endblock %}
@@ -130,37 +131,31 @@
 
 									{# 5. Statut actuel #}
 									<td>
-										{% if req.status == 'traitee' or req.status == 'valide' %}
-											<span class="badge bg-success-subtle text-success px-3 py-1.5 fw-semibold" style="border-radius: 6px; font-size: 0.8rem;">Validé</span>
-										{% elseif req.status == 'rejetee' or req.status == 'refusee_rh' or req.status == 'refusee_st' or req.status == 'refusee_dsi' %}
-											<span class="badge bg-danger-subtle text-danger px-3 py-1.5 fw-semibold" style="border-radius: 6px; font-size: 0.8rem;">Rejeté</span>
-										{% elseif req.status == 'en_attente_rh' %}
-											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente RH</span>
-										{% elseif req.status == 'en_attente_st' %}
-											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente de validation</span>
-										{% elseif req.status == 'en_attente_dsi' %}
-											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente de validation</span>
-										{% else %}
-											<span class="badge bg-warning-subtle text-warning px-3 py-1.5 fw-semibold my-requests-status-warning" style="border-radius: 6px; font-size: 0.8rem;">En attente de validation</span>
-										{% endif %}
+										{{ macros.statusBadge(req.status) }}
 									</td>
 
 									{# 6. Action #}
-									<td class="pe-4 text-end">
-										<div class="d-inline-flex gap-2">
-											<a href="{{ path('app_request_show', {'id': req.id}) }}" class="btn btn-sm btn-outline-secondary fw-medium px-2.5 py-1.5 shadow-sm my-requests-detail-btn" style="border-radius: 6px; font-size: 0.8rem; border: none;">
-												<img src="{{ asset('images/icones/chercher1.png') }}" alt="voir" class="logoAction">
-											</a>
-											{% if is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') %}
-												<form method="post" action="{{ path('app_request_delete', {'id': req.id}) }}" class="d-inline" onsubmit="return confirm('Confirmer la suppression de cette demande ?');">
-													<input type="hidden" name="_token" value="{{ csrf_token('request_delete_' ~ req.id) }}">
-													<button type="submit" class="btn btn-sm btn-outline-danger fw-medium px-2.5 py-1.5 shadow-sm" style="border-radius: 6px; font-size: 0.8rem; border: none;">
-														<img src="{{ asset('images/icones/btnDelete.png') }}" alt="supprimer" class="logoAction">
-													</button>
-												</form>
-											{% endif %}
-										</div>
-									</td>
+<td class="pe-4 text-end">
+    <div class="d-inline-flex gap-2">
+        <a href="{{ path('app_request_show', {'id': req.id}) }}" class="btn btn-sm btn-outline-secondary fw-medium px-2.5 py-1.5 shadow-sm my-requests-detail-btn" style="border-radius: 6px; font-size: 0.8rem; border: none;">
+            <img src="{{ asset('images/icones/chercher1.png') }}" alt="voir" class="logoAction">
+        </a>
+
+        {% set isAdminOrRh = is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') %}
+        {% set isAuthor = (req.author is defined and req.author == app.user) %}
+        
+        {# On vérifie si la demande est encore à l'état initial (non validée par RH) #}
+        {% set isPendingRh = req.status in ['a_valider_rh', 'en_attente_rh', 'STATUS_EN_ATTENTE_RH', constant('App\\Entity\\Request::STATUS_EN_ATTENTE_RH')] %}
+
+        {% set canDelete = isAdminOrRh or (isAuthor and isPendingRh) %}
+
+        {% if canDelete %}
+            <button type="button" class="btn btn-sm btn-outline-danger fw-medium px-2.5 py-1.5 shadow-sm" data-bs-toggle="modal" data-bs-target="#deleteRequestModal{{ req.id }}" style="border-radius: 6px; font-size: 0.8rem; border: none;">
+                <img src="{{ asset('images/icones/btnDelete.png') }}" alt="supprimer" class="logoAction">
+            </button>
+        {% endif %}
+    </div>
+</td>
 								</tr>
 							{% else %}
 								<tr>
@@ -174,6 +169,49 @@
 					</table>
 				</div>
 
+				{# ── Modale de confirmation de suppression pour chaque demande ── #}
+{% for req in requests %}
+    {% set isAdminOrRh = is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') %}
+    {% set isAuthor = (req.author is defined and req.author == app.user) %}
+    {% set isPendingRh = req.status in ['a_valider_rh', 'en_attente_rh', 'STATUS_EN_ATTENTE_RH', constant('App\\Entity\\Request::STATUS_EN_ATTENTE_RH')] %}
+    
+    {% set canDelete = isAdminOrRh or (isAuthor and isPendingRh) %}
+
+    {% if canDelete %}
+        <div class="modal fade" id="deleteRequestModal{{ req.id }}" tabindex="-1" aria-labelledby="deleteRequestModalLabel{{ req.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content admin-modal">
+                    <div class="modal-header border-0 pb-1">
+                        <div>
+                            <h5 class="modal-title mb-0" id="deleteRequestModalLabel{{ req.id }}">Supprimer la demande</h5>
+                            <p class="text-danger small mb-0">Cette action est irréversible</p>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                    </div>
+                    <form method="post" action="{{ path('app_request_delete', {'id': req.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('request_delete_' ~ req.id) }}">
+                        <div class="modal-body">
+                            <p class="mb-2">
+                                Êtes-vous sûr de vouloir supprimer définitivement la demande <strong>#{{ req.id }}</strong>
+                                {% if req.agent is defined and req.agent %}
+                                    concernant <strong>{{ req.agent.firstname }} {{ req.agent.lastname }}</strong>
+                                {% endif %} ?
+                            </p>
+                            <p class="text-muted small mb-0">
+                                La suppression entraînera le nettoyage complet de l'historique et des ressources liées à cette demande.
+                            </p>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button type="submit" class="btn btn-danger">Supprimer la demande</button>
+                            <button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endfor %}
+
 				{# Footer avec Pagination (Uniquement si pagesCount > 1) #}
 				<div class="d-flex justify-content-between align-items-center px-4 py-3 border-top my-requests-footer">
 					<div class="small my-requests-muted">
@@ -184,7 +222,7 @@
 					{# PAGINATION PAR BLOCS DE 5 #}
 					{% if pagesCount > 1 %}
 						<nav class="mt-4" aria-label="Navigation des pages">
-							{% set paginationRoute = pageRoute|default('app_list_request') %}
+							{% set paginationRoute = pageRoute|default('app_my_requests') %}
 
 							{# --- Calcul dynamique du bloc de 5 --- #}
 							{% set startPage = (((currentPage - 1) // 5) * 5) + 1 %}

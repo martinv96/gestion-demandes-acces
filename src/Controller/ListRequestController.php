@@ -1009,48 +1009,87 @@ final class ListRequestController extends AbstractController
         ]);
     }
 
-    #[Route('/request/{id}/delete', name :'app_request_delete', methods: ['POST'], requirements: ['id' => '\\d+'])]
-    public function deleteRequest(
-        AccessRequest $requestEntity,
-        HttpRequest $httpRequest,
-        EntityManagerInterface $entityManager
-    ): Response {
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+    #[Route('/request/{id}/delete', name: 'app_request_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
+public function deleteRequest(
+    AccessRequest $requestEntity,
+    HttpRequest $httpRequest,
+    EntityManagerInterface $entityManager
+): Response {
+    $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
-        //uniquement admin ou RH
-        if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_RH')) {
-            throw $this->createAccessDeniedException('Vous n\'avez pas les droits pour supprimer cette demande.');
+    /** @var User $currentUser */
+    $currentUser = $this->getUser();
+
+    $author = $requestEntity->getAuthor();
+    
+    $isAdmin = $this->isGranted('ROLE_ADMIN');
+    $isRh = $this->isGranted('ROLE_RH');
+    $isAuthor = ($author === $currentUser);
+    
+    // On vérifie si l'auteur de la demande est un agent du service RH / a le rôle RH
+    // (Ajuste selon ton entité User : $author->getRole() ou $author->getService())
+    $authorIsRh = $author && (
+        in_array('ROLE_RH', $author->getRoles(), true) || 
+        ($author->getService() && $author->getService()->getName() === 'RH')
+    );
+
+    $canDelete = false;
+
+    if ($isAdmin) {
+        // L'admin peut toujours supprimer
+        $canDelete = true;
+    } elseif ($isRh) {
+        // Un RH peut supprimer si :
+        // 1. La demande n'est pas encore validée RH (statut 'a_valider_rh')
+        // 2. OU la demande a été créée par un membre du service RH lui-même
+        if ($requestEntity->getStatus() === 'a_valider_rh' || $authorIsRh) {
+            $canDelete = true;
         }
-
-        //protection csrf
-        if (!$this->isCsrfTokenValid('request_delete_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
-            $this->addRequestFlash($httpRequest, 'danger', 'Token de sécurité invalide.');
-            return $this->redirectToRoute('app_my_requests');
+    } elseif ($isAuthor) {
+        // Un utilisateur classique peut supprimer SA demande uniquement avant validation RH
+        if ($requestEntity->getStatus() === 'a_valider_rh') {
+            $canDelete = true;
         }
-
-        try {
-            foreach ($requestEntity->getRequestId()->toArray() as $history) {
-                $entityManager->remove($history);
-            }
-
-            foreach ($requestEntity->getRessources()->toArray() as $ressource) {
-                $requestEntity->removeRessource($ressource);
-            }
-
-            foreach ($requestEntity->getChildRequests()->toArray() as $childRequest) {
-                $childRequest->setParentRequest(null);
-            }
-
-            $entityManager->remove($requestEntity);
-            $entityManager->flush();
-
-            $this->addRequestFlash($httpRequest, 'success', 'La demande a bien été supprimée.');
-        } catch (ForeignKeyConstraintViolationException) {
-            $this->addRequestFlash($httpRequest, 'danger', 'Suppression impossible: des éléments liés à la demande doivent être traités avant suppression.');
-        } catch (\Throwable $e) {
-            $this->addRequestFlash($httpRequest, 'danger' ,'Suppression impossible pour le moment.');
-        }
-
-        return $this->redirectToRoute('app_my_requests');
     }
+
+    // 1. Sécurité d'accès
+    if (!$canDelete) {
+        $this->addRequestFlash($httpRequest, 'danger', 'Vous n\'avez pas les droits pour supprimer cette demande validée.');
+        $referer = $httpRequest->headers->get('referer');
+        return $referer ? $this->redirect($referer) : $this->redirectToRoute('app_my_requests');
+    }
+
+    // 2. Protection CSRF
+    if (!$this->isCsrfTokenValid('request_delete_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
+        $this->addRequestFlash($httpRequest, 'danger', 'Token de sécurité invalide.');
+        $referer = $httpRequest->headers->get('referer');
+        return $referer ? $this->redirect($referer) : $this->redirectToRoute('app_my_requests');
+    }
+
+    try {
+        foreach ($requestEntity->getRequestId()->toArray() as $history) {
+            $entityManager->remove($history);
+        }
+
+        foreach ($requestEntity->getRessources()->toArray() as $ressource) {
+            $requestEntity->removeRessource($ressource);
+        }
+
+        foreach ($requestEntity->getChildRequests()->toArray() as $childRequest) {
+            $childRequest->setParentRequest(null);
+        }
+
+        $entityManager->remove($requestEntity);
+        $entityManager->flush();
+
+        $this->addRequestFlash($httpRequest, 'success', 'La demande a bien été supprimée.');
+    } catch (ForeignKeyConstraintViolationException) {
+        $this->addRequestFlash($httpRequest, 'danger', 'Suppression impossible : des éléments liés à la demande doivent être traités avant suppression.');
+    } catch (\Throwable $e) {
+        $this->addRequestFlash($httpRequest, 'danger', 'Suppression impossible pour le moment.');
+    }
+
+    $referer = $httpRequest->headers->get('referer');
+    return $referer ? $this->redirect($referer) : $this->redirectToRoute('app_my_requests');
+}
 }
