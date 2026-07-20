@@ -217,24 +217,57 @@
 				</div>
 			{% endif %}
 
-			{# PAGINATION #}
-			{% if maxPages > 1 %}
-				<nav class="mt-4">
-					{% set paginationRoute = pageRoute|default('app_list_request') %}
-					<ul
-						class="pagination pagination-sm mb-0 gap-1">						
+			{# PAGINATION PAR BLOCS DE 5 #}
+{% if pagesCount > 1 %}
+    <nav class="mt-4" aria-label="Navigation des pages">
+        {% set paginationRoute = pageRoute|default('app_list_request') %}
 
-						{# Pages #}
-						{% for i in 1..maxPages %}
-							<li class="page-item {{ i == currentPage ? 'active' : '' }}">
-								<a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path(paginationRoute, filters|merge({'page': i})) }}" style="width: 32px; height: 32px; padding: 0;">
-									{{ i }}
-								</a>
-							</li>
-						{% endfor %}						
-				</nav>
-			{% endif %}
+        {# --- Calcul dynamique du bloc de 5 --- #}
+        {% set startPage = (((currentPage - 1) // 5) * 5) + 1 %}
+        {% set endPage = min(startPage + 4, pagesCount) %}
 
+        <ul class="pagination pagination-sm mb-0 gap-1 align-items-center">
+
+            {# BOUTON PRÉCÉDENT : Apparaît SEULEMENT si le bloc commence après la page 1 #}
+            {% if startPage > 1 %}
+                {% set prevBlockPage = startPage - 5 %}
+                <li class="page-item">
+                    <a class="page-link rounded d-flex align-items-center justify-content-center px-2" 
+                       href="{{ path(paginationRoute, filters|merge({'page': prevBlockPage})) }}"
+                       style="height: 32px;"
+                       title="Bloc précédent">
+                        &laquo; Précédent
+                    </a>
+                </li>
+            {% endif %}
+
+            {# NUMÉROS DU BLOC ACTUEL (ex: 1 à 5, ou 6 à 10) #}
+            {% for i in startPage..endPage %}
+                <li class="page-item {{ i == currentPage ? 'active' : '' }}">
+                    <a class="page-link rounded d-flex align-items-center justify-content-center" 
+                       href="{{ path(paginationRoute, filters|merge({'page': i})) }}" 
+                       style="width: 32px; height: 32px; padding: 0;">
+                        {{ i }}
+                    </a>
+                </li>
+            {% endfor %}
+
+            {# BOUTON SUIVANT : Apparaît SEULEMENT s'il reste encore des pages après ce bloc #}
+            {% if endPage < pagesCount %}
+                {% set nextBlockPage = startPage + 5 %}
+                <li class="page-item">
+                    <a class="page-link rounded d-flex align-items-center justify-content-center px-2" 
+                       href="{{ path(paginationRoute, filters|merge({'page': nextBlockPage})) }}"
+                       style="height: 32px;"
+                       title="Bloc suivant">
+                        Suivant &raquo;
+                    </a>
+                </li>
+            {% endif %}
+
+        </ul>
+    </nav>
+{% endif %}
 		{% endif %}
 
 		{% block content %}{% endblock %}

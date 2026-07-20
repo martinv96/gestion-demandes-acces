@@ -88,7 +88,7 @@
 				</div>
 			</aside>
 
-			{# CONTENU PRINCIPAL #}
+			{# ici contenu principal #}
 			<main class="app-main flex-grow-1 p-4 d-flex flex-column">
 				<div class="flex-grow-1 d-flex flex-column">
 					{% if app.request and app.request.hasSession %}
@@ -106,6 +106,7 @@
 			</main>
 		</div>
 
+		{# script copie mot de passe (admin nouveau mdp) #}
 		<script>
 			document.addEventListener('click', async function (event) {
 				const button = event.target.closest('.js-copy-temp-password');
@@ -160,6 +161,7 @@
 					window.prompt('Copie manuelle: Ctrl+C puis Entree', textToCopy);
 				}
 			});
+			{# script dark/light theme #}
 			(() => {
 				const root = document.documentElement;
 				const toggle = document.getElementById('theme-toggle');
@@ -209,7 +211,8 @@
 			})();
 		</script>
 		<script>
-			
+		
+		{# import bootstrap + flatpickr #}
 		</script>
 		{% block javascripts %}
 			<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

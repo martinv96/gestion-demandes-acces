@@ -85,6 +85,7 @@ final class HistoryController extends AbstractController
         $services            = $serviceRepository->findBy([], ['name' => 'ASC']);
         $availableDates      = $requestRepository->findDistinctArrivalDates();
         $availableDepartures = $requestRepository->findDistinctDepartureDates();
+        $pagesCount = max(1, (int) ceil($totalWithFilters / $limit));
         
 
         return $this->render('history/index.html.twig', [
@@ -95,6 +96,7 @@ final class HistoryController extends AbstractController
             'currentPage'         => $page,
             'maxPages'            => $maxPages,
             'totalCount'          => $totalCount,
+            'pagesCount'          => $pagesCount, 
             'filters'             => [
                 'status'        => $status,
                 'serviceId'     => $serviceId,

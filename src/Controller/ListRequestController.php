@@ -105,6 +105,7 @@ final class ListRequestController extends AbstractController
         $totalCount          = $requestRepository->countCurrent();
         $totalWithFilters    = $requestRepository->countCurrentWithFilters($filters);
         $maxPages            = ceil($totalWithFilters / $limit);
+        $pagesCount          = max(1, (int) ceil($totalWithFilters / $limit));
 
 
         return $this->render('list_request/index.html.twig', [
@@ -113,6 +114,7 @@ final class ListRequestController extends AbstractController
             'availableDates'      => $availableDates,
             'availableDepartures' => $availableDepartures,
             'currentPage'         => $page,
+            'pagesCount'          => $pagesCount,
             'maxPages'            => $maxPages,
             'totalCount'          => $totalCount,
             'filters'             => [
@@ -248,7 +250,7 @@ final class ListRequestController extends AbstractController
             ? $workflowService->isInfoEditLocked($requestEntity, $currentUser)
             : false;
 
-        // --- Construction dynamique des étapes du workflow pour l'admin ---
+        // construction dynamique des étapes du workflow pour l'admin
         $workflowSteps = [];
         // Récupère tous les rôles/services qui doivent valider cette demande
         $requiredRoles = $workflowStateResolver->getParallelRequiredRoles($requestEntity);
@@ -376,7 +378,7 @@ final class ListRequestController extends AbstractController
         $canFinalizeClosure = $workflowService->canFinalizeClosureByAnyUser($requestEntity);
 
         if (!$this->isGranted(RequestVoter::VALIDATE, $requestEntity) && !$canFinalizeClosure) {
-            // Revalide après refresh pour éviter un faux 403 sur état intermédiaire.
+            // revalide après refresh pour éviter un faux 403 sur état intermédiaire.
             $entityManager->refresh($requestEntity);
             $canFinalizeClosure = $workflowService->canFinalizeClosureByAnyUser($requestEntity);
             if (!$this->isGranted(RequestVoter::VALIDATE, $requestEntity) && !$canFinalizeClosure) {
