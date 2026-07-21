@@ -138,7 +138,6 @@
 									<th scope="col">Date d'arrivée</th>
 									<th scope="col">Date de départ</th>
 									<th scope="col">Créée le</th>
-									<th scope="col">Etat courant</th>
 									<th scope="col" class="text-center">Action</th>
 								</tr>
 							</thead>
@@ -198,11 +197,6 @@
 										<td>{{ request.arrivalDate ? request.arrivalDate|date('d/m/Y') : '-' }}</td>
 										<td>{{ request.departureDate ? request.departureDate|date('d/m/Y') : '-'}}</td>
 										<td>{{ request.creationDate ? request.creationDate|date('d/m/Y à H:i') : '-' }}</td>
-										<td>
-											<span class="badge text-bg-{{ request.currentStateBadgeClass }}">
-												{{ request.type == 'ouverture' ? 'Ouverture' : (request.type == 'fermeture' ? 'Fermeture' : 'Modification') }}
-											</span>
-										</td>
 										<td class="text-center">
 											<a href="{{ path('app_request_show', {id: request.id}) }}">
 												<img
