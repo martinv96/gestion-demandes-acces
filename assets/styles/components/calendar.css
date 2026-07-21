@@ -15,6 +15,22 @@
     margin-bottom: 1.5rem !important;
 }
 
+:root[data-theme="dark"] .fc .fc-toolbar-title,
+:root[data-theme="dark"] .fc .fc-button {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .fc .fc-button {
+    border-color: rgba(255, 255, 255, 0.16) !important;
+    background: transparent !important;
+}
+
+:root[data-theme="dark"] .fc .fc-button:hover,
+:root[data-theme="dark"] .fc .fc-button:focus {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
 .fc a {
     color: #17623f;
 }

@@ -192,3 +192,25 @@
 .flatpickr-day.today {
     border-color: var(--theme-primary) !important;
 }
+
+:root[data-theme="dark"] .flatpickr-current-month,
+:root[data-theme="dark"] .flatpickr-prev-month,
+:root[data-theme="dark"] .flatpickr-next-month,
+:root[data-theme="dark"] .flatpickr-months .flatpickr-current-month {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .flatpickr-prev-month,
+:root[data-theme="dark"] .flatpickr-next-month {
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+}
+
+:root[data-theme="dark"] .flatpickr-prev-month svg,
+:root[data-theme="dark"] .flatpickr-next-month svg {
+    fill: #ffffff !important;
+}
+
+:root[data-theme="dark"] .flatpickr-months {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
