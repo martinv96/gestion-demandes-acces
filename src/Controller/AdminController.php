@@ -54,7 +54,7 @@ final class AdminController extends AbstractController
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
         $limit = 10;
-        $userLimit = 5;
+        $userLimit = 8;
         $softwareLimit = 5;
         $tab = $request->query->getString('tab', 'users');
 

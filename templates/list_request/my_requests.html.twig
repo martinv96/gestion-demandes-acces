@@ -115,7 +115,7 @@
 									{# 3. Agent #}
 									<td>
 										{% if req.agent and req.agent.service %}
-											<span class="fw-bold text-uppercase my-requests-service" style="font-size: 0.85rem; letter-spacing: 0.5px;">
+											<span class="fw-bold text-uppercase my-requests-service" style="font-size: 0.85rem; letter-spacing: 0.5px; color: #17623f;">
 												{{ req.agent.lastname }}
 												{{ req.agent.firstname}}
 											</span>
@@ -135,27 +135,27 @@
 									</td>
 
 									{# 6. Action #}
-<td class="pe-4 text-end">
-    <div class="d-inline-flex gap-2">
-        <a href="{{ path('app_request_show', {'id': req.id}) }}" class="btn btn-sm btn-outline-secondary fw-medium px-2.5 py-1.5 shadow-sm my-requests-detail-btn" style="border-radius: 6px; font-size: 0.8rem; border: none;">
-            <img src="{{ asset('images/icones/chercher1.png') }}" alt="voir" class="logoAction">
-        </a>
+									<td class="pe-4 text-end">
+										<div class="d-inline-flex gap-2">
+											<a href="{{ path('app_request_show', {'id': req.id}) }}" class="btn btn-sm btn-outline-secondary fw-medium px-2.5 py-1.5 shadow-sm my-requests-detail-btn" style="border-radius: 6px; font-size: 0.8rem; border: none;">
+												<img src="{{ asset('images/icones/chercher1.png') }}" alt="voir" class="logoAction">
+											</a>
 
-        {% set isAdminOrRh = is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') %}
-        {% set isAuthor = (req.author is defined and req.author == app.user) %}
-        
-        {# On vérifie si la demande est encore à l'état initial (non validée par RH) #}
-        {% set isPendingRh = req.status in ['a_valider_rh', 'en_attente_rh', 'STATUS_EN_ATTENTE_RH', constant('App\\Entity\\Request::STATUS_EN_ATTENTE_RH')] %}
+											{% set isAdminOrRh = is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') %}
+											{% set isAuthor = (req.author is defined and req.author == app.user) %}
 
-        {% set canDelete = isAdminOrRh or (isAuthor and isPendingRh) %}
+											{# On vérifie si la demande est encore à l'état initial (non validée par RH) #}
+											{% set isPendingRh = req.status in ['a_valider_rh', 'en_attente_rh', 'STATUS_EN_ATTENTE_RH', constant('App\\Entity\\Request::STATUS_EN_ATTENTE_RH')] %}
 
-        {% if canDelete %}
-            <button type="button" class="btn btn-sm btn-outline-danger fw-medium px-2.5 py-1.5 shadow-sm" data-bs-toggle="modal" data-bs-target="#deleteRequestModal{{ req.id }}" style="border-radius: 6px; font-size: 0.8rem; border: none;">
-                <img src="{{ asset('images/icones/btnDelete.png') }}" alt="supprimer" class="logoAction">
-            </button>
-        {% endif %}
-    </div>
-</td>
+											{% set canDelete = isAdminOrRh or (isAuthor and isPendingRh) %}
+
+											{% if canDelete %}
+												<button type="button" class="btn btn-sm btn-outline-danger fw-medium px-2.5 py-1.5 shadow-sm" data-bs-toggle="modal" data-bs-target="#deleteRequestModal{{ req.id }}" style="border-radius: 6px; font-size: 0.8rem; border: none;">
+													<img src="{{ asset('images/icones/btnDelete.png') }}" alt="supprimer" class="logoAction">
+												</button>
+											{% endif %}
+										</div>
+									</td>
 								</tr>
 							{% else %}
 								<tr>
@@ -169,48 +169,52 @@
 					</table>
 				</div>
 
-				{# ── Modale de confirmation de suppression pour chaque demande ── #}
-{% for req in requests %}
-    {% set isAdminOrRh = is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') %}
-    {% set isAuthor = (req.author is defined and req.author == app.user) %}
-    {% set isPendingRh = req.status in ['a_valider_rh', 'en_attente_rh', 'STATUS_EN_ATTENTE_RH', constant('App\\Entity\\Request::STATUS_EN_ATTENTE_RH')] %}
-    
-    {% set canDelete = isAdminOrRh or (isAuthor and isPendingRh) %}
+				{# Modale de confirmation de suppression pour chaque demande #}
+				{% for req in requests %}
+					{% set isAdminOrRh = is_granted('ROLE_ADMIN') or is_granted('ROLE_RH') %}
+					{% set isAuthor = (req.author is defined and req.author == app.user) %}
+					{% set isPendingRh = req.status in ['a_valider_rh', 'en_attente_rh', 'STATUS_EN_ATTENTE_RH', constant('App\\Entity\\Request::STATUS_EN_ATTENTE_RH')] %}
 
-    {% if canDelete %}
-        <div class="modal fade" id="deleteRequestModal{{ req.id }}" tabindex="-1" aria-labelledby="deleteRequestModalLabel{{ req.id }}" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content admin-modal">
-                    <div class="modal-header border-0 pb-1">
-                        <div>
-                            <h5 class="modal-title mb-0" id="deleteRequestModalLabel{{ req.id }}">Supprimer la demande</h5>
-                            <p class="text-danger small mb-0">Cette action est irréversible</p>
-                        </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-                    </div>
-                    <form method="post" action="{{ path('app_request_delete', {'id': req.id}) }}">
-                        <input type="hidden" name="_token" value="{{ csrf_token('request_delete_' ~ req.id) }}">
-                        <div class="modal-body">
-                            <p class="mb-2">
-                                Êtes-vous sûr de vouloir supprimer définitivement la demande <strong>#{{ req.id }}</strong>
-                                {% if req.agent is defined and req.agent %}
-                                    concernant <strong>{{ req.agent.firstname }} {{ req.agent.lastname }}</strong>
-                                {% endif %} ?
-                            </p>
-                            <p class="text-muted small mb-0">
-                                La suppression entraînera le nettoyage complet de l'historique et des ressources liées à cette demande.
-                            </p>
-                        </div>
-                        <div class="modal-footer border-0 pt-0">
-                            <button type="submit" class="btn btn-danger">Supprimer la demande</button>
-                            <button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    {% endif %}
-{% endfor %}
+					{% set canDelete = isAdminOrRh or (isAuthor and isPendingRh) %}
+
+					{% if canDelete %}
+						<div class="modal fade" id="deleteRequestModal{{ req.id }}" tabindex="-1" aria-labelledby="deleteRequestModalLabel{{ req.id }}" aria-hidden="true">
+							<div class="modal-dialog modal-dialog-centered">
+								<div class="modal-content admin-modal">
+									<div class="modal-header border-0 pb-1">
+										<div>
+											<h5 class="modal-title mb-0" id="deleteRequestModalLabel{{ req.id }}">Supprimer la demande</h5>
+											<p class="text-danger small mb-0">Cette action est irréversible</p>
+										</div>
+										<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+									</div>
+									<form method="post" action="{{ path('app_request_delete', {'id': req.id}) }}">
+										<input type="hidden" name="_token" value="{{ csrf_token('request_delete_' ~ req.id) }}">
+										<div class="modal-body">
+											<p class="mb-2">
+												Êtes-vous sûr de vouloir supprimer définitivement la demande
+												<strong>#{{ req.id }}</strong>
+												{% if req.agent is defined and req.agent %}
+													concernant
+													<strong>{{ req.agent.firstname }}
+														{{ req.agent.lastname }}</strong>
+												{% endif %}
+												?
+											</p>
+											<p class="text-muted small mb-0">
+												La suppression entraînera le nettoyage complet de l'historique et des ressources liées à cette demande.
+											</p>
+										</div>
+										<div class="modal-footer border-0 pt-0">
+											<button type="submit" class="btn btn-danger">Supprimer la demande</button>
+											<button type="button" class="btn btn-link text-secondary" data-bs-dismiss="modal">Annuler</button>
+										</div>
+									</form>
+								</div>
+							</div>
+						</div>
+					{% endif %}
+				{% endfor %}
 
 				{# Footer avec Pagination (Uniquement si pagesCount > 1) #}
 				<div class="d-flex justify-content-between align-items-center px-4 py-3 border-top my-requests-footer">
@@ -219,19 +223,19 @@
 						{{ totalRequests > 1 ? 'demandes trouvées' : 'demande trouvée' }}
 					</div>
 
-					{# PAGINATION PAR BLOCS DE 5 #}
+					{# pagination par bloc de 5 #}
 					{% if pagesCount > 1 %}
 						<nav class="mt-4" aria-label="Navigation des pages">
 							{% set paginationRoute = pageRoute|default('app_my_requests') %}
 
-							{# --- Calcul dynamique du bloc de 5 --- #}
+							{# Calcul dynamique du bloc de 5 #}
 							{% set startPage = (((currentPage - 1) // 5) * 5) + 1 %}
 							{% set endPage = min(startPage + 4, pagesCount) %}
 
 							<ul
 								class="pagination pagination-sm mb-0 gap-1 align-items-center">
 
-								{# BOUTON PRÉCÉDENT : Apparaît SEULEMENT si le bloc commence après la page 1 #}
+								{# bouton précédent apparaît seulement si le bloc commence après la page 1 #}
 								{% if startPage > 1 %}
 									{% set prevBlockPage = startPage - 5 %}
 									<li class="page-item">
@@ -241,7 +245,7 @@
 									</li>
 								{% endif %}
 
-								{# NUMÉROS DU BLOC ACTUEL (ex: 1 à 5, ou 6 à 10) #}
+								{# bloc actuel (ex: 1 à 5, ou 6 à 10) #}
 								{% for i in startPage..endPage %}
 									<li class="page-item {{ i == currentPage ? 'active' : '' }}">
 										<a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path(paginationRoute, filters|merge({'page': i})) }}" style="width: 32px; height: 32px; padding: 0;">
@@ -250,7 +254,7 @@
 									</li>
 								{% endfor %}
 
-								{# BOUTON SUIVANT : Apparaît SEULEMENT s'il reste encore des pages après ce bloc #}
+								{# bouton suivant apparaît seulement s'il reste encore des pages après ce bloc #}
 								{% if endPage < pagesCount %}
 									{% set nextBlockPage = startPage + 5 %}
 									<li class="page-item">

@@ -56,22 +56,44 @@
 				</div>
 				{# PAGINATION #}
 				{% if maxPages > 1 %}
-					<nav class="mt-4">
-						<ul
-							class="pagination">
-							<li class="page-item {{ currentPage == 1 ? 'disabled' : ''}}">
-								<a class="page-link" href="{{ path('app_admin_index', filters|merge({'page': currentPage - 1})) }}" aria-label="Précédent"><span aria-hidden="true">&#129168;</span></a>
-							</li>
+					<nav class="mt-4" aria-label="Navigation des pages">
+						{% set startPage = (((currentPage - 1) // 5) * 5) + 1 %}
+						{% set endPage = min(startPage + 4, maxPages) %}
 
-							{% for i in 1..maxPages %}
-								<li class="page-item {{ i == currentPage ? 'active' : ''}}">
-									<a class="page-link" href="{{ path('app_admin_index', filters|merge({'page': i})) }}">{{ i }}</a>
+						<ul class="pagination pagination-sm mb-0 gap-1 align-items-center">
+							{% if startPage > 1 %}
+								{% set prevBlockPage = startPage - 5 %}
+								<li class="page-item">
+									<a class="page-link rounded d-flex align-items-center justify-content-center px-2"
+									   href="{{ path('app_admin_index', filters|merge({'page': prevBlockPage})) }}"
+									   style="height: 32px;"
+									   title="Bloc précédent">
+									    &laquo; Précédent
+									</a>
+								</li>
+							{% endif %}
+
+							{% for i in startPage..endPage %}
+								<li class="page-item {{ i == currentPage ? 'active' : '' }}">
+									<a class="page-link rounded d-flex align-items-center justify-content-center"
+									   href="{{ path('app_admin_index', filters|merge({'page': i})) }}"
+									   style="width: 32px; height: 32px; padding: 0;">
+									    {{ i }}
+									</a>
 								</li>
 							{% endfor %}
 
-							<li class="page-item {{ currentPage == maxPages ? 'disabled' : ''}}">
-								<a class="page-link" href="{{ path('app_admin_index', filters|merge({'page': currentPage + 1 })) }}"><span aria-hidden="true">&#129170;</span></a>
-							</li>
+							{% if endPage < maxPages %}
+								{% set nextBlockPage = startPage + 5 %}
+								<li class="page-item">
+									<a class="page-link rounded d-flex align-items-center justify-content-center px-2"
+									   href="{{ path('app_admin_index', filters|merge({'page': nextBlockPage})) }}"
+									   style="height: 32px;"
+									   title="Bloc suivant">
+									    Suivant &raquo;
+									</a>
+								</li>
+							{% endif %}
 						</ul>
 					</nav>
 				{% endif %}

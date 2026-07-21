@@ -62,7 +62,7 @@
                 {% if totalHistory > perPage %}
                     <nav class="navigation" aria-label="Pagination historique workflow">
                         <ul class="pagination pagination-sm mb-0 justify-content-end">
-                            {# fleche gauche #}
+                            {# flèche gauche #}
                                 <li class="page-item {{ currentPage <= 1 ? 'disabled' : '' }}">
                                     <a class="page-link" href="{{ path('app_request_show', {id: requestEntity.id, history_page: currentPage - 1}) }}" aria-label="Précédent"><span aria-hidden="true">&laquo;</span>
                                     </a>

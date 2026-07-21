@@ -80,21 +80,44 @@
 	</div>
 
 	{% if usersMaxPages > 1 %}
-	<nav class="mt-4">
-		<ul class="pagination">
-			<li class="page-item {{ usersCurrentPage == 1 ? 'disabled' : ''}}">
-				<a class="page-link" href="{{ path('app_admin_index', { tab:'users', users_page: usersCurrentPage -1 }) }}" aria-label="Précédent"><span aria-hidden="true">&#129168;</span></a>
-			</li>
+	<nav class="mt-4" aria-label="Navigation des pages">
+		{% set startPage = (((usersCurrentPage - 1) // 5) * 5) + 1 %}
+		{% set endPage = min(startPage + 4, usersMaxPages) %}
 
-			{% for i in 1..usersMaxPages %}
-			<li class="page-item {{ i == usersCurrentPage ? 'active' : ''}}">
-				<a class="page-link" href="{{ path('app_admin_index', { tab:'users', users_page: i }) }}">{{ i }}</a>
-			</li>
+		<ul class="pagination pagination-sm mb-0 gap-1 align-items-center">
+			{% if startPage > 1 %}
+				{% set prevBlockPage = startPage - 5 %}
+				<li class="page-item">
+					<a class="page-link rounded d-flex align-items-center justify-content-center px-2"
+					   href="{{ path('app_admin_index', { tab:'users', users_page: prevBlockPage }) }}"
+					   style="height: 32px;"
+					   title="Bloc précédent">
+					    &laquo; Précédent
+					</a>
+				</li>
+			{% endif %}
+
+			{% for i in startPage..endPage %}
+				<li class="page-item {{ i == usersCurrentPage ? 'active' : '' }}">
+					<a class="page-link rounded d-flex align-items-center justify-content-center"
+					   href="{{ path('app_admin_index', { tab:'users', users_page: i }) }}"
+					   style="width: 32px; height: 32px; padding: 0;">
+					    {{ i }}
+					</a>
+				</li>
 			{% endfor %}
 
-			<li class="page-item {{ usersCurrentPage == usersMaxPages ? 'disabled' : '' }}">
-				<a class="page-link" href="{{ path('app_admin_index', { tab: 'users', users_page: usersCurrentPage + 1 }) }}"><span aria-hidden="true">&#129170;</span></a>
-			</li>
+			{% if endPage < usersMaxPages %}
+				{% set nextBlockPage = startPage + 5 %}
+				<li class="page-item">
+					<a class="page-link rounded d-flex align-items-center justify-content-center px-2"
+					   href="{{ path('app_admin_index', { tab:'users', users_page: nextBlockPage }) }}"
+					   style="height: 32px;"
+					   title="Bloc suivant">
+					    Suivant &raquo;
+					</a>
+				</li>
+			{% endif %}
 		</ul>
 	</nav>
 	{% endif %}

@@ -163,14 +163,14 @@
 											{% endif %}
 										</td>
 										<td>
-											{# --- DEBUT DU MAPPING DU TYPE --- #}
+											{# mapping du type #}
 											{% set typeMap = {
 												'ouverture': 'Arrivée',
 												'modification': 'Changement de poste / Droits',
 												'fermeture': 'Départ'
 											} %}
 											{{ typeMap[request.type] ?? request.type|capitalize }}
-											{# --- FIN DU MAPPING DU TYPE --- #}
+											{# fin mapping #}
 										</td>
 										<td>
 											{% set statusMap = {
@@ -217,18 +217,18 @@
 				</div>
 			{% endif %}
 
-			{# PAGINATION PAR BLOCS DE 5 #}
+			{# pagination par bloc de 5 #}
 {% if pagesCount > 1 %}
     <nav class="mt-4" aria-label="Navigation des pages">
         {% set paginationRoute = pageRoute|default('app_list_request') %}
 
-        {# --- Calcul dynamique du bloc de 5 --- #}
+        {# Calcul dynamique du bloc de 5 #}
         {% set startPage = (((currentPage - 1) // 5) * 5) + 1 %}
         {% set endPage = min(startPage + 4, pagesCount) %}
 
         <ul class="pagination pagination-sm mb-0 gap-1 align-items-center">
 
-            {# BOUTON PRÉCÉDENT : Apparaît SEULEMENT si le bloc commence après la page 1 #}
+            {# bouton précédent apparait seulement si le bloc commence après la page 1 #}
             {% if startPage > 1 %}
                 {% set prevBlockPage = startPage - 5 %}
                 <li class="page-item">
@@ -241,7 +241,7 @@
                 </li>
             {% endif %}
 
-            {# NUMÉROS DU BLOC ACTUEL (ex: 1 à 5, ou 6 à 10) #}
+            {# numéro du bloc actuel (ex: 1 à 5, ou 6 à 10) #}
             {% for i in startPage..endPage %}
                 <li class="page-item {{ i == currentPage ? 'active' : '' }}">
                     <a class="page-link rounded d-flex align-items-center justify-content-center" 
@@ -252,7 +252,7 @@
                 </li>
             {% endfor %}
 
-            {# BOUTON SUIVANT : Apparaît SEULEMENT s'il reste encore des pages après ce bloc #}
+            {# bouton suivant apparait seulement s'il reste encore des pages après ce bloc #}
             {% if endPage < pagesCount %}
                 {% set nextBlockPage = startPage + 5 %}
                 <li class="page-item">

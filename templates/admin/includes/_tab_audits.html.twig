@@ -1,146 +1,156 @@
 <div class="tab-pane fade {{ tab == 'audits' ? 'show active' : '' }}" id="tab-audits" role="tabpanel">
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="small text-muted">
-            Historique des connexions
-        </div>
-    </div>
+	<div class="d-flex justify-content-between align-items-center mb-3">
+		<div class="small text-muted">
+			Historique des connexions
+		</div>
+	</div>
 
-    <div class="row g-3 mb-3">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm"><div class="card-body">
-                <div class="text-muted small">Connexions réussies</div>
-                <div class="h5 mb-0">{{ liveSuccess }}</div>
-            </div></div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm"><div class="card-body">
-                <div class="text-muted small">Connexions échouées</div>
-                <div class="h5 mb-0">{{ liveFailure }}</div>
-            </div></div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm"><div class="card-body">
-                <div class="text-muted small">Déconnexions</div>
-                <div class="h5 mb-0">{{ liveLogout }}</div>
-            </div></div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm"><div class="card-body">
-                <div class="text-muted small">Historique purgé conservé</div>
-                <div class="h5 mb-0">{{ historyTotals.purged }}</div>
-            </div></div>
-        </div>
-    </div>
+	<div class="row g-3 mb-3">
+		<div class="col-md-3">
+			<div class="card border-0 shadow-sm">
+				<div class="card-body">
+					<div class="text-muted small">Connexions réussies</div>
+					<div class="h5 mb-0">{{ liveSuccess }}</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-3">
+			<div class="card border-0 shadow-sm">
+				<div class="card-body">
+					<div class="text-muted small">Connexions échouées</div>
+					<div class="h5 mb-0">{{ liveFailure }}</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-3">
+			<div class="card border-0 shadow-sm">
+				<div class="card-body">
+					<div class="text-muted small">Déconnexions</div>
+					<div class="h5 mb-0">{{ liveLogout }}</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-3">
+			<div class="card border-0 shadow-sm">
+				<div class="card-body">
+					<div class="text-muted small">Historique purgé conservé</div>
+					<div class="h5 mb-0">{{ historyTotals.purged }}</div>
+				</div>
+			</div>
+		</div>
+	</div>
 
-    <div class="card mb-4 p-3">
-        <form method="GET">
-            <input type="hidden" name="tab" value="audits">
+	<div class="card mb-4 p-3">
+		<form method="GET">
+			<input type="hidden" name="tab" value="audits">
 
-            <div class="d-flex align-items-center gap-2 mb-3">
-                <img src="{{ asset('images/filtres/filtre.png') }}" alt="Filtres" class="ImgFiltre">
-                <label class="form-label form-label-sm mb-1 text-muted fw-semibold d-inline-block">Période</label>
-            </div>
+			<div class="d-flex align-items-center gap-2 mb-3">
+				<img src="{{ asset('images/filtres/filtre.png') }}" alt="Filtres" class="ImgFiltre">
+				<label class="form-label form-label-sm mb-1 text-muted fw-semibold d-inline-block">Période</label>
+			</div>
 
-            <div class="row g-3 align-items-end">
-                <div class="col-12 col-md-4 col-xl-3">
-                    <label class="form-label form-label-sm mb-1 text-muted fw-semibold">Mois</label>
-                    <select name="audit_month" class="form-select form-select-sm" onchange="this.form.submit()">
-                        {% set monthLabels = {1:'Janvier',2:'Février',3:'Mars',4:'Avril',5:'Mai',6:'Juin',7:'Juillet',8:'Août',9:'Septembre',10:'Octobre',11:'Novembre',12:'Décembre'} %}
-                        {% for m in 1..12 %}
-                            <option value="{{ m }}" {{ auditMonth == m ? 'selected' : '' }}>{{ monthLabels[m] }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-12 col-md-4 col-xl-3">
-                    <label class="form-label form-label-sm mb-1 text-muted fw-semibold">Année</label>
-                    <select name="audit_year" class="form-select form-select-sm" onchange="this.form.submit()">
-                        {% set currentYear = "now"|date('Y') %}
-                        {% for year in range(currentYear - 4, currentYear)|reverse %}
-                            <option value="{{ year }}" {{ auditYear == year ? 'selected' : '' }}>{{ year }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-12 col-md-4 col-xl-4">
-                    <label class="form-label form-label-sm mb-1 text-muted fw-semibold">Type d’événement</label>
-                    <select name="audit_event_type" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="">Tous les événements</option>
-                        <option value="success" {{ auditFilters.eventType == 'success' ? 'selected' : '' }}>Connexion réussie</option>
-                        <option value="failure" {{ auditFilters.eventType == 'failure' ? 'selected' : '' }}>Échec de connexion</option>
-                        <option value="logout" {{ auditFilters.eventType == 'logout' ? 'selected' : '' }}>Déconnexion</option>
-                    </select>
-                </div>
-                {% if auditFilters.eventType %}
-                    <div class="col-12 col-md-12 col-xl-2 d-grid">
-                        <a href="{{ path('app_admin_index', { tab: 'audits', audit_month: auditMonth, audit_year: auditYear }) }}" class="btn btn-sm btn-outline-secondary">Réinitialiser</a>
-                    </div>
-                {% endif %}
-            </div>
-        </form>
-    </div>
+			<div class="row g-3 align-items-end">
+				<div class="col-12 col-md-4 col-xl-3">
+					<label class="form-label form-label-sm mb-1 text-muted fw-semibold">Mois</label>
+					<select name="audit_month" class="form-select form-select-sm" onchange="this.form.submit()">
+						{% set monthLabels = {1:'Janvier',2:'Février',3:'Mars',4:'Avril',5:'Mai',6:'Juin',7:'Juillet',8:'Août',9:'Septembre',10:'Octobre',11:'Novembre',12:'Décembre'} %}
+						{% for m in 1..12 %}
+							<option value="{{ m }}" {{ auditMonth == m ? 'selected' : '' }}>{{ monthLabels[m] }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				<div class="col-12 col-md-4 col-xl-3">
+					<label class="form-label form-label-sm mb-1 text-muted fw-semibold">Année</label>
+					<select name="audit_year" class="form-select form-select-sm" onchange="this.form.submit()">
+						{% set currentYear = "now"|date('Y') %}
+						{% for year in range(currentYear - 4, currentYear)|reverse %}
+							<option value="{{ year }}" {{ auditYear == year ? 'selected' : '' }}>{{ year }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				<div class="col-12 col-md-4 col-xl-4">
+					<label class="form-label form-label-sm mb-1 text-muted fw-semibold">Type d’événement</label>
+					<select name="audit_event_type" class="form-select form-select-sm" onchange="this.form.submit()">
+						<option value="">Tous les événements</option>
+						<option value="success" {{ auditFilters.eventType == 'success' ? 'selected' : '' }}>Connexion réussie</option>
+						<option value="failure" {{ auditFilters.eventType == 'failure' ? 'selected' : '' }}>Échec de connexion</option>
+						<option value="logout" {{ auditFilters.eventType == 'logout' ? 'selected' : '' }}>Déconnexion</option>
+					</select>
+				</div>
+				{% if auditFilters.eventType %}
+					<div class="col-12 col-md-12 col-xl-2 d-grid">
+						<a href="{{ path('app_admin_index', { tab: 'audits', audit_month: auditMonth, audit_year: auditYear }) }}" class="btn btn-sm btn-outline-secondary">Réinitialiser</a>
+					</div>
+				{% endif %}
+			</div>
+		</form>
+	</div>
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header bg-transparent">
-            <strong>Connexions récentes</strong>
-        </div>
-        <div class="card-body p-0">
-            <table class="table table-hover admin-table mb-0">
-                <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Email</th>
-                    <th>IP</th>
-                    <th>Détail</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for audit in audits %}
-                    <tr>
-                        <td>{{ audit.occurredAt|date('d/m/Y H:i:s') }}</td>
-                        <td>
-                            {% set typeLabels = {'success': 'Connexion réussie', 'failure': 'Échec de connexion', 'logout': 'Déconnexion'} %}
-                            {% set color = audit.eventType == 'success' ? 'success' : (audit.eventType == 'failure' ? 'danger' : 'secondary') %}
-                            <span class="badge text-bg-{{ color }}">{{ typeLabels[audit.eventType] ?? audit.eventType }}</span>
-                        </td>
-                        <td>{{ audit.email ?: '-' }}</td>
-                        <td>{{ audit.ipAddress ?: '-' }}</td>
-                        <td>{{ audit.details ?: '-' }}</td>
-                    </tr>
-                {% else %}
-                    <tr><td colspan="5" class="text-center text-muted py-4">Aucun audit.</td></tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+	<div class="card border-0 shadow-sm mb-3">
+		<div class="card-header bg-transparent">
+			<strong>Connexions récentes</strong>
+		</div>
+		<div class="card-body p-0">
+			<table class="table table-hover admin-table mb-0">
+				<thead>
+					<tr>
+						<th>Date</th>
+						<th>Type</th>
+						<th>Email</th>
+						<th>IP</th>
+						<th>Détail</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for audit in audits %}
+						<tr>
+							<td>{{ audit.occurredAt|date('d/m/Y H:i:s') }}</td>
+							<td>
+								{% set typeLabels = {'success': 'Connexion réussie', 'failure': 'Échec de connexion', 'logout': 'Déconnexion'} %}
+								{% set color = audit.eventType == 'success' ? 'success' : (audit.eventType == 'failure' ? 'danger' : 'secondary') %}
+								<span class="badge text-bg-{{ color }}">{{ typeLabels[audit.eventType] ?? audit.eventType }}</span>
+							</td>
+							<td>{{ audit.email ?: '-' }}</td>
+							<td>{{ audit.ipAddress ?: '-' }}</td>
+							<td>{{ audit.details ?: '-' }}</td>
+						</tr>
+					{% else %}
+						<tr>
+							<td colspan="5" class="text-center text-muted py-4">Aucun audit.</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
 
-    {% if auditMaxPages > 1 %}
-        <nav class="mt-3" aria-label="Navigation des pages audits">
-            {% set startPage = (((auditCurrentPage - 1) // 5) * 5) + 1 %}
-            {% set endPage = min(startPage + 4, auditMaxPages) %}
+	{% if auditMaxPages > 1 %}
+		<nav class="mt-3" aria-label="Navigation des pages audits">
+			{% set startPage = (((auditCurrentPage - 1) // 5) * 5) + 1 %}
+			{% set endPage = min(startPage + 4, auditMaxPages) %}
 
-            <ul class="pagination pagination-sm mb-0 gap-1 align-items-center">
-                {% if startPage > 1 %}
-                    {% set prevBlockPage = startPage - 5 %}
-                    <li class="page-item">
-                        <a class="page-link rounded d-flex align-items-center justify-content-center px-2" href="{{ path('app_admin_index', { tab:'audits', audit_page: prevBlockPage, audit_month: auditMonth, audit_year: auditYear, audit_event_type: auditFilters.eventType }) }}" style="height: 32px;" title="Bloc précédent">&laquo; Précédent</a>
-                    </li>
-                {% endif %}
+			<ul class="pagination pagination-sm mb-0 gap-1 align-items-center">
+				{% if startPage > 1 %}
+					{% set prevBlockPage = startPage - 5 %}
+					<li class="page-item">
+						<a class="page-link rounded d-flex align-items-center justify-content-center px-2" href="{{ path('app_admin_index', { tab:'audits', audit_page: prevBlockPage, audit_month: auditMonth, audit_year: auditYear, audit_event_type: auditFilters.eventType }) }}" style="height: 32px;" title="Bloc précédent">&laquo; Précédent</a>
+					</li>
+				{% endif %}
 
-                {% for i in startPage..endPage %}
-                    <li class="page-item {{ i == auditCurrentPage ? 'active' : '' }}">
-                        <a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path('app_admin_index', { tab:'audits', audit_page: i, audit_month: auditMonth, audit_year: auditYear, audit_event_type: auditFilters.eventType }) }}" style="width: 32px; height: 32px; padding: 0;">{{ i }}</a>
-                    </li>
-                {% endfor %}
+				{% for i in startPage..endPage %}
+					<li class="page-item {{ i == auditCurrentPage ? 'active' : '' }}">
+						<a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path('app_admin_index', { tab:'audits', audit_page: i, audit_month: auditMonth, audit_year: auditYear, audit_event_type: auditFilters.eventType }) }}" style="width: 32px; height: 32px; padding: 0;">{{ i }}</a>
+					</li>
+				{% endfor %}
 
-                {% if endPage < auditMaxPages %}
-                    {% set nextBlockPage = startPage + 5 %}
-                    <li class="page-item">
-                        <a class="page-link rounded d-flex align-items-center justify-content-center px-2" href="{{ path('app_admin_index', { tab:'audits', audit_page: nextBlockPage, audit_month: auditMonth, audit_year: auditYear, audit_event_type: auditFilters.eventType }) }}" style="height: 32px;" title="Bloc suivant">Suivant &raquo;</a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-    {% endif %}
+				{% if endPage < auditMaxPages %}
+					{% set nextBlockPage = startPage + 5 %}
+					<li class="page-item">
+						<a class="page-link rounded d-flex align-items-center justify-content-center px-2" href="{{ path('app_admin_index', { tab:'audits', audit_page: nextBlockPage, audit_month: auditMonth, audit_year: auditYear, audit_event_type: auditFilters.eventType }) }}" style="height: 32px;" title="Bloc suivant">Suivant &raquo;</a>
+					</li>
+				{% endif %}
+			</ul>
+		</nav>
+	{% endif %}
 </div>
