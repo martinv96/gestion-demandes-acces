@@ -68,20 +68,41 @@ public function findPaginated(int $offset, int $limit): array
     }
 
     public function countWithFilters(array $filters): int
-{
-    $qb = $this->createQueryBuilder('a')
-        ->select('COUNT(a.id)');
+    {
+        $qb = $this->createQueryBuilder('a')
+            ->select('COUNT(a.id)');
 
-    $this->applyFilters($qb, $filters);
+        $this->applyFilters($qb, $filters);
 
-    return (int) $qb->getQuery()->getSingleScalarResult();
-}
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
 
-/**
- * @return list<LoginAudit>
- */
-public function findPaginatedWithFilters(array $filters, int $offset, int $limit): array
-{
+    public function getTotalsForPeriod(array $filters): array
+    {
+        $qb = $this->createQueryBuilder('a')
+            ->select('COALESCE(SUM(CASE WHEN a.eventType = :success THEN 1 ELSE 0 END), 0) AS success')
+            ->addSelect('COALESCE(SUM(CASE WHEN a.eventType = :failure THEN 1 ELSE 0 END), 0) AS failure')
+            ->addSelect('COALESCE(SUM(CASE WHEN a.eventType = :logout THEN 1 ELSE 0 END), 0) AS logout')
+            ->setParameter('success', LoginAudit::EVENT_SUCCESS)
+            ->setParameter('failure', LoginAudit::EVENT_FAILURE)
+            ->setParameter('logout', LoginAudit::EVENT_LOGOUT);
+
+        $this->applyFilters($qb, $filters);
+
+        $row = $qb->getQuery()->getSingleResult();
+
+        return [
+            'success' => (int) ($row['success'] ?? 0),
+            'failure' => (int) ($row['failure'] ?? 0),
+            'logout' => (int) ($row['logout'] ?? 0),
+        ];
+    }
+
+    /**
+     * @return list<LoginAudit>
+     */
+    public function findPaginatedWithFilters(array $filters, int $offset, int $limit): array
+    {
     $qb = $this->createQueryBuilder('a')
         ->leftJoin('a.user', 'u')->addSelect('u')
         ->orderBy('a.occurredAt', 'DESC')
@@ -101,6 +122,16 @@ private function applyFilters(\Doctrine\ORM\QueryBuilder $qb, array $filters): v
     if (!empty($filters['eventType'])) {
         $qb->andWhere('a.eventType = :eventType')
            ->setParameter('eventType', (string) $filters['eventType']);
+    }
+
+    if (!empty($filters['dateFrom']) && $filters['dateFrom'] instanceof \DateTimeInterface) {
+        $qb->andWhere('a.occurredAt >= :dateFrom')
+           ->setParameter('dateFrom', $filters['dateFrom']);
+    }
+
+    if (!empty($filters['dateTo']) && $filters['dateTo'] instanceof \DateTimeInterface) {
+        $qb->andWhere('a.occurredAt < :dateTo')
+           ->setParameter('dateTo', $filters['dateTo']);
     }
 }
 }

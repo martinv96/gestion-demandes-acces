@@ -89,6 +89,16 @@ final class AdminController extends AbstractController
         ];
 
         $auditEventType = (string) $request->query->get('audit_event_type', '');
+        $auditMonth = $request->query->getInt('audit_month', (int) (new \DateTimeImmutable('now'))->format('m'));
+        $auditYear = $request->query->getInt('audit_year', (int) (new \DateTimeImmutable('now'))->format('Y'));
+
+        if ($auditMonth < 1 || $auditMonth > 12) {
+            $auditMonth = (int) (new \DateTimeImmutable('now'))->format('m');
+        }
+        if ($auditYear < 2000 || $auditYear > (int) (new \DateTimeImmutable('now'))->format('Y')) {
+            $auditYear = (int) (new \DateTimeImmutable('now'))->format('Y');
+        }
+
         $auditFilters = [];
 
         if ($auditEventType !== '' && in_array($auditEventType, $allowedAuditTypes, true)) {
@@ -97,17 +107,27 @@ final class AdminController extends AbstractController
             $auditEventType = '';
         }
 
+        $auditStart = new \DateTimeImmutable(sprintf('%04d-%02d-01 00:00:00', $auditYear, $auditMonth));
+        $auditEnd = $auditStart->modify('+1 month');
+        $auditFilters['dateFrom'] = $auditStart;
+        $auditFilters['dateTo'] = $auditEnd;
+
         $auditOffset = ($auditCurrentPage - 1) * $auditLimit;
 
         $audits = $loginAuditRepository->findPaginatedWithFilters($auditFilters, $auditOffset, $auditLimit);
         $totalAudits = $loginAuditRepository->countWithFilters($auditFilters);
         $auditMaxPages = (int) ceil(max(1, $totalAudits) / $auditLimit);
 
-        $liveSuccess = $loginAuditRepository->countByEventType(LoginAudit::EVENT_SUCCESS);
-        $liveFailure = $loginAuditRepository->countByEventType(LoginAudit::EVENT_FAILURE);
-        $liveLogout = $loginAuditRepository->countByEventType(LoginAudit::EVENT_LOGOUT);
+        $statsFilters = $auditFilters;
+        unset($statsFilters['eventType']);
 
-        $historyTotals = $loginAuditDailyStatRepository->getTotals();
+        $rawTotals = $loginAuditRepository->getTotalsForPeriod($statsFilters);
+        $periodTotals = $loginAuditDailyStatRepository->getTotalsForPeriod($auditStart, $auditEnd);
+
+        $liveSuccess = $periodTotals['success'] + $rawTotals['success'];
+        $liveFailure = $periodTotals['failure'] + $rawTotals['failure'];
+        $liveLogout = $periodTotals['logout'] + $rawTotals['logout'];
+        $historyTotals = ['purged' => $periodTotals['purged']];
         $historyRecentDays = $loginAuditDailyStatRepository->findRecentDays(30);
 
 
@@ -169,6 +189,8 @@ final class AdminController extends AbstractController
             'auditFilters' => [
                 'eventType' => $auditEventType,
             ],
+            'auditMonth' => $auditMonth,
+            'auditYear' => $auditYear,
             'auditCurrentPage' => $auditCurrentPage,
             'auditMaxPages' => $auditMaxPages,
             'totalAudits' => $totalAudits,

@@ -34,6 +34,28 @@ class LoginAuditDailyStatRepository extends ServiceEntityRepository
         ];
     }
 
+    public function getTotalsForPeriod(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        $row = $this->createQueryBuilder('s')
+            ->select('COALESCE(SUM(s.successCount), 0) AS success')
+            ->addSelect('COALESCE(SUM(s.failureCount), 0) AS failure')
+            ->addSelect('COALESCE(SUM(s.logoutCount), 0) AS logout')
+            ->addSelect('COALESCE(SUM(s.purgedCount), 0) AS purged')
+            ->andWhere('s.statDate >= :from')
+            ->andWhere('s.statDate < :to')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->getQuery()
+            ->getSingleResult();
+
+        return [
+            'success' => (int) ($row['success'] ?? 0),
+            'failure' => (int) ($row['failure'] ?? 0),
+            'logout' => (int) ($row['logout'] ?? 0),
+            'purged' => (int) ($row['purged'] ?? 0),
+        ];
+    }
+
     /**
      * @return list<LoginAuditDailyStat>
      */
