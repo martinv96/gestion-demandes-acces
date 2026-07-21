@@ -1,14 +1,15 @@
 {% macro statusBadge(status) %}
 	{% set map = {
-        'en_attente_rh':  ['info',     'En attente RH'],
-		'en_attente_validation': ['secondary', 'En attente validation'],
-        'en_attente_st':  ['warning',  'En attente ST'],
-        'en_attente_dsi': ['primary',  'En attente DSI'],
-		'en_attente_traitement': ['secondary', 'En attente traitement'],
-        'traitee':        ['success',  'Traitée'],
-        'refusee_rh':     ['danger',   'Refusée par RH'],
-        'refusee_st':     ['danger',   'Refusée par ST'],
-        'refusee_dsi':    ['danger',   'Refusée par DSI'],
+        'en_attente_rh':  ['info',       'En attente RH'],
+		'en_attente_validation': ['warning',  'En attente validation'],
+        'en_attente_st':  ['st',         'En attente ST'],
+        'en_attente_dsi': ['dsi',        'En attente DSI'],
+        'en_attente_fin': ['finances',   'En attente Finances'],
+		'en_attente_traitement': ['traitement', 'En attente traitement'],
+        'traitee':        ['success',    'Traitée'],
+        'refusee_rh':     ['danger',     'Refusée par RH'],
+        'refusee_st':     ['danger',     'Refusée par ST'],
+        'refusee_dsi':    ['danger',     'Refusée par DSI'],
     } %}
 	{% if status in map|keys %}
 		{% set cfg = map[status] %}
@@ -21,5 +22,5 @@
 	{% else %}
 		{% set cfg = ['secondary', status] %}
 	{% endif %}
-	<span class="badge text-bg-{{ cfg[0] }}">{{ cfg[1] }}</span>
+	<span class="badge status-badge status-badge--{{ cfg[0] }}">{{ cfg[1] }}</span>
 {% endmacro %}

@@ -208,6 +208,72 @@
 	border-radius: 999px;
 }
 
+.status-badge {
+	font-size: 0.74rem;
+	font-weight: 700;
+	padding: 0.18rem 0.48rem;
+	border-radius: 999px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1.1;
+	border: 1px solid transparent;
+}
+
+.status-badge--success {
+	color: #115740;
+	background: #d7efe6;
+	border-color: rgba(17, 87, 64, 0.18);
+}
+
+.status-badge--warning {
+	color: #6b4d02;
+	background: #f7edd0;
+	border-color: rgba(150, 113, 23, 0.18);
+}
+
+.status-badge--info {
+	color: #0f4a70;
+	background: #dbe9f2;
+	border-color: rgba(23, 84, 132, 0.18);
+}
+
+.status-badge--st {
+	color: #1e4b67;
+	background: #e4eff8;
+	border-color: rgba(30, 75, 103, 0.18);
+}
+
+.status-badge--dsi {
+	color: #125557;
+	background: #def2f1;
+	border-color: rgba(18, 85, 87, 0.18);
+}
+
+.status-badge--finances {
+	color: #5f385f;
+	background: #f3e4ef;
+	border-color: rgba(111, 62, 111, 0.18);
+}
+
+.status-badge--traitement {
+	color: #1d4f4e;
+	background: #d8fdfd;
+	border-color: rgba(29, 79, 78, 0.18);
+}
+
+.status-badge--danger {
+	color: #b42318;
+	background: #fee4e2;
+	border-color: rgba(248, 113, 113, 0.18);
+}
+
+.status-badge--secondary {
+	color: #475569;
+	background: #f1f5f9;
+	border-color: #dbe4ee;
+}
+
 .dashboard-recent-status.is-warning {
 	color: #b45309;
 	background: #ffedd5;

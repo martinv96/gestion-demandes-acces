@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import 'list_request/includes/_macros.html.twig' as macros %}
 
 {% block title %}Liste des demandes
 {% endblock %}
@@ -192,14 +193,14 @@
 											{% else %}
 												{% set cfg = ['secondary', request.status|replace({'_': ' '})] %}
 											{% endif %}
-											<span class="badge text-bg-{{ cfg[0] }}">{{ cfg[1] }}</span>
+											{{ macros.statusBadge(request.status) }}
 										</td>
 										<td>{{ request.arrivalDate ? request.arrivalDate|date('d/m/Y') : '-' }}</td>
 										<td>{{ request.departureDate ? request.departureDate|date('d/m/Y') : '-'}}</td>
 										<td>{{ request.creationDate ? request.creationDate|date('d/m/Y à H:i') : '-' }}</td>
 										<td>
 											<span class="badge text-bg-{{ request.currentStateBadgeClass }}">
-												{{ request.currentStateLabel }}
+												{{ request.type == 'ouverture' ? 'Ouverture' : (request.type == 'fermeture' ? 'Fermeture' : 'Modification') }}
 											</span>
 										</td>
 										<td class="text-center">
