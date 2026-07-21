@@ -58,6 +58,7 @@
                     {% for entry in history|default([]) %}
                         {% set entryRoles = entry.user ? entry.user.roles : [] %}
                         {% set isFinance = false %}
+                        {% set isModificationEntry = entry.commentary is defined and entry.commentary starts with 'Modification des informations :' %}
                         {% if entry.validatedRole is defined and entry.validatedRole == 'ROLE_FIN' %}
                             {% set isFinance = true %}
                         {% else %}
@@ -67,7 +68,7 @@
                                 {% endif %}
                             {% endfor %}
                         {% endif %}
-                        {% if isFinance and (entry.commentary is not defined or not (entry.commentary starts with 'Annulation de décision')) %}
+                        {% if isFinance and not isModificationEntry and (entry.commentary is not defined or not (entry.commentary starts with 'Annulation de décision')) %}
                             {% set financeStepDone = true %}
                             {% set financeValidatedAt = entry.date %}
                         {% endif %}
