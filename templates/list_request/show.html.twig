@@ -117,7 +117,7 @@
 			<div class="alert alert-warning mb-4" role="alert">
 				Cette demande est bloquée car aucun compte actif n'existe pour
 				{{ missingValidatorLabel }}.
-																								Veuillez contacter le service RH pour débloquer la demande.
+				Veuillez contacter le service RH pour débloquer la demande.
 			</div>
 		{% endif %}
 
@@ -176,8 +176,7 @@
 											{% if requestEntity.status not in ['traitee', 'refusee_rh', 'refusee_st', 'refusee_dsi'] %}
 												<div class="col-md-6">
 													<label class="form-label">Délai de traitement</label>
-													<div
-														class="form-control-plaintext">
+													<div class="form-control-plaintext">
 														{% if processingDelayDays is not null %}
 															En attente depuis :
 															{{ processingDelayDays }}
@@ -219,9 +218,9 @@
 												{{ phoneTypes is not empty ? phoneTypes|map(v => v|capitalize)|join(', ') : '-' }}
 											</dd>
 											<dt class="col-sm-4">Créée le</dt>
-											<dd class="col-sm-8">{{ requestEntity.creationDate ? requestEntity.creationDate|date('d/m/Y H:i') : '-' }}</dd>
+											<dd class="col-sm-8">{{ requestEntity.creationDate ? requestEntity.creationDate|date('d/m/Y à H:i') : '-' }}</dd>
 											<dt class="col-sm-4">Mise à jour</dt>
-											<dd class="col-sm-8">{{ requestEntity.updateDate ? requestEntity.updateDate|date('d/m/Y H:i') : '-' }}</dd>
+											<dd class="col-sm-8">{{ requestEntity.updateDate ? requestEntity.updateDate|date('d/m/Y à H:i') : '-' }}</dd>
 											{% if requestEntity.replaceePar is not empty %}
 												<dt class="col-sm-4">L'agent remplace</dt>
 												<dd class="col-sm-8">{{ requestEntity.replaceePar }}</dd>
@@ -230,7 +229,8 @@
 												<dt class="col-sm-4">Délai de traitement</dt>
 												<dd class="col-sm-8">
 													{% if processingDelayDays is not null %}
-														En attente depuis : {{ processingDelayDays }}
+														En attente depuis :
+														{{ processingDelayDays }}
 														{{ processingDelayDays > 1 ? 'jours' : 'jour' }}
 													{% else %}
 														<span class="text-muted">-</span>
@@ -239,19 +239,22 @@
 											{% endif %}
 										</dl>
 									{% endif %}
-								</div>
-								{% if requestEntity.pieceJointe %}
-									<div class="custom-file-wrapper mt-2">
-										<a href="{{ asset('uploads/pieces_jointes/' ~ requestEntity.pieceJointe) }}" target="_blank" class="custom-file-label-btn" download>
-											<i class="bi bi-paperclip me-1"></i>
-											Télécharger la pièce jointe
-										</a>
-										<span class="custom-file-label-text">{{ requestEntity.pieceJointe }}</span>
-									</div>
-								</a>
-							{% else %}
-								<span class="text-muted">Aucune pièce jointe</span>
-							{% endif %}
+									{% if requestEntity.pieceJointe %}
+										<div class="custom-file-wrapper mt-2">
+											<a href="{{ asset('uploads/pieces_jointes/' ~ requestEntity.pieceJointe) }}" target="_blank" class="custom-file-label-btn" download>
+												<i class="bi bi-paperclip me-1"></i>
+												Télécharger la pièce jointe
+											</a>
+											<span class="custom-file-label-text">{{ requestEntity.pieceJointe }}</span>
+										</div>
+									</a>
+								{% else %}
+									<dl class="row-mb-0">
+										<dt calss="col-sm-4">Pièce jointe</dt>
+										<span class="text-muted">Aucune pièce jointe</span>
+									</dl>
+								{% endif %}
+							</div>
 						</div>
 					</div>
 
@@ -318,7 +321,8 @@
 											<dt class="col-sm-4">Email</dt>
 											<dd class="col-sm-8">{{ requestEntity.agent.email ?: '-' }}</dd>
 											<dt class="col-sm-4">Taille vêtements</dt>
-											<dd class="col-sm-8">{{ requestEntity.agent.clothingSize ?: '-' }}</dd>
+											<dd class="col-sm-8">Taille :
+												{{ requestEntity.agent.clothingSize ?: '-' }}</dd>
 											<dt class="col-sm-4">Pointure</dt>
 											<dd class="col-sm-8">{{ requestEntity.agent.shoeSize ?: '-'}}</dd>
 										</dl>
@@ -608,22 +612,22 @@
 							<div class="card-header">Commentaire (modification)</div>
 							<div class="card-body">
 								{% if canEditRequestInfo %}
-								<label for="inline_commentaire" class="form-label">Ajouter votre commentaire</label>
-								<textarea class="form-control" id="inline_commentaire" name="commentaire" rows="4" placeholder="Votre commentaire sera ajouté avec votre nom et la date"></textarea>
+									<label for="inline_commentaire" class="form-label">Ajouter votre commentaire</label>
+									<textarea class="form-control" id="inline_commentaire" name="commentaire" rows="4" placeholder="Votre commentaire sera ajouté avec votre nom et la date"></textarea>
 									<div class="form-text mb-3">Les commentaires existants sont conservés automatiquement. Consultez l'historique des validations pour les commentaires des services.</div>
 								{% elseif isInfoEditLocked %}
 									<div class="alert alert-secondary mb-0" role="alert">
 										Vous avez déjà modifié cette demande une fois dans ce cycle. Pour modifier à nouveau, annulez la dernière décision.
 									</div>
 								{% endif %}
-								
-					{% if canEditRequestInfo and requestEntity.status != constant('App\\Entity\\Request::STATUS_TRAITEE') and not currentUserHasValidated %}
-						<div class="col-12">
-							<div class="d-flex justify-content-end gap-2">
-								<button type="submit" class="btn btn-warning">Enregistrer les modifications</button>
-							</div>
-						</div>
-					{% endif %}
+
+								{% if canEditRequestInfo and requestEntity.status != constant('App\\Entity\\Request::STATUS_TRAITEE') and not currentUserHasValidated %}
+									<div class="col-12">
+										<div class="d-flex justify-content-end gap-2">
+											<button type="submit" class="btn btn-warning">Enregistrer les modifications</button>
+										</div>
+									</div>
+								{% endif %}
 							</div>
 						</div>
 					</div>

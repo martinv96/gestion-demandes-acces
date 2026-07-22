@@ -191,7 +191,7 @@
 			<div
 				class="card-body request-resource-body">
 
-				{# SECTION TECHNIQUE : Affichée SEULEMENT pour le Service Technique #}
+				{# section technique afficher seulement pour le Service Technique #}
 				{% if hasTechniqueAccess %}
 					<h6 class="mb-2">Service technique (EPI, badge, jeu de clés)</h6>
 					<div class="request-checkbox-grid request-resource-grid mb-3">
@@ -219,7 +219,7 @@
 					{# Une petite barre de séparation si le reste suit #}
 				{% endif %}
 
-				{# SECTION AUTRES MATÉRIELS : Visible par tout le monde #}
+				{# section autres matériels (visible par tout le monde) #}
 				<h6 class="mb-2">Autres matériels</h6>
 				<div class="request-checkbox-grid request-resource-grid">
 					{% for child in form.materiels %}

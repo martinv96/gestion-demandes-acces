@@ -602,7 +602,9 @@ final class AdminController extends AbstractController
             return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
         }
 
+        $code = null;
         try {
+
             $name  = trim((string) $request->request->get('name', ''));
             $email = trim((string) $request->request->get('email', ''));
             $code = $this->normalizeServiceWorkflowCode((string) $request->request->get('code', ''));
@@ -649,6 +651,8 @@ final class AdminController extends AbstractController
             $this->addFlash('danger', 'Token de sécurité invalide.');
             return $this->redirectToRoute('app_admin_index', ['tab' => 'services']);
         }
+
+        $name = '';
 
         try {
             $name  = trim((string) $request->request->get('name', ''));
