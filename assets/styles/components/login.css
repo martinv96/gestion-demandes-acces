@@ -27,3 +27,16 @@
     border: 1px solid rgba(255, 255, 255, 0.65);
     backdrop-filter: blur(6px);
 }
+
+/* guide user */
+
+.guide-user a {
+    color: var(--theme-primary) !important;
+    border-color: var(--theme-primary) !important;
+    background: transparent;
+}
+
+.guide-user a:hover {
+    background-color: var(--theme-primary) !important;
+    color: var(--theme-primary-contrast) !important;
+}

@@ -198,17 +198,6 @@ hr {
     color: var(--theme-primary-contrast) !important;
 }
 
-.guide-user a {
-    color: var(--theme-primary) !important;
-    border-color: var(--theme-primary) !important;
-    background: transparent;
-}
-
-.guide-user a:hover {
-    background-color: var(--theme-primary) !important;
-    color: var(--theme-primary-contrast) !important;
-}
-
 .theme-toggle-btn {
     display: inline-flex;
     align-items: center;

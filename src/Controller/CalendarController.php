@@ -46,7 +46,7 @@ class CalendarController extends AbstractController
                 $serviceName = $agent->getService()->getName();
             }
 
-            //evenement d'arrivée
+            //évènement d'arrivée
             if ($req->getArrivalDate()) {
                 $events[] = [
                     'id' => 'arrival' . $req->getId(),
