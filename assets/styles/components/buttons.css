@@ -185,3 +185,47 @@
     border-color: #c4ccd6;
     color: #3f4e5d;
 }
+
+/* filtres liste request */
+
+/* Style global du lien de tri */
+a.sort-btn-link,
+a.sort-btn-link:visited {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.35rem;
+    text-decoration: none !important;
+    vertical-align: middle;
+    color: var(--theme-text) !important; /* Blanc en sombre / Sombre en clair */
+    transition: all 0.2s ease-in-out;
+}
+
+/* Style du span interne */
+a.sort-btn-link .sort-icon-neutral {
+    display: inline-block;
+    font-size: 0.9em;
+    opacity: 0.7; 
+    transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+    user-select: none;
+    color: inherit !important;
+}
+
+/* Au survol : passe au vert du thème */
+a.sort-btn-link:hover,
+a.sort-btn-link:hover .sort-icon-neutral {
+    opacity: 1;
+    color: var(--theme-primary) !important;
+}
+
+a.sort-btn-link:hover .sort-icon-neutral {
+    transform: scale(1.15);
+}
+
+/* Colonne active : vert du thème */
+a.sort-btn-link.active-sort,
+a.sort-btn-link.active-sort .sort-icon-neutral {
+    opacity: 1;
+    color: var(--theme-primary) !important;
+    font-weight: bold;
+}

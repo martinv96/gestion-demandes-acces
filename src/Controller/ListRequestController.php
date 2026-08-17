@@ -60,6 +60,21 @@ final class ListRequestController extends AbstractController
         $departureDate = (string) $httpRequest->query->get('departureDate', '');
         $agent         = trim((string) $httpRequest->query->get('agent', ''));
 
+        // Tri
+        $sort = (string) $httpRequest->query->get('sort', 'creationDate');
+        $direction = strtoupper((string) $httpRequest->query->get('direction', 'DESC'));
+
+        // Sécurité sur la direction
+        if (!in_array($direction, ['ASC', 'DESC'], true)) {
+            $direction = 'DESC';
+        }
+
+        // Sécurité sur la colonne autorisée
+        $allowedSorts = ['service', 'arrivalDate', 'departureDate', 'creationDate', 'type', 'status'];
+        if (!in_array($sort, $allowedSorts, true)) {
+            $sort = 'creationDate';
+        }
+
         $filters = [];
 
         if ($status !== '' && in_array($status, $allowedStatuses, true)) {
@@ -98,7 +113,7 @@ final class ListRequestController extends AbstractController
             $agent = '';
         }
 
-        $requests            = $requestRepository->findCurrentWithFilters($filters, $limit, $offset);
+        $requests = $requestRepository->findCurrentWithFilters($filters, $limit, $offset, $sort, $direction);
         $services            = $serviceRepository->findBy([], ['name' => 'DESC']);
         $availableDates      = $requestRepository->findDistinctCurrentArrivalDates();
         $availableDepartures = $requestRepository->findDistinctCurrentDepartureDates();
@@ -124,6 +139,8 @@ final class ListRequestController extends AbstractController
                 'arrivalDate'   => $arrivalDate,
                 'departureDate' => $departureDate,
                 'agent'         => $agent,
+                'sort'          => $sort,
+                'direction'     => $direction,
             ],
             'exportScope' => 'current',
             'pageRoute'   => 'app_list_request',

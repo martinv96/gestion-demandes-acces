@@ -10,9 +10,7 @@ use Psr\Log\LoggerInterface;
 
 final class WorkflowReminderService
 {
-    private const FIRST_REMINDER_DELAY_HOURS = 24;
-    private const SECOND_REMINDER_DELAY_HOURS = 48;
-    private const ESCALATION_DELAY_HOURS = 72;
+    private const ESCALATION_DELAY_DAYS = 3;
 
     public function __construct(
         private RequestRepository $requestRepository,
@@ -42,13 +40,13 @@ final class WorkflowReminderService
                 continue;
             }
 
-            $statusChangedAt = $latestHistories[$requestId]->getDate ?? $request->getCreationDate();
+            $statusChangedAt = $latestHistories[$requestId]->getDate() ?? $request->getCreationDate();
 
             if (!$statusChangedAt instanceof \DateTimeImmutable) {
                 continue;
             }
 
-            $ageInHours = (int) floor(($now->getTimestamp() - $statusChangedAt->getTimestamp()) / 3600);
+            $ageInDays = (int) floor(($now->getTimestamp() - $statusChangedAt->getTimestamp()) / 86400);
 
             $lastReminderAt = $request->getLastReminderAt();
             $effectiveReminderCount = 0;
@@ -57,50 +55,13 @@ final class WorkflowReminderService
                 $effectiveReminderCount = $request->getReminderCount();
             }
 
-            $escalatedAt = $request->getEscalatedAt();
-            $alreadyEscalatedForCurrentStatus = $escalatedAt instanceof \DateTimeImmutable && $escalatedAt >= $statusChangedAt;
-
-            if (!$alreadyEscalatedForCurrentStatus && $ageInHours >= self::ESCALATION_DELAY_HOURS) {
-                $this->workflowNotificationService->sendEscalation(
-                    $request,
-                    sprintf('La demande %s est bloquée au statut "%s" depuis %d heures.',
-                    $request->getReference(),
-                    (string) $request->getStatus(),
-                    $ageInHours
-                    )
-                );
-
-                $request->setEscalatedAt($now);
-                $processedCount++;
-
-                continue;
-            }
-
-            if ($effectiveReminderCount < 2 && $ageInHours >= self::SECOND_REMINDER_DELAY_HOURS) {
-                $this->workflowNotificationService->sendReminder(
-                    $request,
-                    sprintf('Deuxième relance automatique : la demande %s est en attente depuis %d heures.',
-                    $request->getReference(),
-                    $ageInHours
-                    )
-                );
-
-                $request
-                    ->setLastReminderAt($now)
-                    ->setReminderCount(2);
-                
-                    $processedCount++;
-
-                    continue;
-            }
-
-            if ($effectiveReminderCount < 1 && $ageInHours >= self::FIRST_REMINDER_DELAY_HOURS) {
+            if ($effectiveReminderCount < 1 && $ageInDays >= self::ESCALATION_DELAY_DAYS) {
                 $this->workflowNotificationService->sendReminder(
                     $request,
                     sprintf(
-                        'Première relance automatique : la demande %s est en attente depuis %d heures.',
+                        'Rappel automatique : la demande %s est en attente depuis %d jour(s) et nécessite votre validation.',
                         $request->getReference(),
-                        $ageInHours
+                        $ageInDays
                     )
                 );
 

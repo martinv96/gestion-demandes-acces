@@ -1,0 +1,68 @@
+{% apply inline_css %}
+<style>
+    body { margin: 0; padding: 0; background-color: #f6f6f6; }
+    .sidebar { background-color: #a35233; width: 260px; min-width: 260px; padding: 40px 20px; text-align:center; vertical-align: top; }
+    .sidebar h4 { color: #fff !important; margin: 15px 0 5px; font-family: 'Segoe UI' ,sans-serif; font-size: 18px; }
+    .siderabr p { color: #f2d7cc; margin: 0; font-family: 'Segoe UI', sans-serif; font-size: 18px; }
+    .main-content { background-color: #fff; padding: 60px 40px; vertical-align: top; }
+    h2, h3 { color: #a35233; font-family: 'Segoe UI', sans-serif; font-weight: bold; font-size: 13px; opacity: 0.8; }
+    .info-card { background-color: #f2f2f2; border-radius: 8px; padding: 30px; margin-bottom: 30px; }
+    .label { color: #6e7985; font-size: 11px; text-transform: uppercase; margin-bottom: 5px; }
+    .badge { background-color: #f8f1ed; border: 1px solid #e6ccbe; color: #a35233; padding: 6px 15px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block; }
+    .reminder-message { color: #2c3e50; font-family: 16px; margin: 20px 0; line-height: 1.5; }
+    .paragraph { color: #2c3e50; font-family: 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.7; margin-bottom: 20px; }
+    .btn-primary { display: inline-block; background-color: #a35233; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 6px; font-weight: bold: }
+    .footer { background-color: #e9ecef; padding: 30px; text-align: center; color: #7f8c8d; font-size: 11px; }
+</style>
+
+<table width="100%" border="0" cellpadding="0">
+    <tr>
+        <td class="sidebar">
+            <img src="https://www.leplessistrevise.fr/wp-content/themes/leplessistrevise/img/logo.svg" alt="logo" width="75">
+            <h4>Le Plessis-Trévise</h4>
+            <p>Gestion des accès</p>
+        </td>
+        <td class="main-content">
+            <h3>Rappel - Fin de contrat dans {{days_left }} jour(s)</h3>
+
+            <p class="paragraph">Bonjour,</p>
+
+            <p class="paragraph">
+                    La demande <strong>{{ request.reference|default('#' ~ request.id) }}</strong> liée à : <strong>{{ request.agent ? request.agent.firstname ~ ' ' ~ request.agent.lastname : 'N/A' }}</strong>a une date de fin prévu le <strong>{{ request.departureDate ? request.departureDate|date('d/m/Y') : '_' }}</strong>.
+            </p>
+
+            <div class="reminder-message">
+                {{ reminder_message|default('Ceci est un rappel automatique. Une action de votre part est attendue pour finaliser le traitement de cette demande d\'accès. Afin d\'éviter tout blocage dans le dossier de l\'agent, merci de prendre connaissance des informations ci-dessous et de valider les étapes nécessaires.') }}
+            </div>
+            
+            <div class="info-card">
+                <div class="label">Référence</div>
+                <div class="value">{{ request.reference|default('#' ~ request.id) }}</div>
+
+                <div class="label">Agent</div>
+                <div class="value">{{ request.agent.firstname|capitalize }} {{ request.agent.lastname|upper }}</div>
+
+                <div class="label">Statut actuel</div>
+                <div class="value">{{ status_label }}</div>
+
+                <div class="label">Date de fin</div>
+                <div class="value">{{ request.departureDate ? request.departureDate|date('d/m/Y') : '_' }}</div>
+            </div>
+
+            <p class="paragraph">Merci de vérifier les accès et de planifier la clôture si nécessaire.</p>
+
+            <div style="text-align: center; margin-bottom: 30px;">
+                <a href="{{ url('app_request_show', {id: request.id}) }}" class="btn-primary">Voir la demande</a>
+            </div>
+
+            <p class="paragraph">Cordialement, <br>Application GDAP</p>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2" class="footer">
+            <p>Ceci est un rappel automatique envoyé par GDAP(la plateforme de gestion des accès).<br>
+            <strong>Mairie du Plessis-Trévise</strong> &copy; {{ "now"|date("Y") }}</p>
+        </td>
+    </tr>
+</table>
+{% endapply %}

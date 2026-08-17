@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Request;
 use App\Entity\User;
 use App\Entity\WorkflowHistory;
+use App\Service\Workflow\WorkflowStateResolver;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\ORM\Tools\Pagination\Paginator;
@@ -15,9 +16,12 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class RequestRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
+    private WorkflowStateResolver $workflowStateResolver;
+
+    public function __construct(ManagerRegistry $registry, WorkflowStateResolver $workflowStateResolver)
     {
         parent::__construct($registry, Request::class);
+        $this->workflowStateResolver = $workflowStateResolver;
     }
 
     /**
@@ -63,6 +67,10 @@ class RequestRepository extends ServiceEntityRepository
         /** @var list<Request> $results */
         $results = $qb->getQuery()->getResult();
 
+        if (!empty($filters['status']) && $this->isSpecialValidatorStatus((string) $filters['status'])) {
+            $results = $this->filterResultsByPendingValidatorRole($results, (string) $filters['status']);
+        }
+
         return $results;
     }
 
@@ -98,6 +106,13 @@ class RequestRepository extends ServiceEntityRepository
         if (!empty($filters['agent'])) {
             $qb->andWhere('LOWER(a.firstname) LIKE :agent OR LOWER(a.lastname) LIKE :agent')
                 ->setParameter('agent', '%' . mb_strtolower($filters['agent']) . '%');
+        }
+
+        if (!empty($filters['status']) && $this->isSpecialValidatorStatus((string) $filters['status'])) {
+            $qb->select('r');
+            /** @var list<Request> $results */
+            $results = $qb->getQuery()->getResult();
+            return count($this->filterResultsByPendingValidatorRole($results, (string) $filters['status']));
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();
@@ -140,6 +155,13 @@ class RequestRepository extends ServiceEntityRepository
         if (!empty($filters['agent'])) {
             $qb->andWhere('LOWER(a.firstname) LIKE :agent OR LOWER(a.lastname) LIKE :agent')
                 ->setParameter('agent', '%' . mb_strtolower($filters['agent']) . '%');
+        }
+
+        if (!empty($filters['status']) && $this->isSpecialValidatorStatus((string) $filters['status'])) {
+            $qb->select('r');
+            /** @var list<Request> $results */
+            $results = $qb->getQuery()->getResult();
+            return count($this->filterResultsByPendingValidatorRole($results, (string) $filters['status']));
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();
@@ -331,50 +353,80 @@ class RequestRepository extends ServiceEntityRepository
     * @param array{status?: string, serviceId?: int, type?: string, arrivalDate?: string, departureDate?: string, agent?: string} $filters
      * @return list<Request>
      */
-    public function findCurrentWithFilters(array $filters = [], int $limit = 100, int $offset = 0): array
-    {
-        $qb = $this->createQueryBuilder('r')
-            ->leftJoin('r.agent', 'a')->addSelect('a')
-            ->leftJoin('a.service', 's')->addSelect('s')
-            ->orderBy('r.creationDate', 'DESC')
-            ->setMaxResults($limit)
-            ->setFirstResult($offset);
+    public function findCurrentWithFilters(
+    array $filters = [], 
+    int $limit = 100, 
+    int $offset = 0, 
+    string $sort = 'creationDate', 
+    string $direction = 'DESC'
+): array {
+    $qb = $this->createQueryBuilder('r')
+        ->leftJoin('r.agent', 'a')->addSelect('a')
+        ->leftJoin('a.service', 's')->addSelect('s')
+        ->setMaxResults($limit)
+        ->setFirstResult($offset);
 
-        $this->applyCurrentScope($qb);
-
-        if (!empty($filters['status'])) {
-            $this->applyStatusFilter($qb, (string) $filters['status']);
-        }
-
-        if (!empty($filters['serviceId'])) {
-            $qb->andWhere('s.id = :serviceId')->setParameter('serviceId', $filters['serviceId']);
-        }
-
-        if (!empty($filters['type'])) {
-            $qb->andWhere('r.type = :type')->setParameter('type', $filters['type']);
-        }
-
-        if (!empty($filters['arrivalDate'])) {
-            $qb->andWhere('r.arrivalDate = :arrivalDate')
-                ->setParameter('arrivalDate', new \DateTime($filters['arrivalDate']));
-        }
-
-        if (!empty($filters['departureDate'])) {
-            $qb->andWhere('r.departureDate = :departureDate')
-                ->setParameter('departureDate', new \DateTime($filters['departureDate']));
-        }
-
-        if (!empty($filters['agent'])) {
-            $qb->andWhere('LOWER(a.firstname) LIKE :agent OR LOWER(a.lastname) LIKE :agent')
-                ->setParameter('agent', '%' . mb_strtolower($filters['agent']) . '%');
-        }
-
-        /** @var list<Request> $results */
-        $results = $qb->getQuery()->getResult();
-
-        return $results;
+    // Gestion du tri dynamique
+    switch ($sort) {
+        case 'service':
+            $qb->orderBy('s.name', $direction);
+            break;
+        case 'type':
+            $qb->orderBy('r.type', $direction);
+            break;
+        case 'status':
+            $qb->orderBy('r.status', $direction);
+            break;
+        case 'arrivalDate':
+            $qb->orderBy('r.arrivalDate', $direction);
+            break;
+        case 'departureDate':
+            $qb->orderBy('r.departureDate', $direction);
+            break;
+        case 'creationDate':
+        default:
+            $qb->orderBy('r.creationDate', $direction);
+            break;
     }
 
+    $this->applyCurrentScope($qb);
+
+    if (!empty($filters['status'])) {
+        $this->applyStatusFilter($qb, (string) $filters['status']);
+    }
+
+    if (!empty($filters['serviceId'])) {
+        $qb->andWhere('s.id = :serviceId')->setParameter('serviceId', $filters['serviceId']);
+    }
+
+    if (!empty($filters['type'])) {
+        $qb->andWhere('r.type = :type')->setParameter('type', $filters['type']);
+    }
+
+    if (!empty($filters['arrivalDate'])) {
+        $qb->andWhere('r.arrivalDate = :arrivalDate')
+            ->setParameter('arrivalDate', new \DateTime($filters['arrivalDate']));
+    }
+
+    if (!empty($filters['departureDate'])) {
+        $qb->andWhere('r.departureDate = :departureDate')
+            ->setParameter('departureDate', new \DateTime($filters['departureDate']));
+    }
+
+    if (!empty($filters['agent'])) {
+        $qb->andWhere('LOWER(a.firstname) LIKE :agent OR LOWER(a.lastname) LIKE :agent')
+            ->setParameter('agent', '%' . mb_strtolower($filters['agent']) . '%');
+    }
+
+    /** @var list<Request> $results */
+    $results = $qb->getQuery()->getResult();
+
+    if (!empty($filters['status']) && $this->isSpecialValidatorStatus((string) $filters['status'])) {
+        $results = $this->filterResultsByPendingValidatorRole($results, (string) $filters['status']);
+    }
+
+    return $results;
+}
     /**
      * Requête optimisée pour l'export XLSX:
      * - pas de jointure childRequests (inutile pour l'export)
@@ -454,22 +506,16 @@ class RequestRepository extends ServiceEntityRepository
                     ->setParameter('status', Request::STATUS_EN_ATTENTE_RH);
                 break;
             case 'a_valider_st':
-                $qb->andWhere('r.status = :status')
-                    ->andWhere('r.workflowSnapshot LIKE :workflowRole')
-                    ->setParameter('status', Request::STATUS_EN_ATTENTE_VALIDATION)
-                    ->setParameter('workflowRole', '%ROLE_ST%');
+                $qb->andWhere('r.status IN (:statuses)')
+                    ->setParameter('statuses', [Request::STATUS_EN_ATTENTE_VALIDATION, Request::STATUS_EN_ATTENTE_ST]);
                 break;
             case 'a_valider_dsi':
-                $qb->andWhere('r.status = :status')
-                    ->andWhere('r.workflowSnapshot LIKE :workflowRole')
-                    ->setParameter('status', Request::STATUS_EN_ATTENTE_VALIDATION)
-                    ->setParameter('workflowRole', '%ROLE_DSI%');
+                $qb->andWhere('r.status IN (:statuses)')
+                    ->setParameter('statuses', [Request::STATUS_EN_ATTENTE_VALIDATION, Request::STATUS_EN_ATTENTE_DSI]);
                 break;
             case 'a_valider_fin':
                 $qb->andWhere('r.status = :status')
-                    ->andWhere('r.workflowSnapshot LIKE :workflowRole')
-                    ->setParameter('status', Request::STATUS_EN_ATTENTE_VALIDATION)
-                    ->setParameter('workflowRole', '%ROLE_FIN%');
+                    ->setParameter('status', Request::STATUS_EN_ATTENTE_VALIDATION);
                 break;
             default:
                 if ($status !== '') {
@@ -536,6 +582,37 @@ class RequestRepository extends ServiceEntityRepository
             ->setParameter('closedStatus', Request::STATUS_TRAITEE);
 
         return $qb->getQuery()->getOneOrNullResult();
+    }
+
+    private function isSpecialValidatorStatus(string $status): bool
+    {
+        return in_array($status, ['a_valider_st', 'a_valider_dsi', 'a_valider_fin'], true);
+    }
+
+    private function getRequiredValidatorRole(string $status): ?string
+    {
+        return match ($status) {
+            'a_valider_st' => 'ROLE_ST',
+            'a_valider_dsi' => 'ROLE_DSI',
+            'a_valider_fin' => 'ROLE_FIN',
+            default => null,
+        };
+    }
+
+    /**
+     * @param list<Request> $requests
+     * @return list<Request>
+     */
+    private function filterResultsByPendingValidatorRole(array $requests, string $status): array
+    {
+        $requiredRole = $this->getRequiredValidatorRole($status);
+        if ($requiredRole === null) {
+            return $requests;
+        }
+
+        return array_values(array_filter($requests, function (Request $request) use ($requiredRole): bool {
+            return in_array($requiredRole, $this->workflowStateResolver->getNextValidatorRoles($request), true);
+        }));
     }
 
     /**
@@ -642,5 +719,25 @@ class RequestRepository extends ServiceEntityRepository
         $query->setHint(Paginator::HINT_ENABLE_DISTINCT, false);
 
         return new Paginator($query, false);
+    }
+
+    /**
+     * @return list<Request>
+     */
+    public function findRequestsWithDepartureBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        $qb = $this->createQueryBuilder('r')
+            ->leftJoin('r.agent', 'a')->addSelect('a')
+            ->leftJoin('a.service', 's')->addSelect('s')
+            ->andWhere('r.departureDate IS NOT NULL')
+            ->andWhere('r.departureDate <= :to')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->orderBy('r.departureDate', 'ASC');
+
+        /**@var list<Request> $results */
+        $results = $qb->getQuery()->getResult();
+
+        return $results;
     }
 }

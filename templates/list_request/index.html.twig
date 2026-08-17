@@ -129,18 +129,82 @@
 					<div class="table-responsive">
 						<table class="table table-hover align-middle mb-0">
 							<thead class="table-light">
-								<tr>
-									<th scope="col">Référence</th>
-									<th scope="col">Agent</th>
-									<th scope="col">Service</th>
-									<th scope="col">Type</th>
-									<th scope="col">Statut</th>
-									<th scope="col">Date d'arrivée</th>
-									<th scope="col">Date de départ</th>
-									<th scope="col">Créée le</th>
-									<th scope="col" class="text-center">Action</th>
-								</tr>
-							</thead>
+    <tr>
+        <th scope="col">Référence</th>
+        <th scope="col">Agent</th>
+
+        {% set currentSort = app.request.query.get('sort') %}
+        {% set currentDir = app.request.query.get('direction', 'DESC') %}
+
+        {# TRI SERVICE #}
+        <th scope="col">
+            {% set nextDir = (currentSort == 'service' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
+            Service
+            <a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'service', 'direction': nextDir})) }}" 
+               class="sort-btn-link {{ currentSort == 'service' ? 'active-sort' : '' }}" 
+               title="Trier par service">
+                <span class="sort-icon-neutral">⇅</span>
+            </a>
+        </th>
+
+        {# TRI TYPE #}
+        <th scope="col">
+            {% set nextDir = (currentSort == 'type' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
+            Type
+            <a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'type', 'direction': nextDir})) }}" 
+               class="sort-btn-link {{ currentSort == 'type' ? 'active-sort' : '' }}" 
+               title="Trier par type">
+                <span class="sort-icon-neutral">⇅</span>
+            </a>
+        </th>
+
+        {# TRI STATUT #}
+        <th scope="col">
+            {% set nextDir = (currentSort == 'status' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
+            Statut
+            <a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'status', 'direction': nextDir})) }}" 
+               class="sort-btn-link {{ currentSort == 'status' ? 'active-sort' : '' }}" 
+               title="Trier par statut">
+                <span class="sort-icon-neutral">⇅</span>
+            </a>
+        </th>
+
+        {# TRI DATE ARRIVÉE #}
+        <th scope="col">
+            {% set nextDir = (currentSort == 'arrivalDate' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
+            Date d'arrivée
+            <a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'arrivalDate', 'direction': nextDir})) }}" 
+               class="sort-btn-link {{ currentSort == 'arrivalDate' ? 'active-sort' : '' }}" 
+               title="Trier par date d'arrivée">
+                <span class="sort-icon-neutral">⇅</span>
+            </a>
+        </th>
+
+        {# TRI DATE DÉPART #}
+        <th scope="col">
+            {% set nextDir = (currentSort == 'departureDate' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
+            Date de départ
+            <a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'departureDate', 'direction': nextDir})) }}" 
+               class="sort-btn-link {{ currentSort == 'departureDate' ? 'active-sort' : '' }}" 
+               title="Trier par date de départ">
+                <span class="sort-icon-neutral">⇅</span>
+            </a>
+        </th>
+
+        {# TRI CRÉÉE LE #}
+        <th scope="col">
+            {% set nextDir = (currentSort == 'creationDate' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
+            Créée le
+            <a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'creationDate', 'direction': nextDir})) }}" 
+               class="sort-btn-link {{ currentSort == 'creationDate' ? 'active-sort' : '' }}" 
+               title="Trier par date de création">
+                <span class="sort-icon-neutral">⇅</span>
+            </a>
+        </th>
+
+        <th scope="col" class="text-center">Action</th>
+    </tr>
+</thead>
 							<tbody>
 								{% for request in requests %}
 									<tr>
@@ -213,56 +277,49 @@
 			{% endif %}
 
 			{# pagination par bloc de 5 #}
-{% if pagesCount > 1 %}
-    <nav class="mt-4" aria-label="Navigation des pages">
-        {% set paginationRoute = pageRoute|default('app_list_request') %}
+			{% if pagesCount > 1 %}
+				<nav class="mt-4" aria-label="Navigation des pages">
+					{% set paginationRoute = pageRoute|default('app_list_request') %}
 
-        {# Calcul dynamique du bloc de 5 #}
-        {% set startPage = (((currentPage - 1) // 5) * 5) + 1 %}
-        {% set endPage = min(startPage + 4, pagesCount) %}
+					{# Calcul dynamique du bloc de 5 #}
+					{% set startPage = (((currentPage - 1) // 5) * 5) + 1 %}
+					{% set endPage = min(startPage + 4, pagesCount) %}
 
-        <ul class="pagination pagination-sm mb-0 gap-1 align-items-center">
+					<ul
+						class="pagination pagination-sm mb-0 gap-1 align-items-center">
 
-            {# bouton précédent apparait seulement si le bloc commence après la page 1 #}
-            {% if startPage > 1 %}
-                {% set prevBlockPage = startPage - 5 %}
-                <li class="page-item">
-                    <a class="page-link rounded d-flex align-items-center justify-content-center px-2" 
-                       href="{{ path(paginationRoute, filters|merge({'page': prevBlockPage})) }}"
-                       style="height: 32px;"
-                       title="Bloc précédent">
-                        &laquo; Précédent
-                    </a>
-                </li>
-            {% endif %}
+						{# bouton précédent apparait seulement si le bloc commence après la page 1 #}
+						{% if startPage > 1 %}
+							{% set prevBlockPage = startPage - 5 %}
+							<li class="page-item">
+								<a class="page-link rounded d-flex align-items-center justify-content-center px-2" href="{{ path(paginationRoute, filters|merge({'page': prevBlockPage})) }}" style="height: 32px;" title="Bloc précédent">
+									&laquo; Précédent
+								</a>
+							</li>
+						{% endif %}
 
-            {# numéro du bloc actuel (ex: 1 à 5, ou 6 à 10) #}
-            {% for i in startPage..endPage %}
-                <li class="page-item {{ i == currentPage ? 'active' : '' }}">
-                    <a class="page-link rounded d-flex align-items-center justify-content-center" 
-                       href="{{ path(paginationRoute, filters|merge({'page': i})) }}" 
-                       style="width: 32px; height: 32px; padding: 0;">
-                        {{ i }}
-                    </a>
-                </li>
-            {% endfor %}
+						{# numéro du bloc actuel (ex: 1 à 5, ou 6 à 10) #}
+						{% for i in startPage..endPage %}
+							<li class="page-item {{ i == currentPage ? 'active' : '' }}">
+								<a class="page-link rounded d-flex align-items-center justify-content-center" href="{{ path(paginationRoute, filters|merge({'page': i})) }}" style="width: 32px; height: 32px; padding: 0;">
+									{{ i }}
+								</a>
+							</li>
+						{% endfor %}
 
-            {# bouton suivant apparait seulement s'il reste encore des pages après ce bloc #}
-            {% if endPage < pagesCount %}
-                {% set nextBlockPage = startPage + 5 %}
-                <li class="page-item">
-                    <a class="page-link rounded d-flex align-items-center justify-content-center px-2" 
-                       href="{{ path(paginationRoute, filters|merge({'page': nextBlockPage})) }}"
-                       style="height: 32px;"
-                       title="Bloc suivant">
-                        Suivant &raquo;
-                    </a>
-                </li>
-            {% endif %}
+						{# bouton suivant apparait seulement s'il reste encore des pages après ce bloc #}
+						{% if endPage < pagesCount %}
+							{% set nextBlockPage = startPage + 5 %}
+							<li class="page-item">
+								<a class="page-link rounded d-flex align-items-center justify-content-center px-2" href="{{ path(paginationRoute, filters|merge({'page': nextBlockPage})) }}" style="height: 32px;" title="Bloc suivant">
+									Suivant &raquo;
+								</a>
+							</li>
+						{% endif %}
 
-        </ul>
-    </nav>
-{% endif %}
+					</ul>
+				</nav>
+			{% endif %}
 		{% endif %}
 
 		{% block content %}{% endblock %}

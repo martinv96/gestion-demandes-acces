@@ -138,12 +138,12 @@ class WorkflowNotificationService
                 $email = (new TemplatedEmail())
                     ->from($this->resolveMailerFrom())
                     ->to($emailAddress)
-                    ->subject($this->buildSubject('ESCALADE', $request))
-                    ->htmlTemplate('emails/notification_info.html.twig')
+                    ->subject($this->buildSubject('RAPPEL', $request))
+                    ->htmlTemplate('emails/notification_reminder.html.twig')
                     ->context([
                         'request' => $request,
                         'status_label' => $this->getLabel((string) $request->getStatus()),
-                        'last_comment' => $message,
+                        'reminder_message' => $message,
                     ]);
 
                 $this->mailer->send($email);
