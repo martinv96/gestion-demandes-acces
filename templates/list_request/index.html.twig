@@ -129,82 +129,70 @@
 					<div class="table-responsive">
 						<table class="table table-hover align-middle mb-0">
 							<thead class="table-light">
-    <tr>
-        <th scope="col">Référence</th>
-        <th scope="col">Agent</th>
+								<tr>
+									<th scope="col">Référence</th>
+									<th scope="col">Agent</th>
 
-        {% set currentSort = app.request.query.get('sort') %}
-        {% set currentDir = app.request.query.get('direction', 'DESC') %}
+									{% set currentSort = app.request.query.get('sort') %}
+									{% set currentDir = app.request.query.get('direction', 'DESC') %}
 
-        {# TRI SERVICE #}
-        <th scope="col">
-            {% set nextDir = (currentSort == 'service' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
-            Service
-            <a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'service', 'direction': nextDir})) }}" 
-               class="sort-btn-link {{ currentSort == 'service' ? 'active-sort' : '' }}" 
-               title="Trier par service">
-                <span class="sort-icon-neutral">⇅</span>
-            </a>
-        </th>
+									{# filtre service #}
+									<th scope="col">
+										{% set nextDir = (currentSort == 'service' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
+										Service
+										<a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'service', 'direction': nextDir})) }}" class="sort-btn-link {{ currentSort == 'service' ? 'active-sort' : '' }}" title="Trier par service">
+											<span class="sort-icon-neutral">⇅</span>
+										</a>
+									</th>
 
-        {# TRI TYPE #}
-        <th scope="col">
-            {% set nextDir = (currentSort == 'type' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
-            Type
-            <a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'type', 'direction': nextDir})) }}" 
-               class="sort-btn-link {{ currentSort == 'type' ? 'active-sort' : '' }}" 
-               title="Trier par type">
-                <span class="sort-icon-neutral">⇅</span>
-            </a>
-        </th>
+									{# filtre type #}
+									<th scope="col">
+										{% set nextDir = (currentSort == 'type' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
+										Type
+										<a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'type', 'direction': nextDir})) }}" class="sort-btn-link {{ currentSort == 'type' ? 'active-sort' : '' }}" title="Trier par type">
+											<span class="sort-icon-neutral">⇅</span>
+										</a>
+									</th>
 
-        {# TRI STATUT #}
-        <th scope="col">
-            {% set nextDir = (currentSort == 'status' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
-            Statut
-            <a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'status', 'direction': nextDir})) }}" 
-               class="sort-btn-link {{ currentSort == 'status' ? 'active-sort' : '' }}" 
-               title="Trier par statut">
-                <span class="sort-icon-neutral">⇅</span>
-            </a>
-        </th>
+									{# filtre statut #}
+									<th scope="col">
+										{% set nextDir = (currentSort == 'status' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
+										Statut
+										<a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'status', 'direction': nextDir})) }}" class="sort-btn-link {{ currentSort == 'status' ? 'active-sort' : '' }}" title="Trier par statut">
+											<span class="sort-icon-neutral">⇅</span>
+										</a>
+									</th>
 
-        {# TRI DATE ARRIVÉE #}
-        <th scope="col">
-            {% set nextDir = (currentSort == 'arrivalDate' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
-            Date d'arrivée
-            <a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'arrivalDate', 'direction': nextDir})) }}" 
-               class="sort-btn-link {{ currentSort == 'arrivalDate' ? 'active-sort' : '' }}" 
-               title="Trier par date d'arrivée">
-                <span class="sort-icon-neutral">⇅</span>
-            </a>
-        </th>
+									{# filtre date arrivée #}
+									<th scope="col">
+										{% set nextDir = (currentSort == 'arrivalDate' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
+										Date d'arrivée
+										<a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'arrivalDate', 'direction': nextDir})) }}" class="sort-btn-link {{ currentSort == 'arrivalDate' ? 'active-sort' : '' }}" title="Trier par date d'arrivée">
+											<span class="sort-icon-neutral">⇅</span>
+										</a>
+									</th>
 
-        {# TRI DATE DÉPART #}
-        <th scope="col">
-            {% set nextDir = (currentSort == 'departureDate' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
-            Date de départ
-            <a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'departureDate', 'direction': nextDir})) }}" 
-               class="sort-btn-link {{ currentSort == 'departureDate' ? 'active-sort' : '' }}" 
-               title="Trier par date de départ">
-                <span class="sort-icon-neutral">⇅</span>
-            </a>
-        </th>
+									{# filtre date départ #}
+									<th scope="col">
+										{% set nextDir = (currentSort == 'departureDate' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
+										Date de départ
+										<a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'departureDate', 'direction': nextDir})) }}" class="sort-btn-link {{ currentSort == 'departureDate' ? 'active-sort' : '' }}" title="Trier par date de départ">
+											<span class="sort-icon-neutral">⇅</span>
+										</a>
+									</th>
 
-        {# TRI CRÉÉE LE #}
-        <th scope="col">
-            {% set nextDir = (currentSort == 'creationDate' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
-            Créée le
-            <a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'creationDate', 'direction': nextDir})) }}" 
-               class="sort-btn-link {{ currentSort == 'creationDate' ? 'active-sort' : '' }}" 
-               title="Trier par date de création">
-                <span class="sort-icon-neutral">⇅</span>
-            </a>
-        </th>
+									{# filtre créée le #}
+									<th scope="col">
+										{% set nextDir = (currentSort == 'creationDate' and currentDir == 'ASC') ? 'DESC' : 'ASC' %}
+										Créée le
+										<a href="{{ path(app.request.attributes.get('_route'), filters|merge({'sort': 'creationDate', 'direction': nextDir})) }}" class="sort-btn-link {{ currentSort == 'creationDate' ? 'active-sort' : '' }}" title="Trier par date de création">
+											<span class="sort-icon-neutral">⇅</span>
+										</a>
+									</th>
 
-        <th scope="col" class="text-center">Action</th>
-    </tr>
-</thead>
+									<th scope="col" class="text-center">Action</th>
+								</tr>
+							</thead>
 							<tbody>
 								{% for request in requests %}
 									<tr>

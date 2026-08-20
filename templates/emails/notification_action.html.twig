@@ -1,166 +1,42 @@
 {% apply inline_css %}
 <style>
-	body {
-		margin: 0;
-		padding: 0;
-		background-color: #c3cee7;
-	}
-	table {
-		border-collapse: collapse;
-		mso-table-lspace: 0;
-		mso-table-rspace: 0;
-	}
+	body { margin: 0; padding: 0; background-color: #c3cee7; }
+	table { border-collapse: collapse; mso-table-lspace: 0; mso-table-rspace: 0; }
 
 	/* Sidebar : Sienne Brulée (Pro et sobre) */
-	.sidebar {
-		background-color: #8e44ad;
-		background-color: #a35233;
-		width: 260px;
-		min-width: 260px;
-		padding: 40px 20px;
-		text-align: center;
-		vertical-align: top;
-	}
-	.sidebar h4 {
-		color: #ffffff !important;
-		margin: 15px 0 5px;
-		font-family: 'Segoe UI', sans-serif;
-		font-size: 18px;
-	}
-	.sidebar p {
-		color: #f2d7cc;
-		margin: 0;
-		font-family: 'Segoe UI', sans-serif;
-		font-size: 13px;
-		opacity: 0.8;
-	}
+	.sidebar { background-color: #8e44ad; background-color: #a35233; width: 260px; min-width: 260px; padding: 40px 20px; text-align: center; vertical-align: top; }
+	.sidebar h4 { color: #ffffff !important; margin: 15px 0 5px; font-family: 'Segoe UI', sans-serif; font-size: 18px; }
+	.sidebar p { color: #f2d7cc; margin: 0; font-family: 'Segoe UI', sans-serif; font-size: 13px; opacity: 0.8; }
 
 	/* Contenu : Ambre doux (Moins agressif) */
-	.main-content {
-		background-color: #d18d67;
-		padding: 60px 40px;
-		vertical-align: top;
-	}
-	h2 {
-		color: #ffffff;
-		font-family: 'Segoe UI', sans-serif;
-		font-weight: bold;
-		font-size: 26px;
-		margin: 0 0 25px;
-	}
-	.text-intro {
-		color: #ffffff;
-		font-family: 'Segoe UI', sans-serif;
-		font-size: 16px;
-		line-height: 1.6;
-		margin-bottom: 30px;
-		opacity: 0.9;
-	}
+	.main-content { background-color: #d18d67; padding: 60px 40px; vertical-align: top; }
+	h2 { color: #ffffff; font-family: 'Segoe UI', sans-serif; font-weight: bold; font-size: 26px; margin: 0 0 25px; }
+	.text-intro { color: #ffffff; font-family: 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.6; margin-bottom: 30px; opacity: 0.9; }
 
 	/* Card : Contraste renforcé */
-	.info-card {
-		background-color: #f2f2f2;
-		border-radius: 8px;
-		padding: 30px;
-		margin-bottom: 30px;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-	}
-	.label {
-		color: #6e7985;
-		font-family: 'Segoe UI', sans-serif;
-		font-size: 11px;
-		text-transform: uppercase;
-		letter-spacing: 1px;
-		margin-bottom: 5px;
-	}
-	.value {
-		color: #2c3e50;
-		font-family: 'Segoe UI', sans-serif;
-		font-weight: 600;
-		font-size: 17px;
-		margin-bottom: 20px;
-	}
-	.badge {
-		background-color: #f8f1ed;
-		border: 1px solid #e6ccbe;
-		color: #a35233;
-		padding: 6px 15px;
-		border-radius: 4px;
-		font-weight: bold;
-		font-size: 12px;
-		display: inline-block;
-	}
+	.info-card { background-color: #f2f2f2; border-radius: 8px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+	.label { color: #6e7985; font-family: 'Segoe UI', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+	.value { color: #2c3e50; font-family: 'Segoe UI', sans-serif; font-weight: 600; font-size: 17px; margin-bottom: 20px; }
+	.badge { background-color: #f8f1ed; border: 1px solid #e6ccbe; color: #a35233; padding: 6px 15px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block; }
 
 	/* Commentaire : Bulle plus neutre pour le texte */
-	.comment-title {
-		color: #ffffff;
-		font-family: 'Segoe UI', sans-serif;
-		font-weight: bold;
-		font-size: 15px;
-		margin-bottom: 10px;
-	}
-	.comment-bubble {
-		background-color: #f2f2f2;
-		border-radius: 12px;
-		padding: 25px;
-		border: 1px solid rgba(255, 255, 255, 0.3);
-		text-align: center;
-	}
-	.comment-text {
-		color: #475569;
-		font-family: 'Segoe UI', sans-serif;
-		font-style: italic;
-		font-size: 16px;
-		margin: 0;
-		line-height: 1.5;
-	}
+	.comment-title { color: #ffffff; font-family: 'Segoe UI', sans-serif; font-weight: bold; font-size: 15px; margin-bottom: 10px; }
+	.comment-bubble { background-color: #f2f2f2; border-radius: 12px; padding: 25px; border: 1px solid rgba(255, 255, 255, 0.3); text-align: center; }
+	.comment-text { color: #475569; font-family: 'Segoe UI', sans-serif; font-style: italic; font-size: 16px; margin: 0; line-height: 1.5; }
 
 	/* Bouton : Sidebar Color (Rappel pro) */
-	.btn-primary {
-		background-color: #a35233;
-		color: #ffffff !important;
-		padding: 16px 32px;
-		text-decoration: none;
-		border-radius: 6px;
-		font-weight: bold;
-		display: inline-block;
-		font-family: 'Segoe UI', sans-serif;
-		margin-top: 30px;
-		border: 1px solid rgba(255, 255, 255, 0.2);
-	}
+	.btn-primary { background-color: #a35233; color: #ffffff !important; padding: 16px 32px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-family: 'Segoe UI', sans-serif; margin-top: 30px; border: 1px solid rgba(255, 255, 255, 0.2); }
 
 	/* Footer */
-	.footer {
-		background-color: #e9ecef;
-		padding: 30px;
-		text-align: center;
-		border-top: 1px solid #dee2e6;
-		color: #7f8c8d;
-		font-family: 'Segoe UI', sans-serif;
-		font-size: 11px;
-	}
+	.footer { background-color: #e9ecef; padding: 30px; text-align: center; border-top: 1px solid #dee2e6; color: #7f8c8d; font-family: 'Segoe UI', sans-serif; font-size: 11px; }
 
 	@media only screen and (max-width: 600px) {
-		.sidebar {
-			width: 110px !important;
-			min-width: 110px !important;
-			padding: 25px 10px !important;
-		}
-		.sidebar h4 {
-			font-size: 12px !important;
-		}
-		.sidebar p {
-			font-size: 10px !important;
-		}
-		.main-content {
-			padding: 30px 20px !important;
-		}
-		h2 {
-			font-size: 22px !important;
-		}
-		.info-card {
-			padding: 20px !important;
-		}
+		.sidebar { width: 110px !important; min-width: 110px !important; padding: 25px 10px !important; }
+		.sidebar h4 { font-size: 12px !important; }
+		.sidebar p { font-size: 10px !important; }
+		.main-content { padding: 30px 20px !important; }
+		h2 { font-size: 22px !important; }
+		.info-card { padding: 20px !important; }
 	}
 </style>
 

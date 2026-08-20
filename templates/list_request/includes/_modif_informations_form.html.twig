@@ -9,9 +9,9 @@
 
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label for="rh_edit_civilite" class="form-label">Civilite *</label>
+                            <label for="rh_edit_civilite" class="form-label">Civilité *</label>
                             <select class="form-select" id="rh_edit_civilite" name="civilite" required>
-                                <option value="">Selectionner une civilite</option>
+                                <option value="">Selectionner une civilité</option>
                                 <option value="M." {{ requestEntity.agent and requestEntity.agent.civility == 'M.' ? 'selected' : '' }}>M.</option>
                                 <option value="Mme" {{ requestEntity.agent and requestEntity.agent.civility == 'Mme' ? 'selected' : '' }}>Mme</option>
                                 <option value="Mlle" {{ requestEntity.agent and requestEntity.agent.civility == 'Mlle' ? 'selected' : '' }}>Mlle</option>
@@ -19,7 +19,7 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label for="rh_edit_prenom" class="form-label">Prenom agent</label>
+                            <label for="rh_edit_prenom" class="form-label">Prénom agent</label>
                             <input type="text" class="form-control" id="rh_edit_prenom" name="prenom" value="{{ requestEntity.agent ? requestEntity.agent.firstname|capitalize : '' }}" required>
                         </div>
 
@@ -59,7 +59,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label for="rh_edit_date_depart" class="form-label">Date de depart</label>
+                            <label for="rh_edit_date_depart" class="form-label">Date de départ</label>
                             <input type="date" class="form-control" id="rh_edit_date_depart" name="date_depart" value="{{ requestEntity.departureDate ? requestEntity.departureDate|date('Y-m-d') : '' }}">
                         </div>
 
@@ -112,7 +112,7 @@
                                         </div>
                                     </div>
                                 {% else %}
-                                    <p class="text-muted mb-0">Aucun materiel actif disponible.</p>
+                                    <p class="text-muted mb-0">Aucun matériel actif disponible.</p>
                                 {% endfor %}
                             </div>
                         </div>

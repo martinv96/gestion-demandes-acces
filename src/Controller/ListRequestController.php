@@ -39,7 +39,7 @@ final class ListRequestController extends AbstractController
     public function index(RequestRepository $requestRepository, ServiceRepository $serviceRepository, HttpRequest $httpRequest): Response
     {
 
-        $limit = 10;
+        $limit = 15;
         $page = $httpRequest->query->getInt('page', 1);
         if ($page < 1) $page = 1;
         $offset = ($page - 1) * $limit;

@@ -1,172 +1,45 @@
 {% apply inline_css %}
 <style>
-	body {
-		margin: 0;
-		padding: 0;
-		background-color: #c3cee7;
-	}
-	table {
-		border-collapse: collapse;
-		mso-table-lspace: 0;
-		mso-table-rspace: 0;
-	}
+	body { margin: 0; padding: 0; background-color: #c3cee7; }
+	table { border-collapse: collapse; mso-table-lspace: 0; mso-table-rspace: 0; }
 
 	/* Colonne de gauche (Sidebar) */
-	.sidebar {
-		background-color: #566a7e;
-		width: 260px;
-		min-width: 260px;
-		padding: 40px 20px;
-		text-align: center;
-		vertical-align: top;
-	}
-	.sidebar h4 {
-		color: #ffffff !important;
-		margin: 15px 0 5px;
-		font-family: 'Segoe UI', sans-serif;
-		font-size: 18px;
-	}
-	.sidebar p {
-		color: #d8e4fd;
-		margin: 0;
-		font-family: 'Segoe UI', sans-serif;
-		font-size: 14px;
-		opacity: 0.8;
-	}
+	.sidebar { background-color: #566a7e; width: 260px; min-width: 260px; padding: 40px 20px; text-align: center; vertical-align: top; }
+	.sidebar h4 { color: #ffffff !important; margin: 15px 0 5px; font-family: 'Segoe UI', sans-serif; font-size: 18px; }
+	.sidebar p { color: #d8e4fd; margin: 0; font-family: 'Segoe UI', sans-serif; font-size: 14px; opacity: 0.8; }
 
 	/* Contenu mail */
-	.main-content {
-		background-color: #c3cee7;
-		padding: 60px 40px;
-		vertical-align: top;
-	}
-	h2 {
-		color: #566a7e;
-		font-family: 'Segoe UI', sans-serif;
-		font-weight: bold;
-		font-size: 28px;
-		margin: 0 0 30px;
-	}
-	.text-intro {
-		color: #212529;
-		font-family: 'Segoe UI', sans-serif;
-		font-size: 16px;
-		line-height: 1.6;
-		margin-bottom: 30px;
-	}
+	.main-content { background-color: #c3cee7; padding: 60px 40px; vertical-align: top; }
+	h2 { color: #566a7e; font-family: 'Segoe UI', sans-serif; font-weight: bold; font-size: 28px; margin: 0 0 30px; }
+	.text-intro { color: #212529; font-family: 'Segoe UI', sans-serif; font-size: 16px; line-height: 1.6; margin-bottom: 30px; }
 
 	/* Carte Blanche */
-	.info-card {
-		background-color: #ffffff;
-		border-radius: 8px;
-		padding: 30px;
-		margin-bottom: 30px;
-	}
-	.label {
-		color: #8898aa;
-		font-family: 'Segoe UI', sans-serif;
-		font-size: 11px;
-		text-transform: uppercase;
-		letter-spacing: 1px;
-		margin-bottom: 5px;
-	}
-	.value {
-		color: #32325d;
-		font-family: 'Segoe UI', sans-serif;
-		font-weight: 600;
-		font-size: 17px;
-		margin-bottom: 20px;
-	}
-	.badge {
-		background-color: #f1f4f9;
-		border: 1px solid #c3cee7;
-		color: #566a7e;
-		padding: 6px 15px;
-		border-radius: 4px;
-		font-weight: bold;
-		font-size: 13px;
-		display: inline-block;
-	}
+	.info-card { background-color: #ffffff; border-radius: 8px; padding: 30px; margin-bottom: 30px; }
+	.label { color: #8898aa; font-family: 'Segoe UI', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+	.value { color: #32325d; font-family: 'Segoe UI', sans-serif; font-weight: 600; font-size: 17px; margin-bottom: 20px; }
+	.badge { background-color: #f1f4f9; border: 1px solid #c3cee7; color: #566a7e; padding: 6px 15px; border-radius: 4px; font-weight: bold; font-size: 13px; display: inline-block; }
 
 	/* Zone Commentaire */
-	.comment-title {
-		color: #566a7e;
-		font-family: 'Segoe UI', sans-serif;
-		font-weight: bold;
-		font-size: 15px;
-		margin-bottom: 10px;
-	}
-	.comment-bubble {
-		background-color: #f1f4f9;
-		border-radius: 12px;
-		padding: 25px;
-		border: 1px solid #e1e8f0;
-		text-align: center;
-	}
-	.comment-text {
-		color: #495057;
-		font-family: 'Segoe UI', sans-serif;
-		font-style: italic;
-		font-size: 16px;
-		margin: 0;
-	}
+	.comment-title { color: #566a7e; font-family: 'Segoe UI', sans-serif; font-weight: bold; font-size: 15px; margin-bottom: 10px; }
+	.comment-bubble { background-color: #f1f4f9; border-radius: 12px; padding: 25px; border: 1px solid #e1e8f0; text-align: center; }
+	.comment-text { color: #495057; font-family: 'Segoe UI', sans-serif; font-style: italic; font-size: 16px; margin: 0; }
 
 	/* Bouton */
-	.btn-primary {
-		background-color: #566a7e;
-		color: #ffffff !important;
-		padding: 15px 35px;
-		text-decoration: none;
-		border-radius: 6px;
-		font-weight: bold;
-		display: inline-block;
-		font-family: 'Segoe UI', sans-serif;
-		margin-top: 40px;
-	}
+	.btn-primary { background-color: #566a7e; color: #ffffff !important; padding: 15px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-family: 'Segoe UI', sans-serif; margin-top: 40px; }
 
 	/* Footer */
-	.footer {
-		background-color: #e9ecef;
-		padding: 30px;
-		text-align: center;
-		border-top: 1px solid #dee2e6;
-		color: #8898aa;
-		font-family: 'Segoe UI', sans-serif;
-		font-size: 12px;
-	}
+	.footer { background-color: #e9ecef; padding: 30px; text-align: center; border-top: 1px solid #dee2e6; color: #8898aa; font-family: 'Segoe UI', sans-serif; font-size: 12px; }
 
 	/* mobile */
-	@media only screen and (max-width: 600px) {
-		.sidebar {
-			width: 100px !important;
-			min-width: 100px !important;
-			padding: 20px 10px !important;
-		}
-		.sidebar h4 {
-			font-size: 12px !important;
-			margin: 5px 0 !important;
-		}
-		.sidebar p {
-			font-size: 10px !important;
-		}
-		.sidebar img {
-			width: 60px !important;
-		}
-		.main-content {
-			padding: 25px 15px !important;
-		}
-		h2 {
-			font-size: 20px !important;
-			margin-bottom: 15px !important;
-		}
-		.info-card {
-			padding: 15px !important;
-		}
-		.btn-primary {
-			padding: 12px 20px !important;
-			margin-top: 20px !important;
-		}
-	}
+	@media only screen and (max-width: 600px) { 
+	.sidebar { width: 100px !important; min-width: 100px !important; padding: 20px 10px !important; } 
+	.sidebar h4 { font-size: 12px !important; margin: 5px 0 !important; }
+	.sidebar p { font-size: 10px !important; }
+	.sidebar img { width: 60px !important; }
+	.main-content { padding: 25px 15px !important; }
+	h2 { font-size: 20px !important; margin-bottom: 15px !important; }
+	.info-card { padding: 15px !important; }
+	.btn-primary { padding: 12px 20px !important; margin-top: 20px !important; } }
 </style>
 
 <table width="100%" border="0" cellspacing="0" cellpadding="0">
