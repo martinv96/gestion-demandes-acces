@@ -9,6 +9,7 @@ use App\Message\WorkflowNotificationMessage;
 use App\Repository\RessourceRepository;
 use App\Repository\RequestRepository;
 use App\Repository\ServiceRepository;
+use App\Repository\PrivateCommentRepository;
 use App\Service\RequestExportSpreadsheetService;
 use App\Service\RequestUpdateInfoService;
 use App\Service\WorkflowService;
@@ -117,6 +118,7 @@ final class ListRequestController extends AbstractController
         $services            = $serviceRepository->findBy([], ['name' => 'DESC']);
         $availableDates      = $requestRepository->findDistinctCurrentArrivalDates();
         $availableDepartures = $requestRepository->findDistinctCurrentDepartureDates();
+
         $totalCount          = $requestRepository->countCurrent();
         $totalWithFilters    = $requestRepository->countCurrentWithFilters($filters);
         $maxPages            = ceil($totalWithFilters / $limit);
@@ -155,7 +157,8 @@ final class ListRequestController extends AbstractController
         WorkflowService $workflowService,
         \App\Service\Workflow\WorkflowStateResolver $workflowStateResolver,
         RessourceRepository $ressourceRepository,
-        ServiceRepository $serviceRepository
+        ServiceRepository $serviceRepository,
+        PrivateCommentRepository $privateCommentRepository
     ): Response {
         $canEditRequestInfo = $this->isGranted(RequestVoter::EDIT_INFO, $requestEntity);
         $canUndo = $this->isGranted(RequestVoter::UNDO, $requestEntity);
@@ -295,6 +298,12 @@ final class ListRequestController extends AbstractController
             ];
         }
 
+        // --- AJOUT : Filtrage strict des commentaires privés uniquement pour la DSI ---
+        $isDsi = $this->isGranted('ROLE_DSI') || $this->isGranted('ROLE_ADMIN');
+        $privateCommentsDsi = $isDsi
+            ? $privateCommentRepository->findBy(['request' => $requestEntity, 'targetService' => 'DSI'], ['createdAt' => 'DESC'])
+            : [];
+
         return $this->render('list_request/show.html.twig', [
             'requestEntity' => $requestEntity,
 
@@ -330,8 +339,53 @@ final class ListRequestController extends AbstractController
             'closureOwnerById' => $closureOwnerById,
             'currentUserHasValidated' => $currentUserHasValidated,
             'isInfoEditLocked' => $isInfoEditLocked,
+
+            // Variables pour les commentaires privés DSI
+            'privateCommentsDsi' => $privateCommentsDsi,
+            'isDsi' => $isDsi,
         ]);
     }
+
+    #[Route('/request/{id}/private-comment-dsi/add', name: 'app_request_add_private_comment_dsi', methods: ['POST'], requirements: ['id' => '\d+'])]
+public function addPrivateCommentDsi(
+    AccessRequest $requestEntity,
+    HttpRequest $httpRequest,
+    EntityManagerInterface $entityManager
+): Response {
+    $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+    if (!$this->isGranted('ROLE_DSI') && !$this->isGranted('ROLE_ADMIN')) {
+        throw $this->createAccessDeniedException('Seule le service informatique a accès à ces notes privées.');
+    }
+
+    $currentUser = $this->getUser();
+    if (!$currentUser instanceof User) {
+        throw $this->createAccessDeniedException();
+    }
+
+    if (!$this->isCsrfTokenValid('add_private_comment_dsi_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
+        $this->addFlash('danger', 'Token CSRF invalide.');
+        return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+    }
+
+    // Doit correspondre au name="..." du textarea Twig
+    $content = trim((string) $httpRequest->request->get('private_comment_dsi', ''));
+    
+    if ($content !== '') {
+        $comment = new \App\Entity\PrivateComment();
+        $comment->setContent($content);
+        $comment->setAuthor($currentUser);
+        $comment->setRequest($requestEntity);
+        $comment->setTargetService('DSI');
+
+        $entityManager->persist($comment);
+        $entityManager->flush();
+
+        $this->addFlash('success', 'Note privée ajoutée.');
+    }
+
+    return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
+}
 
     private function resolveClosureOwnerRole(Ressource $ressource): string
     {

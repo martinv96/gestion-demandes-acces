@@ -1,5 +1,16 @@
 {% extends 'base.html.twig' %}
+{% block stylesheets %}
+	{{ parent() }}
+	<style>
+		.private-comment-icon {
+			filter: brightness(0) saturate(100%);
+		}
 
+		:root[data-theme="dark"] .private-comment-icon {
+			filter: brightness(0) saturate(100%) invert(1);
+		}
+	</style>
+{% endblock %}
 {% block title %}Nouvelle demande
 {% endblock %}
 
@@ -24,25 +35,25 @@
 		</div>
 
 		{{ form_start(form, {'attr': {
-			'class': 'request-form', 
-			'enctype': 'multipart/form-data',
-			'data-new-request': '1',
-			'data-type-name': form.type.vars.full_name,
-			'data-parent-request-id': form.parentRequest.vars.id,
-			'data-civility-id': form.civility.vars.id,
-			'data-firstname-id': form.firstname.vars.id,
-			'data-lastname-id': form.lastname.vars.id,
-			'data-email-id': form.email.vars.id,
-			'data-service-id': form.service.vars.id,
-			'data-job-title-id': form.jobTitle.vars.id,
-			'data-arrival-date-id': form.arrivalDate.vars.id,
-			'data-departure-date-id': form.departureDate.vars.id,
-			'data-commentary-id': form.commentary.vars.id,
-			'data-clothing-size-id': form.clothingSize is defined ? form.clothingSize.vars.id : '',
-			'data-shoe-size-id': form.shoeSize is defined ? form.shoeSize.vars.id : '',
-			'data-phone-type-name': form.phoneTypes.vars.full_name
-			}
-			}) }}
+            'class': 'request-form', 
+            'enctype': 'multipart/form-data',
+            'data-new-request': '1',
+            'data-type-name': form.type.vars.full_name,
+            'data-parent-request-id': form.parentRequest.vars.id,
+            'data-civility-id': form.civility.vars.id,
+            'data-firstname-id': form.firstname.vars.id,
+            'data-lastname-id': form.lastname.vars.id,
+            'data-email-id': form.email.vars.id,
+            'data-service-id': form.service.vars.id,
+            'data-job-title-id': form.jobTitle.vars.id,
+            'data-arrival-date-id': form.arrivalDate.vars.id,
+            'data-departure-date-id': form.departureDate.vars.id,
+            'data-commentary-id': form.commentary.vars.id,
+            'data-clothing-size-id': form.clothingSize is defined ? form.clothingSize.vars.id : '',
+            'data-shoe-size-id': form.shoeSize is defined ? form.shoeSize.vars.id : '',
+            'data-phone-type-name': form.phoneTypes.vars.full_name
+            }
+            }) }}
 
 		{% if form.vars.errors|length > 0 %}
 			<div class="alert alert-danger form-errors-global">
@@ -260,11 +271,11 @@
 			<div class="card-body">
 				<div class="custom-file-wrapper mb-2">
 					{{ form_widget(form.pieceJointe, {
-                'attr': {
-                    'class': 'custom-file-input',
-                    'style': 'display:none;'
-                }
-            }) }}
+                        'attr': {
+                            'class': 'custom-file-input',
+                            'style': 'display:none;'
+                        }
+                    }) }}
 					<label for="{{ form.pieceJointe.vars.id }}" class="custom-file-label-btn">Sélectionner un fichier</label>
 					<span id="file-name" class="custom-file-label-text">Aucun fichier sélectionné</span>
 				</div>
@@ -272,13 +283,27 @@
 			</div>
 		</div>
 
-		{# commentaires #}
+		{# Note privée DSI (Strictement confidentiel) #}
+		{% if is_granted('ROLE_DSI') and form.privateCommentDsi is defined %}
+			<div class="card request-form-card mb-4 border-warning">
+				<div class="card-header bg-warning text-dark font-weight-bold d-flex align-items-center gap-2">
+					<img src="{{ asset('images/icones/cadenas.png') }}" alt="" class="private-comment-icon" style="width:25px;">
+					Note privée (service informatique)
+				</div>
+				<div class="card-body">
+					{{ form_row(form.privateCommentDsi) }}
+				</div>
+			</div>
+		{% endif %}
+
+		{# commentaires généraux #}
 		<div class="card request-form-card mb-4">
 			<div class="card-header">Commentaires</div>
 			<div class="card-body">
 				{{ form_row(form.commentary) }}
 			</div>
 		</div>
+
 
 		{# parcours de validation #}
 		<div class="card request-form-card mb-4">

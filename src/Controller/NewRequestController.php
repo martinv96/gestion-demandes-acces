@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\PrivateComment;
 use App\Entity\Request as AccessRequest;
 use App\Entity\User;
 use App\Form\Model\NewRequestData;
@@ -10,6 +11,7 @@ use App\Message\WorkflowNotificationMessage;
 use App\Repository\RequestRepository;
 use App\Service\RequestCreationService;
 use App\Service\WorkflowService;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,8 +22,14 @@ final class NewRequestController extends AbstractController
 {
     // route pour créer une nouvelle demande d'accès
     #[Route('/new/request', name: 'app_new_request', methods: ['GET', 'POST'])]
-    public function index(Request $request, RequestRepository $requestRepository, RequestCreationService $requestCreationService, WorkflowService $workflowService, MessageBusInterface $messageBus): Response
-    {
+    public function index(
+        Request $request, 
+        RequestRepository $requestRepository, 
+        RequestCreationService $requestCreationService, 
+        WorkflowService $workflowService, 
+        MessageBusInterface $messageBus,
+        EntityManagerInterface $entityManager
+    ): Response {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
         $currentUser = $this->getUser();
@@ -132,6 +140,20 @@ final class NewRequestController extends AbstractController
                     $pieceJointeFile,
                 );
 
+                // gestion commentaire privée
+                $privateDsiContent = trim((string) ($form->has('privateCommentDsi') ? $form->get('privateCommentDsi')->getData() : ''));
+                if ($privateDsiContent !== '' && $this->isGranted('ROLE_DSI')) {
+                    $privateComment = new PrivateComment();
+                    $privateComment->setContent($privateDsiContent);
+                    $privateComment->setAuthor($currentUser);
+                    $privateComment->setRequest($createdRequest);
+                    $privateComment->setTargetService('DSI');
+
+                    $entityManager->persist($privateComment);
+                    $entityManager->flush();
+                }
+                // ----------------------------------------------------------------------
+
                 $messageBus->dispatch(new WorkflowNotificationMessage(
                     (int) $createdRequest->getId(),
                     trim((string) ($formData->getCommentary() ?? '')) !== ''
@@ -152,6 +174,5 @@ final class NewRequestController extends AbstractController
             'form' => $form->createView(),
             'isServiceTechniqueUser' => $isServiceTechniqueUser,
         ]);
-    }    
-   
+    }
 }

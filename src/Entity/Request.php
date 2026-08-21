@@ -145,11 +145,18 @@ class Request
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $lastManualReminderService = null;
 
+    /**
+     * @var Collection<int, PrivateComment>
+     */
+    #[ORM\OneToMany(targetEntity: PrivateComment::class, mappedBy: 'request', cascade: ['remove'])]
+    private Collection $privateComments;
+
     public function __construct()
     {
         $this->ressources = new ArrayCollection();
         $this->requestId = new ArrayCollection();
         $this->childRequests = new ArrayCollection();
+        $this->privateComments = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -225,6 +232,35 @@ class Request
     public function setCommentary(?string $commentary): static
     {
         $this->commentary = $commentary;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, PrivateComment>
+     */
+    public function getPrivateComments(): Collection
+    {
+        return $this->privateComments;
+    }
+
+    public function addPrivateComment(PrivateComment $privateComment): static
+    {
+        if (!$this->privateComments->contains($privateComment)) {
+            $this->privateComments->add($privateComment);
+            $privateComment->setRequest($this);
+        }
+
+        return $this;
+    }
+
+    public function removePrivateComment(PrivateComment $privateComment): static
+    {
+        if ($this->privateComments->removeElement($privateComment)) {
+            if ($privateComment->getRequest() === $this) {
+                $privateComment->setRequest(null);
+            }
+        }
 
         return $this;
     }

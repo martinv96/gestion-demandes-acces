@@ -76,6 +76,8 @@ final class NewRequestData
     #[Assert\NotBlank(message: 'Le commentaire est obligatoire.')]
     private ?string $commentary = null;
 
+    private ?string $privateCommentDsi = null;
+
     #[Assert\Callback]
     public function validate(ExecutionContextInterface $context): void
     {
@@ -285,6 +287,16 @@ final class NewRequestData
     public function getCommentary(): ?string
     {
         return $this->commentary;
+    }
+
+    public function getPrivateCommentDsi(): ?string
+    {
+        return $this->privateCommentDsi;
+    }
+
+    public function setPrivateCommentDsi(?string $privateCommentDsi): void
+    {
+        $this->privateCommentDsi = $privateCommentDsi;
     }
 
     public function setCommentary(?string $commentary): void

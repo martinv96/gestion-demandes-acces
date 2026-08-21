@@ -300,6 +300,17 @@ final class NewRequestType extends AbstractType
                     'placeholder' => 'Informations complémentaires, besoins spécifiques...',
                 ],
             ]);
+
+        if ($user instanceof User && in_array('ROLE_DSI', $user->getRoles(), true)) {
+            $builder->add('privateCommentDsi', TextareaType::class, [
+                'label' => 'Note privée (service informatique)',
+                'required' => false,
+                'attr' => [
+                    'rows' => 3,
+                    'placeholder' => 'Saisissez une note réservée au service informatique...',
+                ],
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
