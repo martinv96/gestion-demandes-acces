@@ -11,6 +11,9 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
+/**
+ * Construit le classeur Excel des demandes, de leur historique et de leurs délais de traitement.
+ */
 class RequestExportSpreadsheetService
 {
     public function __construct(
@@ -23,9 +26,12 @@ class RequestExportSpreadsheetService
      */
     public function buildSpreadsheet(array $filters, string $scope): Spreadsheet
     {
+        // "history" exporte toutes les demandes ; les autres périmètres exportent les demandes courantes.
         $requests = $scope === 'history'
             ? $this->requestRepository->findWithFilters($filters)
             : $this->requestRepository->findCurrentWithFilters($filters);
+
+        // Précharge l'historique pour éviter une requête par demande pendant la construction du fichier.
         $historyByRequestId = $this->historyRepository->findByRequests($requests);
 
         $latestHistoryByRequestId = [];
@@ -40,6 +46,7 @@ class RequestExportSpreadsheetService
             }
         }
 
+        // Libellés lisibles utilisés dans les deux onglets Excel.
         $statusLabels = [
             AccessRequest::STATUS_EN_ATTENTE_RH => 'En attente RH',
             AccessRequest::STATUS_EN_ATTENTE_ST => 'En attente ST',
@@ -57,6 +64,7 @@ class RequestExportSpreadsheetService
             AccessRequest::TYPE_FERMETURE => 'Départ',
         ];
 
+        // Couleurs associées aux statuts et types pour faciliter la lecture du classeur.
         $statusStyleMap = [
             AccessRequest::STATUS_EN_ATTENTE_RH => ['font' => 'FF9A6700', 'border' => 'FFF59E0B'],
             AccessRequest::STATUS_EN_ATTENTE_ST => ['font' => 'FF9A6700', 'border' => 'FFF59E0B'],
@@ -74,6 +82,7 @@ class RequestExportSpreadsheetService
             AccessRequest::TYPE_FERMETURE => ['font' => 'FFB91C1C', 'border' => 'FFF87171'],
         ];
 
+        // Aptos est la police standard des versions récentes d'Excel.
         $spreadsheet = new Spreadsheet();
         $spreadsheet->getDefaultStyle()->getFont()->setName('Aptos')->setSize(11);
 
@@ -98,6 +107,7 @@ class RequestExportSpreadsheetService
         $summarySheet->fromArray($headers, null, 'A1');
         $this->applyExportHeaderStyle($summarySheet, 'A1:I1');
 
+        // Les lignes sont d'abord collectées, puis écrites en une seule opération dans la feuille.
         $summaryRows = [];
         $summaryStyleMetaByRow = [];
         $row = 2;
@@ -201,6 +211,7 @@ class RequestExportSpreadsheetService
         $detailSheet->fromArray($detailHeaders, null, 'A1');
         $this->applyExportHeaderStyle($detailSheet, 'A1:S1');
 
+        // L'onglet de détail contient une ligne par action d'historique d'une demande.
         $detailRows = [];
         $detailStyleMetaByRow = [];
         $detailRow = 2;
@@ -404,6 +415,7 @@ class RequestExportSpreadsheetService
 
     private function applyExportHeaderStyle(Worksheet $sheet, string $range): void
     {
+        // Style commun à toutes les lignes d'en-tête pour garder les deux feuilles cohérentes.
         $sheet->getStyle($range)->getFont()->setBold(true)->setSize(12)->getColor()->setARGB('FF1F2937');
         $sheet->getStyle($range)->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER)
@@ -419,6 +431,7 @@ class RequestExportSpreadsheetService
 
     private function applyAccentCellStyle(Worksheet $sheet, string $cell, string $fontColor, string $borderColor): void
     {
+        // Met en évidence le type ou statut par une couleur de texte et une bordure gauche.
         $sheet->getStyle($cell)->getFont()->setBold(true)->getColor()->setARGB($fontColor);
         $sheet->getStyle($cell)->getBorders()->getLeft()
             ->setBorderStyle(Border::BORDER_MEDIUM)
@@ -427,6 +440,7 @@ class RequestExportSpreadsheetService
 
     private function formatAgentFullName(?string $firstname, ?string $lastname): string
     {
+        // Un tiret est exporté lorsqu'aucune identité d'agent n'est disponible.
         $fullName = trim($this->toTitleCase($firstname) . ' ' . $this->toTitleCase($lastname));
 
         return $fullName === '' ? '-' : $fullName;
@@ -434,6 +448,7 @@ class RequestExportSpreadsheetService
 
     private function toTitleCase(?string $value): string
     {
+        // Normalise les noms provenant de la base avant de les afficher dans le fichier Excel.
         $normalized = trim((string) $value);
         if ($normalized === '') {
             return '';

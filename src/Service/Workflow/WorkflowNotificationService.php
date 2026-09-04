@@ -9,6 +9,9 @@ use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 
+/**
+ * Envoie les e-mails liés aux changements de statut et aux relances de workflow.
+ */
 class WorkflowNotificationService
 {
     /**
@@ -37,6 +40,7 @@ class WorkflowNotificationService
 
     public function notifyAllActors(AccessRequest $request, string $comment): void
     {
+        // Tous les comptes actifs sont informés ; les prochains validateurs reçoivent le modèle d'action.
         try {
             $activeUsers = $this->userRepository->findBy(['isActive' => true]);
         } catch (\Throwable) {
@@ -47,6 +51,7 @@ class WorkflowNotificationService
             return;
         }
 
+        // Les rôles attendus déterminent si l'e-mail est informatif ou demande une action.
         $nextRoles = $this->stateResolver->getNextValidatorRoles($request);
 
         foreach ($activeUsers as $user) {
@@ -72,6 +77,7 @@ class WorkflowNotificationService
 
     public function sendReminder(AccessRequest $request, string $message = 'Ceci est un rappel automatique.'): void
     {
+        // Ce rappel cible uniquement les utilisateurs qui peuvent valider l'étape courante.
         try {
             $nextRoles = $this->stateResolver->getNextValidatorRoles($request);
             $activeUsers = $this->userRepository->findBy(['isActive' => true]);
@@ -111,6 +117,7 @@ class WorkflowNotificationService
 
     public function sendEscalation(AccessRequest $request, string $message = 'La demande est toujours en attente et nécessite une intervention.'): void
     {
+        // Une escalade est adressée aux administrateurs et aux ressources humaines.
         try {
             $activeUsers = $this->userRepository->findBy(['isActive' => true]);
         } catch (\Throwable) {
@@ -166,6 +173,7 @@ class WorkflowNotificationService
 
     private function sendEmail(string $to, AccessRequest $request, string $comment, bool $isAction): void
     {
+        // Le modèle dépend du rôle du destinataire : action requise ou simple information.
         $subjectTag = $isAction ? 'ACTION REQUISE' : 'INFO';
         $template = $isAction ? 'emails/notification_action.html.twig' : 'emails/notification_info.html.twig';
 
@@ -185,6 +193,7 @@ class WorkflowNotificationService
 
     private function resolveMailerFrom(): string
     {
+        // Une variable d'environnement a priorité sur la valeur injectée dans le service.
         $runtimeFrom = trim((string) ($_SERVER['MAILER_FROM'] ?? $_ENV['MAILER_FROM'] ?? ''));
         if ($runtimeFrom !== '') {
             return $runtimeFrom;
@@ -197,6 +206,7 @@ class WorkflowNotificationService
 
     private function logInfo(string $to, AccessRequest $request, bool $isAction): void
     {
+        // Les logs permettent de retrouver le destinataire et l'état de la demande lors d'un audit.
         $this->logger?->info('Notification workflow envoyée.', [
             'request_id' => $request->getId(),
             'to' => $to,
@@ -208,6 +218,7 @@ class WorkflowNotificationService
 
     private function logError(string $message, AccessRequest $request, \Throwable $e, string $to, bool $isAction): void
     {
+        // Un échec d'e-mail est journalisé sans interrompre les envois destinés aux autres personnes.
         $this->logger?->error($message, [
             'request_id' => $request->getId(),
             'to' => $to,
@@ -219,11 +230,13 @@ class WorkflowNotificationService
 
     private function getLabel(string $status): string
     {
+        // Retourne le code brut si un nouveau statut n'a pas encore de libellé dans la constante.
         return self::LABELS[$status] ?? $status;
     }
 
     private function buildSubject(string $prefix, AccessRequest $request): string
     {
+        // Le sujet est commun à tous les e-mails de workflow pour faciliter le tri dans les boîtes mail.
         return sprintf(
             '%s : %s - %s (%s)',
             $prefix,
@@ -235,6 +248,7 @@ class WorkflowNotificationService
 
     private function getRequestTypeLabel(AccessRequest $request): string
     {
+        // Les types non gérés explicitement conservent un libellé générique.
         return match ((string) $request->getType()) {
             AccessRequest::TYPE_FERMETURE => 'Départ',
             AccessRequest::TYPE_OUVERTURE => 'Arrivée',
@@ -244,6 +258,7 @@ class WorkflowNotificationService
 
     private function getAgentDisplayName(AccessRequest $request): string
     {
+        // Une demande sans agent reste identifiable par son identifiant dans le sujet de l'e-mail.
         $agent = $request->getAgent();
         if ($agent === null) {
             return sprintf('Demande #%d', $request->getId());

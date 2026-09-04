@@ -78,6 +78,16 @@ document.addEventListener('DOMContentLoaded', function () {
     var returnedEmpty = document.getElementById('closure-returned-empty');
     var finalizeForm = document.getElementById('closure-finalize-form');
     var finalizeHint = document.getElementById('closure-finalize-hint');
+    var closureToggleInProgress = false;
+
+    function setClosureToggleButtonsDisabled(disabled) {
+        closureToggleForms.forEach(function (toggleForm) {
+            var button = toggleForm.querySelector('button[type="submit"]');
+            if (button) {
+                button.disabled = disabled;
+            }
+        });
+    }
 
     function refreshEmptyStates() {
         if (pendingEmpty && pendingList) {
@@ -135,46 +145,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     closureToggleForms.forEach(function (form) {
-        form.addEventListener('submit', async function (event) {
-            event.preventDefault();
-
-            var submitButton = form.querySelector('button[type="submit"]');
-            if (submitButton) {
-                submitButton.disabled = true;
-            }
-
-            try {
-                var response = await fetch(form.action, {
-                    method: 'POST',
-                    body: new FormData(form),
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                var payload = await response.json();
-                if (!response.ok || !payload.ok) {
-                    throw new Error(payload.message || 'Erreur lors du changement de statut.');
-                }
-
-                var row = form.closest('[data-closure-row]');
-                if (row) {
-                    applyRowStatus(row, payload.newStatus);
-                }
-
-                setAllVersionInputs(payload.version);
-                updateFinalizeBlock(Boolean(payload.canFinalizeClosure));
-                refreshEmptyStates();
-            } catch (error) {
-                alert(error.message || 'Erreur lors du changement de statut.');
-            } finally {
-                if (submitButton) {
-                    submitButton.disabled = false;
-                }
-            }
+        form.addEventListener('submit', function () {
+            setClosureToggleButtonsDisabled(true);
         });
     });
-
-    refreshEmptyStates();
 });
 </script>

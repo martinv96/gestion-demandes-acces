@@ -7,13 +7,19 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Repository\WorkflowTransitionConfigRepository;
 
+/**
+ * Centralise la détection des demandes bloquées faute de validateur actif.
+ * Il détermine aussi si RH peut relancer une demande vers l'étape suivante.
+ */
 class WorkflowBlockageHelper
 {
+    // Workflow utilisé lorsque la demande ne possède pas son propre instantané de transitions.
     private const DEFAULT_WORKFLOW_CODE = 'default_access';
 
     /**
      * @var array<string, array<string, array{role: string, next: string}>>
      */
+    // Dernier filet de sécurité si aucune transition n'est enregistrée en base.
     private const FALLBACK_TRANSITIONS = [
         AccessRequest::STATUS_EN_ATTENTE_RH => [
             'validate' => ['role' => 'ROLE_RH', 'next' => AccessRequest::STATUS_EN_ATTENTE_VALIDATION],
@@ -32,6 +38,7 @@ class WorkflowBlockageHelper
     /**
      * @var array<string, string>
      */
+    // Libellés destinés aux messages affichés aux utilisateurs.
     private const STATUS_LABELS = [
         AccessRequest::STATUS_EN_ATTENTE_RH => 'En attente RH',
         AccessRequest::STATUS_EN_ATTENTE_VALIDATION => 'En attente validations services',
@@ -44,6 +51,7 @@ class WorkflowBlockageHelper
         'refusee_dsi' => 'Refusee par DSI',
     ];
 
+    // Ces étapes n'attendent pas un service unique et ne doivent donc jamais être bloquées ici.
     private const NEUTRAL_WAITING_STATUSES = [
         AccessRequest::STATUS_EN_ATTENTE_VALIDATION,
         AccessRequest::STATUS_EN_ATTENTE_TRAITEMENT,
@@ -57,6 +65,7 @@ class WorkflowBlockageHelper
 
     public function canUnblockByRh(AccessRequest $request, User $user): bool
     {
+        // Seul RH peut débloquer une demande après l'absence d'un validateur.
         if (!in_array('ROLE_RH', $user->getRoles(), true)) {
             return false;
         }
@@ -70,6 +79,7 @@ class WorkflowBlockageHelper
             return false;
         }
 
+        // Le statut "en_attente_dsi" devient le rôle attendu "ROLE_DSI".
         $code = substr($status, strlen('en_attente_'));
         if ($code === '') {
             return false;
@@ -81,6 +91,7 @@ class WorkflowBlockageHelper
             return false;
         }
 
+        // Il n'y a rien à débloquer dès qu'un utilisateur actif existe pour ce rôle.
         if ($this->hasActiveUserForWorkflowRole($blockedRole)) {
             return false;
         }
@@ -90,6 +101,7 @@ class WorkflowBlockageHelper
 
     public function resolveNextValidationStatus(AccessRequest $request, string $status): ?string
     {
+        // Priorité 1 : l'instantané conserve le workflow applicable lors de la création de la demande.
         $snapshot = $request->getWorkflowSnapshot();
         if (is_array($snapshot)) {
             foreach ($snapshot as $row) {
@@ -112,6 +124,7 @@ class WorkflowBlockageHelper
             }
         }
 
+        // Priorité 2 : la configuration actuellement active du workflow par défaut.
         $rows = $this->workflowTransitionConfigRepository->findActiveTransitionsForWorkflow(self::DEFAULT_WORKFLOW_CODE);
         foreach ($rows as $row) {
             if ($row->getAction() !== 'validate' || $row->getFromStatus() !== $status) {
@@ -124,11 +137,13 @@ class WorkflowBlockageHelper
             }
         }
 
+        // Priorité 3 : transitions codées en dur pour les anciennes demandes ou une configuration incomplète.
         return self::FALLBACK_TRANSITIONS[$status]['validate']['next'] ?? null;
     }
 
     public function isBlockedByMissingValidator(AccessRequest $request): bool
     {
+        // Une demande est bloquée uniquement lorsqu'elle attend un rôle de service précis.
         $status = (string) ($request->getStatus() ?? '');
         if (in_array($status, self::NEUTRAL_WAITING_STATUSES, true)) {
             return false;
@@ -145,11 +160,13 @@ class WorkflowBlockageHelper
 
         $blockedRole = 'ROLE_' . strtoupper($code);
 
+        // Le blocage disparaît automatiquement dès qu'un compte actif rejoint le service concerné.
         return !$this->hasActiveUserForWorkflowRole($blockedRole);
     }
 
     public function getMissingValidatorLabel(AccessRequest $request): string
     {
+        // Produit un libellé lisible pour l'alerte affichée dans le détail de la demande.
         $status = (string) ($request->getStatus() ?? '');
 
         if (isset(self::STATUS_LABELS[$status]) && str_starts_with(self::STATUS_LABELS[$status], 'En attente ')) {
@@ -168,6 +185,7 @@ class WorkflowBlockageHelper
 
     private function hasActiveUserForWorkflowRole(string $workflowRole): bool
     {
+        // Le repository fait la correspondance entre le rôle de workflow et le code du service utilisateur.
         return (bool) $this->userRepository->hasActiveUserForWorkflowRole($workflowRole);
     }
 }

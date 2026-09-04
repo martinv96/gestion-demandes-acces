@@ -15,8 +15,12 @@ use App\Repository\WorkflowTransitionConfigRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
+/**
+ * Crée une demande et ses données liées dans une seule transaction de base de données.
+ */
 final class RequestCreationService
 {
+    // Workflow appliqué aux nouvelles demandes lorsqu'une configuration active est disponible.
     private const DEFAULT_WORKFLOW_CODE = 'default_access';
 
     public function __construct(
@@ -37,6 +41,7 @@ final class RequestCreationService
         ?UploadedFile $pieceJointeFile = null,
         ?callable $failureHook = null,
     ): AccessRequest {
+        // Toute erreur annule les écritures effectuées plus bas afin d'éviter une demande incomplète.
         $connection = $this->em->getConnection();
         $connection->beginTransaction();
 
@@ -53,10 +58,12 @@ final class RequestCreationService
                 ->setUpdateDate(new \DateTimeImmutable())
                 ->setAuthor($currentUser);
 
+            // Modification et fermeture restent liées à la dernière demande de la même chaîne.
             if ($effectiveParentRequest instanceof AccessRequest) {
                 $newRequest->setParentRequest($effectiveParentRequest);
             }
 
+            // L'instantané protège une demande existante contre les changements futurs de configuration.
             $activeTransitions = $this->workflowTransitionConfigRepository->findActiveTransitionsForWorkflow(SELF::DEFAULT_WORKFLOW_CODE);
             $workflowSnapshot = array_map(
                 fn($transition): array => $this->normalizeWorkflowSnapshotRow([
@@ -70,8 +77,10 @@ final class RequestCreationService
                 $activeTransitions
             );
             $newRequest->setWorkflowSnapshot($workflowSnapshot !== [] ? $workflowSnapshot : null);
+            // Une modification ou fermeture réutilise d'abord l'agent de la demande d'origine.
             $agent = $effectiveParentRequest?->getAgent();
 
+            // Pour une nouvelle demande, évite de créer un doublon si l'agent existe déjà.
             if (!$agent instanceof Agent) {
                 $agent = $this->agentRepository->findOneByIdentity(
                     (string) $formData->getFirstname(),
@@ -104,6 +113,7 @@ final class RequestCreationService
             $newRequest->setArrivalDate($formData->getArrivalDate());
             $newRequest->setDepartureDate($formData->getDepartureDate());
 
+            // Une fermeture reprend les ressources à restituer depuis la demande d'origine.
             if ($requestType === AccessRequest::TYPE_FERMETURE) {
                 if ($effectiveParentRequest instanceof AccessRequest) {
                     foreach ($effectiveParentRequest->getRessources() as $ressource) {
@@ -122,12 +132,14 @@ final class RequestCreationService
                 }
             }
 
+            // La demande doit être gérée par Doctrine avant la création de son historique associé.
             $this->em->persist($newRequest);
 
             if ($failureHook !== null) {
                 $failureHook('after_request');
             }
 
+            // Les demandes liées conservent une copie de l'historique de la demande d'origine.
             if (
                 ($requestType === AccessRequest::TYPE_MODIFICATION || $requestType === AccessRequest::TYPE_FERMETURE) && $effectiveParentRequest instanceof AccessRequest
             ) {
@@ -146,6 +158,7 @@ final class RequestCreationService
                 }
             }
 
+            // Cette entrée marque toujours la création de la nouvelle demande dans son propre historique.
             $creationHistory = new WorkflowHistory();
             $creationHistory
                 ->setRequest($newRequest)
@@ -161,6 +174,7 @@ final class RequestCreationService
             }
 
 
+            // La pièce est renommée avant stockage pour éviter les caractères dangereux ou ambigus dans le nom.
             if ($pieceJointeFile instanceof UploadedFile) {
                 $originalFilename = pathinfo($pieceJointeFile->getClientOriginalName(), PATHINFO_FILENAME);
                 $safeFilename = transliterator_transliterate('Any-Latin; Latin-ASCII; [^A-Za-z0-9_] remove; Lower()', $originalFilename);
@@ -177,11 +191,13 @@ final class RequestCreationService
                 }
             }
 
+            // Le flush précède le commit : toutes les entités sont écrites avant de finaliser la transaction.
             $this->em->flush();
             $connection->commit();
 
             return $newRequest;
         } catch (\Throwable $e) {
+            // Nettoie l'EntityManager après rollback afin qu'il ne conserve aucune entité dans un état incertain.
             if ($connection->isTransactionActive()) {
                 $connection->rollback();
             }
@@ -196,6 +212,7 @@ final class RequestCreationService
      */
     private function normalizeWorkflowSnapshotRow(array $row): array
     {
+        // Uniformise les anciennes valeurs de configuration avant de les figer dans l'instantané de la demande.
         $row['action'] = strtolower(trim($row['action']));
         if ($row['action'] === 'rufuse') {
             $row['action'] = 'refuse';

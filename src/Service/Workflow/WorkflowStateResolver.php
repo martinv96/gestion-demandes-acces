@@ -7,14 +7,20 @@ use App\Entity\User;
 use App\Entity\WorkflowHistory;
 use App\Repository\WorkflowTransitionConfigRepository;
 
+/**
+ * Détermine les rôles, transitions et étapes actives d'une demande de workflow.
+ */
 class WorkflowStateResolver
 {
+    // Workflow utilisé lorsqu'une demande ne possède pas son propre instantané de configuration.
     public const DEFAULT_WORKFLOW_CODE = 'default_access';
+    // Rôles utilisés pour les anciennes demandes si aucune configuration parallèle n'est trouvée.
     private const PARALLEL_FALLBACK_ROLES = ['ROLE_ST', 'ROLE_DSI'];
 
     /**
      * @var array<string, array<string, array{role: string, next: string}>>
      */
+    // Transitions de secours pour les demandes créées sans configuration de workflow enregistrée.
     private const TRANSITIONS = [
         AccessRequest::STATUS_EN_ATTENTE_RH => [
             'validate' => ['role' => 'ROLE_RH', 'next' => AccessRequest::STATUS_EN_ATTENTE_VALIDATION],
@@ -40,6 +46,7 @@ class WorkflowStateResolver
 
     public function resolveTransition(AccessRequest $request, User $user, string $action): ?array
     {
+        // Ordre de priorité : validations parallèles, cycle après refus, instantané, configuration, secours.
         $status = (string) ($request->getStatus() ?? '');
 
         if ($action === 'validate' && $this->isParallelServicePhase($status)) {
@@ -90,6 +97,7 @@ class WorkflowStateResolver
 
     public function isParallelServicePhase(string $status): bool
     {
+        // Ces statuts attendent potentiellement plusieurs services avant de progresser.
         return in_array($status, [
             AccessRequest::STATUS_EN_ATTENTE_VALIDATION,
             AccessRequest::STATUS_EN_ATTENTE_ST,
@@ -102,6 +110,7 @@ class WorkflowStateResolver
      */
     public function getParallelRequiredRoles(AccessRequest $request): array
     {
+        // L'instantané garantit que les demandes existantes gardent le workflow de leur création.
         $roles = [];
         $snapshot = $request->getWorkflowSnapshot();
 
@@ -140,6 +149,7 @@ class WorkflowStateResolver
             }
         }
 
+        // Sans instantané, lit la configuration active actuelle du workflow par défaut.
         if ($roles === []) {
             $rows = $this->configRepository->findActiveTransitionsForWorkflow(self::DEFAULT_WORKFLOW_CODE);
             foreach ($rows as $row) {
@@ -168,6 +178,7 @@ class WorkflowStateResolver
             }
         }
 
+        // Dernier secours pour que les anciennes demandes restent traitables.
         if ($roles === []) {
             $roles = self::PARALLEL_FALLBACK_ROLES;
         }
@@ -177,6 +188,7 @@ class WorkflowStateResolver
 
     public function resolveParallelRoleForUser(AccessRequest $request, User $user, array $requiredRoles = []): ?string
     {
+        // Retourne le premier rôle de validation parallèle partagé avec l'utilisateur.
         $roles = $requiredRoles !== [] ? $requiredRoles : $this->getParallelRequiredRoles($request);
         $userRoles = $user->getRoles();
 
@@ -191,6 +203,7 @@ class WorkflowStateResolver
 
     public function hasRoleAlreadyValidated(AccessRequest $request, string $role): bool
     {
+        // Délègue au calcul commun afin de traiter aussi les annulations de décision.
         return in_array($role, $this->getValidatedParallelRoles($request, [$role]), true);
     }
 
@@ -285,6 +298,7 @@ class WorkflowStateResolver
      */
     public function areAllParallelRolesValidated(AccessRequest $request, array $requiredRoles): bool
     {
+        // Une demande sans rôle parallèle requis peut progresser immédiatement.
         if ($requiredRoles === []) {
             return true;
         }
@@ -296,6 +310,7 @@ class WorkflowStateResolver
 
     public function getLatestHistory(AccessRequest $request): ?WorkflowHistory
     {
+        // Parcourt tout l'historique pour trouver la dernière entrée, même si la collection n'est pas triée.
         $latestHistory = null;
 
         foreach ($request->getRequestId() as $history) {
@@ -351,6 +366,7 @@ class WorkflowStateResolver
      */
     public function getWorkflowRoles(User $user): array
     {
+        // ROLE_USER et ROLE_ADMIN sont des rôles techniques, pas des rôles d'étape de workflow.
         $roles = array_filter(
             $user->getRoles(),
             static fn(string $role): bool => str_starts_with($role, 'ROLE_')
@@ -362,6 +378,7 @@ class WorkflowStateResolver
 
     public function shareWorkflowActor(User $currentUser, User $latestUser): bool
     {
+        // Deux utilisateurs représentent le même acteur métier s'ils partagent un rôle de workflow.
         $currentRoles = $this->getWorkflowRoles($currentUser);
         $latestRoles = $this->getWorkflowRoles($latestUser);
 
@@ -378,11 +395,13 @@ class WorkflowStateResolver
      */
     public function getNextValidatorRoles(AccessRequest $request): array
     {
+        // Une demande traitée ou refusée n'a plus de prochain validateur à notifier.
         $status = (string) ($request->getStatus() ?? '');
         if ($status === '' || $status === AccessRequest::STATUS_TRAITEE || str_starts_with($status, 'refusee_')) {
             return [];
         }
 
+        // En phase parallèle, seuls les services qui n'ont pas encore validé sont notifiés.
         if ($status === AccessRequest::STATUS_EN_ATTENTE_VALIDATION) {
             $parallelRoles = $this->getParallelRequiredRoles($request);
             if ($parallelRoles === []) {
@@ -394,6 +413,7 @@ class WorkflowStateResolver
             return array_values(array_diff($parallelRoles, $validatedRoles));
         }
 
+        // Hors phase parallèle, applique la même priorité instantané, configuration puis secours.
         $roles = [];
         $snapshot = $request->getWorkflowSnapshot();
         if (is_array($snapshot)) {
@@ -553,6 +573,7 @@ class WorkflowStateResolver
 
     private function extractRoleCode(string $role): string
     {
+        // ROLE_DSI devient dsi afin de composer les statuts comme refusee_dsi.
         $code = strtolower(preg_replace('/^ROLE_/', '', strtoupper($role)) ?? '');
 
         return $code !== '' ? $code : 'service';
@@ -602,6 +623,7 @@ class WorkflowStateResolver
 
     private function isInformationUpdateEntry(WorkflowHistory $history): bool
     {
+        // Les simples modifications d'informations ne comptent pas comme une validation de workflow.
         $comment = (string) ($history->getCommentary() ?? '');
 
         return str_starts_with($comment, 'Modification des informations :');
@@ -609,6 +631,7 @@ class WorkflowStateResolver
 
     private function isMoreRecentHistory(WorkflowHistory $candidate, WorkflowHistory $reference): bool
     {
+        // L'identifiant départage deux entrées enregistrées à la même seconde.
         $candidateTimestamp = $candidate->getDate()?->getTimestamp() ?? 0;
         $referenceTimestamp = $reference->getDate()?->getTimestamp() ?? 0;
 

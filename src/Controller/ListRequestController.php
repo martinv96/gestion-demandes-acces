@@ -10,7 +10,6 @@ use App\Repository\RessourceRepository;
 use App\Repository\RequestRepository;
 use App\Repository\ServiceRepository;
 use App\Repository\PrivateCommentRepository;
-use App\Service\RequestExportSpreadsheetService;
 use App\Service\RequestUpdateInfoService;
 use App\Service\WorkflowService;
 use App\Security\Voter\RequestVoter;
@@ -21,16 +20,18 @@ use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\OptimisticLockException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request as HttpRequest;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 
 
 
+/**
+ * Regroupe les pages de consultation des demandes et les actions du workflow.
+ * Les actions autonomes de fermeture, export, suppression et notes privées ont été déplacées
+ * dans des contrôleurs dédiés afin de garder ce contrôleur centré sur la liste et le détail.
+ */
 final class ListRequestController extends AbstractController
 {
     // route pour afficher la liste des demandes
@@ -39,7 +40,7 @@ final class ListRequestController extends AbstractController
     #[Route('/list/request', name: 'app_list_request', methods: ['GET'])]
     public function index(RequestRepository $requestRepository, ServiceRepository $serviceRepository, HttpRequest $httpRequest): Response
     {
-
+        // Pagination de la liste principale : 15 demandes affichées par page.
         $limit = 15;
         $page = $httpRequest->query->getInt('page', 1);
         if ($page < 1) $page = 1;
@@ -61,7 +62,7 @@ final class ListRequestController extends AbstractController
         $departureDate = (string) $httpRequest->query->get('departureDate', '');
         $agent         = trim((string) $httpRequest->query->get('agent', ''));
 
-        // Tri
+        // Le tri vient de l'URL : seules les colonnes et directions listées ci-dessous sont acceptées.
         $sort = (string) $httpRequest->query->get('sort', 'creationDate');
         $direction = strtoupper((string) $httpRequest->query->get('direction', 'DESC'));
 
@@ -76,6 +77,7 @@ final class ListRequestController extends AbstractController
             $sort = 'creationDate';
         }
 
+        // Seules les valeurs validées sont transmises au repository pour construire la requête SQL.
         $filters = [];
 
         if ($status !== '' && in_array($status, $allowedStatuses, true)) {
@@ -125,6 +127,7 @@ final class ListRequestController extends AbstractController
         $pagesCount          = max(1, (int) ceil($totalWithFilters / $limit));
 
 
+        // La vue reçoit à la fois les résultats, les choix de filtre et les données de pagination.
         return $this->render('list_request/index.html.twig', [
             'requests'            => $requests,
             'services'            => $services,
@@ -160,6 +163,8 @@ final class ListRequestController extends AbstractController
         ServiceRepository $serviceRepository,
         PrivateCommentRepository $privateCommentRepository
     ): Response {
+        // Cette action prépare toutes les données nécessaires à la page de détail Twig.
+        // Les changements d'état restent dans les actions POST plus bas dans ce contrôleur.
         $canEditRequestInfo = $this->isGranted(RequestVoter::EDIT_INFO, $requestEntity);
         $canUndo = $this->isGranted(RequestVoter::UNDO, $requestEntity);
         $canUnblock = $this->isGranted(RequestVoter::UNBLOCK, $requestEntity);
@@ -172,14 +177,17 @@ final class ListRequestController extends AbstractController
         $closureReturnedMateriels = [];
         $closureUntrackedMateriels = [];
 
+        // Les listes de restitution sont filtrées selon le service de l'utilisateur connecté.
         $currentUser = $this->getUser();
 
         if ($requestEntity->getType() === AccessRequest::TYPE_FERMETURE && $requestEntity->getParentRequest() instanceof AccessRequest) {
+            // Une fermeture compare ses ressources avec celles de la demande d'origine.
             $parentMateriels = array_values(array_filter(
                 $requestEntity->getParentRequest()->getRessources()->toArray(),
                 static fn($r) => $r instanceof Ressource && $r->getCategory() === 'materiel'
             ));
 
+            // Les matériels encore liés à la fermeture sont ceux qui restent à restituer.
             $pendingIds = [];
             foreach ($requestEntity->getRessources() as $r) {
                 if ($r->getCategory() === 'materiel' && $r->getId() !== null) {
@@ -192,6 +200,7 @@ final class ListRequestController extends AbstractController
                     continue;
                 }
 
+                // Les matériels visibles sont séparés en "à remettre" et "déjà remis" pour Twig.
                 $closureTrackedMateriels[] = $materiel;
                 if ($materiel->getId() !== null && in_array($materiel->getId(), $pendingIds, true)) {
                     $closurePendingMateriels[] = $materiel;
@@ -200,6 +209,7 @@ final class ListRequestController extends AbstractController
                 }
             }
 
+            // Les matériels actifs non liés à cette fermeture sont affichés comme non concernés.
             $trackedIds = array_values(array_filter(array_map(static fn($m) => $m->getId(), $closureTrackedMateriels)));
             foreach ($allMateriels as $materiel) {
                 if ($currentUser instanceof User && !$this->canViewClosureMaterial($materiel, $currentUser)) {
@@ -212,10 +222,12 @@ final class ListRequestController extends AbstractController
             }
         }
 
+        // Un matériel ne peut être basculé qu'avant la clôture définitive de la demande.
         $canMarkReturned = $requestEntity->getType() === AccessRequest::TYPE_FERMETURE
             && $requestEntity->getStatus() !== AccessRequest::STATUS_TRAITEE;
         $canFinalizeClosure = $workflowService->canFinalizeClosureByAnyUser($requestEntity);
 
+        // Ces tableaux évitent de recalculer les droits pour chaque ligne dans le template.
         $closureManageableMaterielIds = [];
         $closureOwnerById = [];
 
@@ -239,7 +251,7 @@ final class ListRequestController extends AbstractController
             }
         }
 
-        // Calcul si l'utilisateur courant a déjà validé la demande
+        // Un utilisateur ayant déjà validé ne peut pas modifier les informations dans le même cycle.
         $currentUserHasValidated = false;
         if ($currentUser instanceof User) {
             foreach ($requestEntity->getRequestId() as $history) {
@@ -270,7 +282,7 @@ final class ListRequestController extends AbstractController
             ? $workflowService->isInfoEditLocked($requestEntity, $currentUser)
             : false;
 
-        // construction dynamique des étapes du workflow pour l'admin
+        // Construction dynamique des étapes affichées dans l'historique du workflow.
         $workflowSteps = [];
         // Récupère tous les rôles/services qui doivent valider cette demande
         $requiredRoles = $workflowStateResolver->getParallelRequiredRoles($requestEntity);
@@ -304,6 +316,7 @@ final class ListRequestController extends AbstractController
             ? $privateCommentRepository->findBy(['request' => $requestEntity, 'targetService' => 'DSI'], ['createdAt' => 'DESC'])
             : [];
 
+        // Toutes ces clés sont utilisées par templates/list_request/show.html.twig.
         return $this->render('list_request/show.html.twig', [
             'requestEntity' => $requestEntity,
 
@@ -346,49 +359,9 @@ final class ListRequestController extends AbstractController
         ]);
     }
 
-    #[Route('/request/{id}/private-comment-dsi/add', name: 'app_request_add_private_comment_dsi', methods: ['POST'], requirements: ['id' => '\d+'])]
-public function addPrivateCommentDsi(
-    AccessRequest $requestEntity,
-    HttpRequest $httpRequest,
-    EntityManagerInterface $entityManager
-): Response {
-    $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
-
-    if (!$this->isGranted('ROLE_DSI') && !$this->isGranted('ROLE_ADMIN')) {
-        throw $this->createAccessDeniedException('Seule le service informatique a accès à ces notes privées.');
-    }
-
-    $currentUser = $this->getUser();
-    if (!$currentUser instanceof User) {
-        throw $this->createAccessDeniedException();
-    }
-
-    if (!$this->isCsrfTokenValid('add_private_comment_dsi_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
-        $this->addFlash('danger', 'Token CSRF invalide.');
-        return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-    }
-
-    // Doit correspondre au name="..." du textarea Twig
-    $content = trim((string) $httpRequest->request->get('private_comment_dsi', ''));
-    
-    if ($content !== '') {
-        $comment = new \App\Entity\PrivateComment();
-        $comment->setContent($content);
-        $comment->setAuthor($currentUser);
-        $comment->setRequest($requestEntity);
-        $comment->setTargetService('DSI');
-
-        $entityManager->persist($comment);
-        $entityManager->flush();
-
-        $this->addFlash('success', 'Note privée ajoutée.');
-    }
-
-    return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-}
-
     private function resolveClosureOwnerRole(Ressource $ressource): string
     {
+        // Attribution historique par nom de matériel. A remplacer par un champ métier sur Ressource.
         $name = mb_strtolower((string) ($ressource->getName() ?? ''));
 
         $isDsiMaterial = str_contains($name, 'ordinateur')
@@ -422,6 +395,7 @@ public function addPrivateCommentDsi(
 
     private function canViewClosureMaterial(Ressource $ressource, User $user): bool
     {
+        // RH et admin peuvent tout consulter ; ST et DSI ne voient que leur périmètre matériel.
         $viewerRole = $this->getWorkflowRoleFromUserService($user);
         if ($viewerRole === null) {
             return $this->isGranted('ROLE_ADMIN');
@@ -439,6 +413,7 @@ public function addPrivateCommentDsi(
     #[Route('/request/{id}/validate', name: 'app_request_validate', methods: ['POST'], requirements: ['id' => '\\d+'])]
     public function validate(AccessRequest $requestEntity, HttpRequest $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
     {
+        // Valide une étape habituelle ou finalise une fermeture lorsque tous les matériels sont remis.
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
         $user = $this->getUser();
@@ -446,6 +421,7 @@ public function addPrivateCommentDsi(
             throw $this->createAccessDeniedException();
         }
 
+        // Les fermetures n'utilisent pas le voter classique : elles sont finalisables par tout utilisateur autorisé.
         $canFinalizeClosure = $workflowService->canFinalizeClosureByAnyUser($requestEntity);
 
         if (!$this->isGranted(RequestVoter::VALIDATE, $requestEntity) && !$canFinalizeClosure) {
@@ -499,6 +475,7 @@ public function addPrivateCommentDsi(
     #[Route('/request/{id}/undo-decision', name: 'app_request_undo_decision', methods: ['POST'], requirements: ['id' => '\\d+'])]
     public function undoDecision(AccessRequest $requestEntity, HttpRequest $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
     {
+        // Annule la dernière décision globale du workflow quand le voter l'autorise.
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
         $user = $this->getUser();
@@ -553,6 +530,7 @@ public function addPrivateCommentDsi(
         WorkflowService $workflowService,
         EntityManagerInterface $entityManager
     ): Response {
+        // Variante d'annulation limitée à un rôle de validation précis.
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
         $user = $this->getUser();
@@ -607,6 +585,7 @@ public function addPrivateCommentDsi(
     #[Route('/request/{id}/refuse', name: 'app_request_refuse', methods: ['POST'], requirements: ['id' => '\\d+'])]
     public function refuse(AccessRequest $requestEntity, HttpRequest $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
     {
+        // Refuse la demande à l'étape attribuée à l'utilisateur connecté.
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
         $user = $this->getUser();
@@ -666,6 +645,7 @@ public function addPrivateCommentDsi(
         WorkflowService $workflowService,
         MessageBusInterface $messageBus
     ): Response {
+        // Met à jour les informations saisies après un refus ou durant une phase autorisée du workflow.
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
         $user = $this->getUser();
@@ -709,6 +689,7 @@ public function addPrivateCommentDsi(
             return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
         }
 
+        // Le service valide et applique les champs ; le contrôleur ne fait que lire la requête HTTP.
         try {
             $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
         } catch (OptimisticLockException) {
@@ -757,6 +738,7 @@ public function addPrivateCommentDsi(
 
     private function addRequestFlash(HttpRequest $httpRequest, string $type, string $message): void
     {
+        // Certaines requêtes de test ou AJAX n'ont pas de session : dans ce cas aucun flash n'est ajouté.
         if (!$httpRequest->hasSession()) {
             return;
         }
@@ -769,140 +751,9 @@ public function addPrivateCommentDsi(
         $session->getFlashBag()->add($type, $message);
     }
 
-    #[Route('/request/{id}/mark-returned/{ressourceId}', name: 'app_request_mark_returned', methods: ['POST'], requirements: ['id' => '\\d+', 'ressourceId' => '\\d+'])]
-    public function markReturned(
-        AccessRequest $requestEntity,
-        int $ressourceId,
-        HttpRequest $httpRequest,
-        EntityManagerInterface $entityManager,
-        WorkflowService $workflowService,
-        MessageBusInterface $messageBus
-    ): Response {
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
-
-        $user = $this->getUser();
-        if (!$user instanceof User) {
-            throw $this->createAccessDeniedException();
-        }
-
-        $isAjax = $httpRequest->isXmlHttpRequest();
-
-        if ($requestEntity->getType() !== AccessRequest::TYPE_FERMETURE) {
-            if ($isAjax) {
-                return new JsonResponse(['ok' => false, 'message' => 'Action disponible uniquement pour une demande de fermeture.'], Response::HTTP_BAD_REQUEST);
-            }
-            $this->addRequestFlash($httpRequest, 'warning', 'Action disponible uniquement pour une demande de fermeture.');
-            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-        }
-
-        if ($requestEntity->getStatus() === AccessRequest::STATUS_TRAITEE) {
-            if ($isAjax) {
-                return new JsonResponse(['ok' => false, 'message' => 'Cette demande est déjà traitée.'], Response::HTTP_CONFLICT);
-            }
-            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande est déjà traitée.');
-            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-        }
-
-        if (!$this->isCsrfTokenValid('mark_returned_' . $requestEntity->getId() . '_' . $ressourceId, (string) $httpRequest->request->get('_token'))) {
-            if ($isAjax) {
-                return new JsonResponse(['ok' => false, 'message' => 'Token de sécurité invalide.'], Response::HTTP_FORBIDDEN);
-            }
-            $this->addRequestFlash($httpRequest, 'danger', 'Token de sécurité invalide.');
-            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-        }
-
-        $submittedVersion = (int) $httpRequest->request->get('version', 0);
-        if ($submittedVersion <= 0) {
-            if ($isAjax) {
-                return new JsonResponse(['ok' => false, 'message' => 'Version de la demande invalide.'], Response::HTTP_BAD_REQUEST);
-            }
-            $this->addRequestFlash($httpRequest, 'danger', 'Version de la demande invalide.');
-            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-        }
-
-        try {
-            $entityManager->lock($requestEntity, LockMode::OPTIMISTIC, $submittedVersion);
-        } catch (OptimisticLockException) {
-            if ($isAjax) {
-                return new JsonResponse(['ok' => false, 'message' => 'Cette demande a été modifiée entre-temps. Rechargez la page puis réessayez.'], Response::HTTP_CONFLICT);
-            }
-            $this->addRequestFlash($httpRequest, 'warning', 'Cette demande a été modifiée entre-temps. Rechargez la page puis réessayez.');
-            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-        }
-
-        /** @var Ressource|null $ressource */
-        $ressource = $entityManager->getRepository(Ressource::class)->find($ressourceId);
-        if (!$ressource instanceof Ressource || $ressource->getCategory() !== 'materiel') {
-            if ($isAjax) {
-                return new JsonResponse(['ok' => false, 'message' => 'Matériel introuvable.'], Response::HTTP_NOT_FOUND);
-            }
-            $this->addRequestFlash($httpRequest, 'danger', 'Matériel introuvable.');
-            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-        }
-
-        if (!$this->canManageClosureMaterial($ressource, $user)) {
-            $message = 'Ce matériel ne relève pas de votre service.';
-            if ($isAjax) {
-                return new JsonResponse(['ok' => false, 'message' => $message], Response::HTTP_FORBIDDEN);
-            }
-
-            $this->addRequestFlash($httpRequest, 'danger', $message);
-
-            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-        }
-
-        $parentRequest = $requestEntity->getParentRequest();
-        $isTrackedByClosure = $parentRequest instanceof AccessRequest
-            && $parentRequest->getRessources()->contains($ressource);
-
-        if (!$isTrackedByClosure) {
-            if ($isAjax) {
-                return new JsonResponse(['ok' => false, 'message' => 'Ce matériel n\'est pas lié à la demande d\'origine.'], Response::HTTP_BAD_REQUEST);
-            }
-            $this->addRequestFlash($httpRequest, 'danger', 'Ce matériel n\'est pas lié à la demande d\'origine.');
-            return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-        }
-
-        if ($requestEntity->getRessources()->contains($ressource)) {
-            $requestEntity->removeRessource($ressource);
-            $message = 'Matériel marqué comme remis.';
-            $newStatus = 'remis';
-        } else {
-            $requestEntity->addRessource($ressource);
-            $message = 'Matériel repassé en non remis.';
-            $newStatus = 'non_remis';
-        }
-
-        $requestEntity->setUpdateDate(new \DateTimeImmutable());
-
-        if ($requestEntity->getStatus() !== AccessRequest::STATUS_EN_ATTENTE_VALIDATION) {
-            $requestEntity->setStatus(AccessRequest::STATUS_EN_ATTENTE_VALIDATION);
-        }
-
-        $canFinalizeClosureNow = $workflowService->canFinalizeClosureByAnyUser($requestEntity);
-
-        $entityManager->flush();
-
-        $messageBus->dispatch(new WorkflowNotificationMessage((int) $requestEntity->getId(), $message));
-
-        if ($isAjax) {
-            return new JsonResponse([
-                'ok' => true,
-                'message' => $message,
-                'ressourceId' => $ressourceId,
-                'newStatus' => $newStatus,
-                'version' => $requestEntity->getVersion(),
-                'canFinalizeClosure' => $canFinalizeClosureNow,
-            ]);
-        }
-
-        $this->addRequestFlash($httpRequest, 'success', $message);
-
-        return $this->redirectToRoute('app_request_show', ['id' => $requestEntity->getId()]);
-    }
-
     private function canManageClosureMaterial(Ressource $ressource, User $user): bool
     {
+        // Même règle que la visibilité, mais utilisée pour décider si le bouton peut modifier le statut.
         $viewerRole = $this->getWorkflowRoleFromUserService($user);
         if ($viewerRole === null) {
             return $this->isGranted('ROLE_ADMIN');
@@ -917,6 +768,7 @@ public function addPrivateCommentDsi(
 
     private function getWorkflowRoleFromUserService(User $user): ?string
     {
+        // Les rôles de workflow sont dérivés du code du service, par exemple "DSI" devient "ROLE_DSI".
         $serviceCode = strtoupper(trim((string) ($user->getService()?->getCode() ?? '')));
         if ($serviceCode === '') {
             return null;
@@ -925,85 +777,10 @@ public function addPrivateCommentDsi(
         return 'ROLE_' . $serviceCode;
     }
 
-    // ! route pour exporter la liste des demandes au format CSV
-    #[Route('/request/exportCsv', name: 'app_request_export_csv', methods: ['GET'])]
-    public function exportXlsx(
-        HttpRequest $httpRequest,
-        RequestExportSpreadsheetService $requestExportSpreadsheetService
-    ): Response {
-        // ! vérification que l'utilisateur est authentifié avant de permettre l'exportation de la liste des demandes
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
-
-        // Reprend la logique de filtres de ta liste
-        $allowedStatuses = array_merge(AccessRequest::WORKFLOW_STATUSES, [
-            'a_valider_rh',
-            'a_valider_st',
-            'a_valider_dsi',
-            'a_valider_fin',
-        ]);
-        $allowedTypes = AccessRequest::TYPES;
-
-        $status = (string) $httpRequest->query->get('status', '');
-        $serviceId = (string) $httpRequest->query->get('serviceId', '');
-        $type = (string) $httpRequest->query->get('type', '');
-        $arrivalDate = (string) $httpRequest->query->get('arrivalDate', '');
-        $departureDate = (string) $httpRequest->query->get('departureDate', '');
-        $agent = trim((string) $httpRequest->query->get('agent', ''));
-
-        // partie filtrage des demandes en fonction des critères de recherche fournis dans la requête HTTP
-        $filters = [];
-
-        // ! pour chaque critère de filtre (status, serviceId, type, arrivalDate, departureDate, agent), 
-        // ! on vérifie s'il est présent et valide dans la requête, 
-        // ! puis on l'ajoute au tableau de filtres qui sera utilisé pour interroger la base de données
-        if ($status !== '' && in_array($status, $allowedStatuses, true)) {
-            $filters['status'] = $status;
-        }
-
-        if ($serviceId !== '' && ctype_digit($serviceId)) {
-            $filters['serviceId'] = (int) $serviceId;
-        }
-
-        if ($type !== '' && in_array($type, $allowedTypes, true)) {
-            $filters['type'] = $type;
-        }
-
-        if ($arrivalDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $arrivalDate)) {
-            $filters['arrivalDate'] = $arrivalDate;
-        }
-
-        if ($departureDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $departureDate)) {
-            $filters['departureDate'] = $departureDate;
-        }
-
-        if ($agent !== '' && mb_strlen($agent) <= 100) {
-            $filters['agent'] = $agent;
-        }
-
-        $scope = (string) $httpRequest->query->get('scope', 'current');
-
-        $spreadsheet = $requestExportSpreadsheetService->buildSpreadsheet($filters, $scope);
-
-        $filename = sprintf('demandes_acces_%s.xlsx', (new \DateTimeImmutable())->format('Y-m-d_H\hi'));
-
-        $response = new StreamedResponse(function () use ($spreadsheet): void {
-            $writer = new Xlsx($spreadsheet);
-            $writer->setPreCalculateFormulas(false);
-            $writer->save('php://output');
-
-            $spreadsheet->disconnectWorksheets();
-        });
-
-        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
-        $response->headers->set('Cache-Control', 'max-age=0');
-
-        return $response;
-    }
-
     #[Route('/request/{id}/unblock', name: 'app_request_unblock', methods: ['POST'], requirements: ['id' => '\\d+'])]
     public function unblock(AccessRequest $requestEntity, HttpRequest $httpRequest, WorkflowService $workflowService, EntityManagerInterface $entityManager): Response
     {
+        // RH relance une demande bloquée lorsqu'un validateur est de nouveau disponible.
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
         $user = $this->getUser();
@@ -1046,6 +823,7 @@ public function addPrivateCommentDsi(
     #[Route('/my-requests', name: 'app_my_requests', methods: ['GET'])]
     public function myRequests(RequestRepository $requestRepository, HttpRequest $request, ServiceRepository $serviceRepository): Response
     {
+        // Liste paginée des demandes créées par l'utilisateur connecté.
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
         /** @var User $currentUser */
@@ -1080,87 +858,4 @@ public function addPrivateCommentDsi(
         ]);
     }
 
-    #[Route('/request/{id}/delete', name: 'app_request_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
-public function deleteRequest(
-    AccessRequest $requestEntity,
-    HttpRequest $httpRequest,
-    EntityManagerInterface $entityManager
-): Response {
-    $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
-
-    /** @var User $currentUser */
-    $currentUser = $this->getUser();
-
-    $author = $requestEntity->getAuthor();
-    
-    $isAdmin = $this->isGranted('ROLE_ADMIN');
-    $isRh = $this->isGranted('ROLE_RH');
-    $isAuthor = ($author === $currentUser);
-    
-    // On vérifie si l'auteur de la demande est un agent du service RH / a le rôle RH
-    // (Ajuste selon ton entité User : $author->getRole() ou $author->getService())
-    $authorIsRh = $author && (
-        in_array('ROLE_RH', $author->getRoles(), true) || 
-        ($author->getService() && $author->getService()->getName() === 'RH')
-    );
-
-    $canDelete = false;
-
-    if ($isAdmin) {
-        // L'admin peut toujours supprimer
-        $canDelete = true;
-    } elseif ($isRh) {
-        // Un RH peut supprimer si :
-        // 1. La demande n'est pas encore validée RH (statut 'a_valider_rh')
-        // 2. OU la demande a été créée par un membre du service RH lui-même
-        if ($requestEntity->getStatus() === 'a_valider_rh' || $authorIsRh) {
-            $canDelete = true;
-        }
-    } elseif ($isAuthor) {
-        // Un utilisateur classique peut supprimer SA demande uniquement avant validation RH
-        if ($requestEntity->getStatus() === 'a_valider_rh') {
-            $canDelete = true;
-        }
-    }
-
-    // 1. Sécurité d'accès
-    if (!$canDelete) {
-        $this->addRequestFlash($httpRequest, 'danger', 'Vous n\'avez pas les droits pour supprimer cette demande validée.');
-        $referer = $httpRequest->headers->get('referer');
-        return $referer ? $this->redirect($referer) : $this->redirectToRoute('app_my_requests');
-    }
-
-    // 2. Protection CSRF
-    if (!$this->isCsrfTokenValid('request_delete_' . $requestEntity->getId(), (string) $httpRequest->request->get('_token'))) {
-        $this->addRequestFlash($httpRequest, 'danger', 'Token de sécurité invalide.');
-        $referer = $httpRequest->headers->get('referer');
-        return $referer ? $this->redirect($referer) : $this->redirectToRoute('app_my_requests');
-    }
-
-    try {
-        foreach ($requestEntity->getRequestId()->toArray() as $history) {
-            $entityManager->remove($history);
-        }
-
-        foreach ($requestEntity->getRessources()->toArray() as $ressource) {
-            $requestEntity->removeRessource($ressource);
-        }
-
-        foreach ($requestEntity->getChildRequests()->toArray() as $childRequest) {
-            $childRequest->setParentRequest(null);
-        }
-
-        $entityManager->remove($requestEntity);
-        $entityManager->flush();
-
-        $this->addRequestFlash($httpRequest, 'success', 'La demande a bien été supprimée.');
-    } catch (ForeignKeyConstraintViolationException) {
-        $this->addRequestFlash($httpRequest, 'danger', 'Suppression impossible : des éléments liés à la demande doivent être traités avant suppression.');
-    } catch (\Throwable $e) {
-        $this->addRequestFlash($httpRequest, 'danger', 'Suppression impossible pour le moment.');
-    }
-
-    $referer = $httpRequest->headers->get('referer');
-    return $referer ? $this->redirect($referer) : $this->redirectToRoute('app_my_requests');
-}
 }

@@ -9,6 +9,9 @@ use App\Entity\User;
 use App\Entity\WorkflowHistory;
 use Doctrine\ORM\EntityManagerInterface;
 
+/**
+ * Met à jour les informations d'une demande, de son agent et de ses ressources associées.
+ */
 class RequestUpdateInfoService
 {
     public function __construct(private EntityManagerInterface $entityManager)
@@ -36,6 +39,7 @@ class RequestUpdateInfoService
      */
     public function update(AccessRequest $requestEntity, array $payload, ?User $actor = null): void
     {
+        // Le type est contrôlé avant toute modification afin de conserver un workflow valide.
         $type = (string) ($payload['type'] ?? $requestEntity->getType() ?? AccessRequest::TYPE_OUVERTURE);
         if (!in_array($type, AccessRequest::TYPES, true)) {
             throw new \InvalidArgumentException('Type de demande invalide.');
@@ -44,6 +48,7 @@ class RequestUpdateInfoService
         $requestEntity->setType($type);
         $requestEntity->setReplaceePar(trim((string) ($payload['replacee_par'] ?? $requestEntity->getReplaceePar() ?? '')) ?: null);
 
+        // Toutes les demandes doivent être liées à un agent avant d'être modifiées.
         $agent = $requestEntity->getAgent();
         if ($agent === null) {
             throw new \LogicException('Aucun agent associé à la demande.');
@@ -65,6 +70,7 @@ class RequestUpdateInfoService
 
         $agent->setEmail($rawEmail !== '' ? mb_strtolower($rawEmail) : null);
 
+        // Le changement de service est facultatif, mais l'identifiant fourni doit exister.
         $serviceId = (int) ($payload['service'] ?? 0);
         if ($serviceId > 0) {
             $service = $this->entityManager->getRepository(Service::class)->find($serviceId);
@@ -75,6 +81,7 @@ class RequestUpdateInfoService
             $agent->setService($service);
         }
 
+        // La date de départ peut être effacée ; la date d'arrivée est conservée si elle n'est pas envoyée.
         $arrivalDate = (string) ($payload['date_arrivee'] ?? '');
         if ($arrivalDate !== '') {
             $requestEntity->setArrivalDate(new \DateTime($arrivalDate));
@@ -83,6 +90,7 @@ class RequestUpdateInfoService
         $departureDate = (string) ($payload['date_depart'] ?? '');
         $requestEntity->setDepartureDate($departureDate !== '' ? new \DateTime($departureDate) : null);
 
+        // Un commentaire est ajouté à la demande et enregistré séparément dans l'historique avec son auteur.
         $newCommentary = trim((string) ($payload['commentaire'] ?? ''));
         if ($newCommentary !== '') {
             $existingCommentary = trim((string) ($requestEntity->getCommentary() ?? ''));
@@ -112,6 +120,7 @@ class RequestUpdateInfoService
             }
         }
 
+        // Les ressources sont remplacées par la sélection reçue ; la fermeture ne reçoit pas de nouvelle ressource ici.
         foreach ($requestEntity->getRessources()->toArray() as $existingResource) {
             $requestEntity->removeRessource($existingResource);
         }
@@ -130,6 +139,7 @@ class RequestUpdateInfoService
             }
         }
 
+        // La date de mise à jour reflète toute modification de l'agent, des ressources ou du commentaire.
         $requestEntity->setUpdateDate(new \DateTimeImmutable());
 
         $this->entityManager->flush();
@@ -137,6 +147,7 @@ class RequestUpdateInfoService
 
     private function findOrCreateRessource(string $name, string $category): Ressource
     {
+        // Réutilise la ressource existante par son nom, sinon crée une nouvelle ressource active.
         /** @var Ressource|null $ressource */
         $ressource = $this->entityManager->getRepository(Ressource::class)->findOneBy(['name' => $name]);
         if ($ressource instanceof Ressource) {
